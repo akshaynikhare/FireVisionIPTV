@@ -1,4 +1,4 @@
-name: Android Build and Release
+name: FireVisionIPTV - Android Build and Release
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RELEASE_ID: ${{ env.release_id }}
       run: |
-        upload_url="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=app-v${{ env.version }}.apk"
+        upload_url="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=FireVisionIPTV-v${{ env.version }}.apk"
         asset_path=./app/build/outputs/apk/release/app-release-unsigned.apk
         
         curl -X POST \
