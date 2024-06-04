@@ -32,8 +32,10 @@ jobs:
     - name: Get app version
       id: app_version
       run: |
-        version=$(./gradlew -q printVersionName)
+        version=$(grep 'versionName "' app/build.gradle | awk -F'"' '{print $2}')
+        code=$(grep 'versionCode ' app/build.gradle | awk -F' ' '{print $2}')
         echo "::set-output name=version::$version"
+        echo "::set-output name=code::$code"
         
     - name: Create Release
       id: create_release
@@ -41,8 +43,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.app_version.outputs.version }}
-        release_name: Release ${{ steps.app_version.outputs.version }}
+        tag_name: v${{ steps.app_version.outputs.version }}
+        release_name: Release v${{ steps.app_version.outputs.version }}
         draft: false
         prerelease: false
         
