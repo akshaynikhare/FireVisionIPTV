@@ -23,6 +23,7 @@ jobs:
         
     - name: Build release APK
       run: ./gradlew assembleRelease
+      
     - name: Debug APK file path
       run: ls -R app/build/outputs/apk
       
@@ -30,7 +31,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: app-release.apk
-        path: app/build/outputs/apk/release/app-release.apk
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
         
     - name: Get app version
       id: app_version
