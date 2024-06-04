@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "301594791578",
+    "project_id": "firevisioniptv",
+    "storage_bucket": "firevisioniptv.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301594791578:android:fd4c9591523d79cf6b1923",
+        "android_client_info": {
+          "package_name": "com.cadnative.firevisioniptv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv5KTEl-i-ae3kyorz2lqibpvnXX_PbiA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
