@@ -33,27 +33,35 @@ jobs:
       id: app_version
       run: |
         version=$(grep 'versionName "' app/build.gradle | awk -F'"' '{print $2}')
-        code=$(grep 'versionCode ' app/build.gradle | awk -F' ' '{print $2}')
         echo "::set-output name=version::$version"
-        echo "::set-output name=code::$code"
         
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.app_version.outputs.version }}
-        release_name: Release v${{ steps.app_version.outputs.version }}
-        draft: false
-        prerelease: false
+      run: |
+        release_name="Release v${{ steps.app_version.outputs.version }}"
+        tag_name="v${{ steps.app_version.outputs.version }}"
+        
+        response=$(curl -X POST \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{\"tag_name\":\"$tag_name\",\"name\":\"$release_name\",\"draft\":false,\"prerelease\":false}" \
+          https://api.github.com/repos/${{ github.repository }}/releases)
+        
+        upload_url=$(echo $response | jq -r '.upload_url')
+        echo "::set-output name=upload_url::$upload_url"
         
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./app/build/outputs/apk/release/app-release.apk
-        asset_name: app-v${{ steps.app_version.outputs.version }}.apk
-        asset_content_type: application/vnd.android.package-archive
+      run: |
+        upload_url=${{ steps.create_release.outputs.upload_url }}
+        asset_path=./app/build/outputs/apk/release/app-release.apk
+        asset_name=app-v${{ steps.app_version.outputs.version }}.apk
+        
+        curl -X POST \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Content-Type: application/vnd.android.package-archive" \
+          --data-binary "@$asset_path" \
+          "$upload_url?name=$asset_name"
