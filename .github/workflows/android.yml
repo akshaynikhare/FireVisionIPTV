@@ -75,7 +75,7 @@ jobs:
         RELEASE_ID: ${{ env.release_id }}
       run: |
         upload_url="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=app-v${{ env.version }}.apk"
-        asset_path=./app/build/outputs/apk/release/app-release.apk
+        asset_path=./app/build/outputs/apk/release/app-release-unsigned.apk
         
         curl -X POST \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
