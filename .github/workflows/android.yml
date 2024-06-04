@@ -52,15 +52,16 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        assets_url=${{ steps.create_release.outputs.upload_url }}
+        release_id=$(curl -s \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ env.version }} \
+          | jq -r '.id')
+        
+        upload_url="https://uploads.github.com/repos/${{ github.repository }}/releases/$release_id/assets?name=app-v${{ env.version }}.apk"
         asset_path=./app/build/outputs/apk/release/app-release.apk
-        asset_name=app-v${{ env.version }}.apk
-
-        # Strip the URL to the base for the upload
-        base_url=${assets_url%\{*}
         
         curl -X POST \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H "Content-Type: application/vnd.android.package-archive" \
           --data-binary "@$asset_path" \
-          "$base_url?name=$asset_name"
+          "$upload_url"
