@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.FireVisionIPTV" parent="@style/Theme.Leanback" />
+</resources>
