@@ -17,16 +17,17 @@
         android:name=".FirevisionApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
+        android:banner="@mipmap/ic_banner"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.FireVisionIPTV">
         <activity
             android:name=".MainActivity"
-            android:banner="@drawable/app_icon_your_company"
+            android:banner="@mipmap/ic_banner"
             android:exported="true"
-            android:icon="@drawable/app_icon_your_company"
+            android:icon="@mipmap/ic_banner"
             android:label="@string/app_name"
-            android:logo="@drawable/app_icon_your_company"
+            android:logo="@mipmap/ic_launcher"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

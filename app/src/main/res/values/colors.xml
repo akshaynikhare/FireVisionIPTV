@@ -1,6 +1,6 @@
 <resources>
-    <color name="background_gradient_start">#000000</color>
-    <color name="background_gradient_end">#DDDDDD</color>
+    <color name="background_gradient_start">#E12A2A2A</color>
+    <color name="background_gradient_end">#E16D6D6D</color>
     <color name="fastlane_background">#E12A2A2A</color>
     <color name="card_background_startColor">#E16D6D6D</color>
     <color name="card_background_endColor">#E12A2A2A</color>
