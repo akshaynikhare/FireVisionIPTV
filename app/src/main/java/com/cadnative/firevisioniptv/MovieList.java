@@ -11,8 +11,12 @@ import com.google.firebase.database.FirebaseDatabase;
 
 public final class MovieList {
 
-    private static List<Movie> list;
+    static List<Movie> list;
     private static long count = 0;
+
+    public static List<Movie> getAllMovies(AssetManager assetManager) {
+        return setupMovies(assetManager);
+    }
     public static List<Movie> setupMovies(AssetManager assetManager) {
         DatabaseReference channelsRef = FirebaseDatabase.getInstance().getReference("channels");
         list = new ArrayList<>();
@@ -24,9 +28,6 @@ public final class MovieList {
         };
 
         List<Channel> listChannel = new fileReader().readFile(assetManager);
-
-
-
 
 
         for (int index = 0; index < listChannel.size(); ++index) {

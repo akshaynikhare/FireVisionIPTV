@@ -1,13 +1,18 @@
 package com.cadnative.firevisioniptv;
 
+import static java.security.AccessController.getContext;
+
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 
 import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.Presenter;
 import androidx.core.content.ContextCompat;
 
+import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 
@@ -72,9 +77,21 @@ public class CardPresenter extends Presenter {
             cardView.setTitleText(movie.getTitle());
             cardView.setContentText(movie.getStudio());
             cardView.setMainImageDimensions(CARD_WIDTH, CARD_HEIGHT);
+
+            cardView.getMainImageView().setPadding(20, 20, 20, 20);
+            GradientDrawable gradientDrawable = new GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM, // or any other orientation
+                    new int[] {
+                            ContextCompat.getColor(viewHolder.view.getContext(), R.color.card_background_startColor),
+                            ContextCompat.getColor(viewHolder.view.getContext(), R.color.card_background_endColor)
+                    }
+            );
+            cardView.getMainImageView().setBackground(gradientDrawable); // You can replace with any color you prefer
+
+            cardView.getMainImageView().setScaleType(ImageView.ScaleType.FIT_CENTER);
             Glide.with(viewHolder.view.getContext())
                     .load(movie.getCardImageUrl())
-                    .centerCrop()
+                    .fitCenter()
                     .error(mDefaultCardImage)
                     .into(cardView.getMainImageView());
         }

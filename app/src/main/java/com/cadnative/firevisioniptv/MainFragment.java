@@ -23,9 +23,11 @@ import androidx.leanback.app.BackgroundManager;
 import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
+import androidx.leanback.widget.HorizontalGridView;
 import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
+import androidx.leanback.widget.ListRowView;
 import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
@@ -33,6 +35,7 @@ import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
+import androidx.leanback.widget.VerticalGridView;
 
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -54,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -64,8 +68,7 @@ public class MainFragment extends BrowseSupportFragment {
     private static final int BACKGROUND_UPDATE_DELAY = 300;
     private static final int GRID_ITEM_WIDTH = 200;
     private static final int GRID_ITEM_HEIGHT = 200;
-    private static final int NUM_ROWS = 6;
-    private static final int NUM_COLS =6;
+    private static final int MAX_NUM_COLS =5;
 
     private final Handler mHandler = new Handler(Looper.myLooper());
     private Drawable mDefaultBackground;
@@ -91,6 +94,11 @@ public class MainFragment extends BrowseSupportFragment {
         loadRows();
 
         setupEventListeners();
+
+
+        // Ensure rows are loaded and then select the first item
+        //  mHandler.postDelayed(() -> selectFirstItem(), 500); // delay to ensure rows are loaded
+
     }
 
     @Override
@@ -102,50 +110,21 @@ public class MainFragment extends BrowseSupportFragment {
         }
     }
 
+
+
     private void loadRows() {
 
+
         List<Movie> list = MovieList.setupMovies(assetManager);
-
-//        Collections.sort(list, new Comparator<Movie>() {
-//            @Override
-//            public int compare(Movie movie1, Movie movie2) {
-//                String group1 = movie1.getGroup() != null ? movie1.getGroup() : "other";
-//                String group2 = movie2.getGroup() != null ? movie2.getGroup() : "other";
-//
-//                // Sort "other" as the last element
-//                if (group1.equals("other") && group2.equals("other")) {
-//                    return 0; // Consider both "other" as equal
-//                } else if (group1.equals("other")) {
-//                    return 1; // Consider "other" as greater than any other value
-//                } else if (group2.equals("other")) {
-//                    return -1; // Consider "other" as less than any other value
-//                } else {
-//                    return group1.compareTo(group2); // Compare non-"other" values
-//                }
-//            }
-//        });
-
-
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
-
-//        int i;
-//        for (i = 0; i < list.size(); i=i+NUM_COLS) {
-//            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-//            for (int j = 0; j < NUM_COLS && i+j < list.size(); j++) {
-//                listRowAdapter.add(list.get(i+j));
-//            }
-//            HeaderItem header = new HeaderItem(i, list.get(i).getGroup());
-//            rowsAdapter.add(new ListRow(header, listRowAdapter));
-//        }
-
-        Map<String, List<Movie>> groupedMovies = new HashMap<>();
+        Map<String, List<Movie>> groupedMovies = new TreeMap<>();  // Using TreeMap for alphabetical sorting
 
         for (Movie movie : list) {
             String group = movie.getGroup();
-            if (group == null) {
-                group = "other";
+            if (group == null || group.isEmpty()) {
+                group = "zzz_other";  // Prefix with 'zzz_' to ensure it's last alphabetically
             }
             if (!groupedMovies.containsKey(group)) {
                 groupedMovies.put(group, new ArrayList<>());
@@ -153,15 +132,65 @@ public class MainFragment extends BrowseSupportFragment {
             groupedMovies.get(group).add(movie);
         }
 
+// Move "other" group to a separate variable and remove it from the TreeMap
+        List<Movie> otherMovies = groupedMovies.remove("zzz_other");
+
         for (Map.Entry<String, List<Movie>> entry : groupedMovies.entrySet()) {
             String group = entry.getKey();
             List<Movie> moviesInGroup = entry.getValue();
 
-            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-            listRowAdapter.addAll(0, moviesInGroup);
+            // Calculate the number of rows needed for this group
+            int numRows = (moviesInGroup.size() + MAX_NUM_COLS - 1) / MAX_NUM_COLS;
 
-            HeaderItem header = new HeaderItem(0, group);
-            rowsAdapter.add(new ListRow(header, listRowAdapter));
+            for (int i = 0; i < numRows; i++) {
+                ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+
+                // Calculate start and end indices for this row
+                int startIndex = i * MAX_NUM_COLS;
+                int endIndex = Math.min((i + 1) * MAX_NUM_COLS, moviesInGroup.size());
+
+                // Add movies to this row
+                listRowAdapter.addAll(0, moviesInGroup.subList(startIndex, endIndex));
+
+                // Create header for this row
+                String headerText = group;
+                if (numRows > 1) {
+                    int firstMovieIndex = startIndex + 1;  // Adding 1 to convert from 0-based to 1-based indexing
+                    int lastMovieIndex = endIndex;
+                    headerText += " (" + firstMovieIndex + "-" + lastMovieIndex + ")";
+                } else {
+                    headerText += " (" + moviesInGroup.size() + ")";
+                }
+
+                HeaderItem header = new HeaderItem(0, headerText);
+                rowsAdapter.add(new ListRow(header, listRowAdapter));
+            }
+        }
+
+// Now handle the "other" group if it exists
+        if (otherMovies != null && !otherMovies.isEmpty()) {
+            int numRows = (otherMovies.size() + MAX_NUM_COLS - 1) / MAX_NUM_COLS;
+
+            for (int i = 0; i < numRows; i++) {
+                ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+
+                int startIndex = i * MAX_NUM_COLS;
+                int endIndex = Math.min((i + 1) * MAX_NUM_COLS, otherMovies.size());
+
+                listRowAdapter.addAll(0, otherMovies.subList(startIndex, endIndex));
+
+                String headerText = "Other";
+                if (numRows > 1) {
+                    int firstMovieIndex = startIndex + 1;
+                    int lastMovieIndex = endIndex;
+                    headerText += " (" + firstMovieIndex + "-" + lastMovieIndex + ")";
+                } else {
+                    headerText += " (" + otherMovies.size() + ")";
+                }
+
+                HeaderItem header = new HeaderItem(0, headerText);
+                rowsAdapter.add(new ListRow(header, listRowAdapter));
+            }
         }
 
 //        HeaderItem gridHeader = new HeaderItem(i, "PREFERENCES");
@@ -174,6 +203,18 @@ public class MainFragment extends BrowseSupportFragment {
 //        rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
 
         setAdapter(rowsAdapter);
+
+        if (rowsAdapter.size() > 0) {
+            ListRow firstRow = (ListRow) rowsAdapter.get(0);
+            if (firstRow != null && firstRow.getAdapter() != null && firstRow.getAdapter().size() > 0) {
+                Object firstItem = firstRow.getAdapter().get(0);
+                if (firstItem != null) {
+                    setSelectedPosition(0); // Select the first row
+
+                }
+            }
+        }
+
     }
 
     private void prepareBackgroundManager() {
@@ -187,14 +228,12 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void setupUIElements() {
-        // setBadgeDrawable(getActivity().getResources().getDrawable(
-        // R.drawable.videos_by_google_banner));
+
         String appVersion = getAppVersion(requireContext());
         setTitle(getString(R.string.browse_title) + " (v" + appVersion + ")");
 
-        //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
-        // over title
-        setHeadersState(HEADERS_ENABLED);
+
+        setHeadersState(HEADERS_HIDDEN);
         setHeadersTransitionOnBackEnabled(true);
 
         // set fastLane (or headers) background color
@@ -216,14 +255,15 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void setupEventListeners() {
-        setOnSearchClickedListener(new View.OnClickListener() {
 
+        setOnSearchClickedListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(getActivity(), "Implement your own in-app search", Toast.LENGTH_LONG)
-                        .show();
+                Intent intent = new Intent(getActivity(), SearchActivity.class);
+                startActivity(intent);
             }
         });
+
 
         setOnItemViewClickedListener(new ItemViewClickedListener());
         setOnItemViewSelectedListener(new ItemViewSelectedListener());
@@ -254,6 +294,10 @@ public class MainFragment extends BrowseSupportFragment {
         mBackgroundTimer.schedule(new UpdateBackgroundTask(), BACKGROUND_UPDATE_DELAY);
     }
 
+    private List<Movie> loadAllMovies() {
+        return MovieList.setupMovies(FirevisionApplication.getAppContext().getAssets());
+    }
+
     private final class ItemViewClickedListener implements OnItemViewClickedListener {
         @Override
         public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
@@ -264,15 +308,6 @@ public class MainFragment extends BrowseSupportFragment {
                 Log.d(TAG, "Item: " + item.toString());
                 Intent intent = new Intent(getActivity(), PlaybackActivity.class);
                 intent.putExtra(DetailsActivity.MOVIE, movie);
-
-//                Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-//                                getActivity(),
-//                                ((ImageCardView) itemViewHolder.view).getMainImageView(),
-//                                DetailsActivity.SHARED_ELEMENT_NAME)
-//                        .toBundle();
-
-
-              // startActivity(intent);
                 getActivity().startActivity(intent);
             } else if (item instanceof String) {
                 if (((String) item).contains(getString(R.string.error_fragment))) {
@@ -335,5 +370,9 @@ public class MainFragment extends BrowseSupportFragment {
         public void onUnbindViewHolder(ViewHolder viewHolder) {
         }
     }
+
+
+
+
 
 }

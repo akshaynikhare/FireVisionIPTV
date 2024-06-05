@@ -16,4 +16,5 @@
     <!-- Error messages -->
     <string name="error_fragment_message">An error occurred</string>
     <string name="dismiss_error">Dismiss</string>
+    <string name="search_hint">Search movies...</string>
 </resources>

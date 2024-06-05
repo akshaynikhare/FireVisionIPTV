@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <searchable xmlns:android="http://schemas.android.com/apk/res/android"
-    android:label="@string/your_app_name_string_resource"
-    android:hint="@string/your_search_hint_string_resource" />
+    android:label="@string/app_name"
+    android:hint="@string/search_hint" />
