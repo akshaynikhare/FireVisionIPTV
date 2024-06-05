@@ -80,6 +80,7 @@ public class CardPresenter extends Presenter {
         }
     }
 
+
     @Override
     public void onUnbindViewHolder(Presenter.ViewHolder viewHolder) {
         Log.d(TAG, "onUnbindViewHolder");

@@ -8,6 +8,7 @@ import io.realm.RealmObject;
 public class Channel extends RealmObject implements Parcelable {
 
     private String channelName;
+    private String channelId;
     private String channelUrl;
     private String channelImg;
     private String channelGroup;
@@ -23,6 +24,14 @@ public class Channel extends RealmObject implements Parcelable {
 
     public void setChannelName(String channelName) {
         this.channelName = channelName;
+    }
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
     }
 
     public String getChannelUrl() {
@@ -109,4 +118,5 @@ public class Channel extends RealmObject implements Parcelable {
             return new Channel[i];
         }
     };
+
 }

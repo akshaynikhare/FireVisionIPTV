@@ -1,11 +1,21 @@
 package com.cadnative.firevisioniptv;
 
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.Fragment;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,10 +46,17 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 
 public class MainFragment extends BrowseSupportFragment {
     private static final String TAG = "MainFragment";
@@ -57,9 +74,14 @@ public class MainFragment extends BrowseSupportFragment {
     private String mBackgroundUri;
     private BackgroundManager mBackgroundManager;
 
+    private AssetManager assetManager;
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
+
+        assetManager = getContext().getAssets();
+
         super.onActivityCreated(savedInstanceState);
 
         prepareBackgroundManager();
@@ -81,34 +103,75 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void loadRows() {
-        Log.d(TAG, "1111");
-       List<Movie> list = MovieList.setupMovies();
+
+        List<Movie> list = MovieList.setupMovies(assetManager);
+
+//        Collections.sort(list, new Comparator<Movie>() {
+//            @Override
+//            public int compare(Movie movie1, Movie movie2) {
+//                String group1 = movie1.getGroup() != null ? movie1.getGroup() : "other";
+//                String group2 = movie2.getGroup() != null ? movie2.getGroup() : "other";
 //
+//                // Sort "other" as the last element
+//                if (group1.equals("other") && group2.equals("other")) {
+//                    return 0; // Consider both "other" as equal
+//                } else if (group1.equals("other")) {
+//                    return 1; // Consider "other" as greater than any other value
+//                } else if (group2.equals("other")) {
+//                    return -1; // Consider "other" as less than any other value
+//                } else {
+//                    return group1.compareTo(group2); // Compare non-"other" values
+//                }
+//            }
+//        });
+
+
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
 
-        int i;
-        for (i = 0; i < list.size(); i=i+NUM_COLS) {
-//            if (i != 0) {
-//                Collections.shuffle(list);
+//        int i;
+//        for (i = 0; i < list.size(); i=i+NUM_COLS) {
+//            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+//            for (int j = 0; j < NUM_COLS && i+j < list.size(); j++) {
+//                listRowAdapter.add(list.get(i+j));
 //            }
-            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-            for (int j = 0; j < NUM_COLS && i+j < list.size(); j++) {
-                listRowAdapter.add(list.get(i+j));
+//            HeaderItem header = new HeaderItem(i, list.get(i).getGroup());
+//            rowsAdapter.add(new ListRow(header, listRowAdapter));
+//        }
+
+        Map<String, List<Movie>> groupedMovies = new HashMap<>();
+
+        for (Movie movie : list) {
+            String group = movie.getGroup();
+            if (group == null) {
+                group = "other";
             }
-            HeaderItem header = new HeaderItem(i, MovieList.MOVIE_CATEGORY[1]);
+            if (!groupedMovies.containsKey(group)) {
+                groupedMovies.put(group, new ArrayList<>());
+            }
+            groupedMovies.get(group).add(movie);
+        }
+
+        for (Map.Entry<String, List<Movie>> entry : groupedMovies.entrySet()) {
+            String group = entry.getKey();
+            List<Movie> moviesInGroup = entry.getValue();
+
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+            listRowAdapter.addAll(0, moviesInGroup);
+
+            HeaderItem header = new HeaderItem(0, group);
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
-        HeaderItem gridHeader = new HeaderItem(i, "PREFERENCES");
-
-        GridItemPresenter mGridPresenter = new GridItemPresenter();
-        ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
-        gridRowAdapter.add(getResources().getString(R.string.grid_view));
-        gridRowAdapter.add(getString(R.string.error_fragment));
-        gridRowAdapter.add(getResources().getString(R.string.personal_settings));
-        rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
+//        HeaderItem gridHeader = new HeaderItem(i, "PREFERENCES");
+//
+//        GridItemPresenter mGridPresenter = new GridItemPresenter();
+//        ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
+//        gridRowAdapter.add(getResources().getString(R.string.grid_view));
+//        gridRowAdapter.add(getString(R.string.error_fragment));
+//        gridRowAdapter.add(getResources().getString(R.string.personal_settings));
+//        rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
 
         setAdapter(rowsAdapter);
     }
@@ -126,7 +189,10 @@ public class MainFragment extends BrowseSupportFragment {
     private void setupUIElements() {
         // setBadgeDrawable(getActivity().getResources().getDrawable(
         // R.drawable.videos_by_google_banner));
-        setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
+        String appVersion = getAppVersion(requireContext());
+        setTitle(getString(R.string.browse_title) + " (v" + appVersion + ")");
+
+        //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
         // over title
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
@@ -136,6 +202,17 @@ public class MainFragment extends BrowseSupportFragment {
         // set search icon color
         setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.search_opaque));
 
+    }
+
+
+    private String getAppVersion(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            // Handle exception
+            return "Unknown";
+        }
     }
 
     private void setupEventListeners() {

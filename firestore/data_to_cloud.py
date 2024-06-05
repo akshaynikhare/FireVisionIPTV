@@ -6,17 +6,17 @@ from git import Repo
 
 repo_path = "database-repo"
 
-# Clone the GitHub repository
-repo_url = "https://github.com/iptv-org/database.git"
-if os.path.exists(repo_path):
-    # Delete the existing repository directory
-    import shutil
-    shutil.rmtree(repo_path)
+# # Clone the GitHub repository
+# repo_url = "https://github.com/iptv-org/database.git"
+# if os.path.exists(repo_path):
+#     # Delete the existing repository directory
+#     import shutil
+#     shutil.rmtree(repo_path)
 
-# Clone the repository
-print("Cloning the GitHub repository...")
-repo = Repo.clone_from(repo_url, repo_path)
-print("Repository cloned successfully!")
+# # Clone the repository
+# print("Cloning the GitHub repository...")
+# repo = Repo.clone_from(repo_url, repo_path)
+# print("Repository cloned successfully!")
 
 
 # Initialize the Firestore client
@@ -32,30 +32,30 @@ db = firestore.client()
 # Function to process the CSV data and upload to Firestore
 def upload_data_to_firestore():
     # Upload countries
-    csv_file = os.path.join(repo_path, "data/countries.csv")
-    with open(csv_file, 'r') as file:
-        lines = file.readlines()
-        header = lines[0].strip().split(',')
+    # csv_file = os.path.join(repo_path, "data/countries.csv")
+    # with open(csv_file, 'r') as file:
+    #     lines = file.readlines()
+    #     header = lines[0].strip().split(',')
 
-        for i, line in enumerate(lines[1:]):
-            country_data = line.strip().split(',')
-            country_dict = {header[j]: country_data[j] for j in range(len(header))}
-            doc_ref = db.collection('countries').document(country_dict['code'])
-            doc_ref.set(country_dict)
-            print(f"Uploaded data for {country_dict['name']} ({country_dict['code']})")
+    #     for i, line in enumerate(lines[1:]):
+    #         country_data = line.strip().split(',')
+    #         country_dict = {header[j]: country_data[j] for j in range(len(header))}
+    #         doc_ref = db.collection('countries').document(country_dict['code'])
+    #         doc_ref.set(country_dict)
+    #         print(f"Uploaded data for {country_dict['name']} ({country_dict['code']})")
 
-    # Upload categories
-    csv_file = os.path.join(repo_path, "data/categories.csv")
-    with open(csv_file, 'r') as file:
-        lines = file.readlines()
-        header = lines[0].strip().split(',')
+    # # Upload categories
+    # csv_file = os.path.join(repo_path, "data/categories.csv")
+    # with open(csv_file, 'r') as file:
+    #     lines = file.readlines()
+    #     header = lines[0].strip().split(',')
 
-        for i, line in enumerate(lines[1:]):
-            category_data = line.strip().split(',')
-            category_dict = {header[j]: category_data[j] for j in range(len(header))}
-            doc_ref = db.collection('categories').document(category_dict['id'])
-            doc_ref.set(category_dict)
-            print(f"Uploaded category: {category_dict['name']}")
+    #     for i, line in enumerate(lines[1:]):
+    #         category_data = line.strip().split(',')
+    #         category_dict = {header[j]: category_data[j] for j in range(len(header))}
+    #         doc_ref = db.collection('categories').document(category_dict['id'])
+    #         doc_ref.set(category_dict)
+    #         print(f"Uploaded category: {category_dict['name']}")
 
     # Upload channels
     csv_file = os.path.join(repo_path, "data/channels.csv")
@@ -113,5 +113,5 @@ def upload_data_to_firestore():
 # Call the function to upload the data
 
 
-print("uploading countries")
+
 upload_data_to_firestore()

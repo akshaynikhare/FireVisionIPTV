@@ -12,7 +12,7 @@ android {
         minSdk 28
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName "1.1"
 
     }
 
@@ -36,4 +36,9 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.firebase:firebase-firestore-ktx'
+    // Import the BoM for the Firebase platform
+    implementation("com.google.firebase:firebase-firestore")
+    implementation libs.androidx.appcompat
+    implementation libs.firebase.firestore
 }

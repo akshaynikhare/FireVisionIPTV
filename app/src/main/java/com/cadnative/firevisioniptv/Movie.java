@@ -10,6 +10,8 @@ public class Movie implements Serializable {
     private long id;
     private String title;
     private String description;
+    private String group;
+
     private String bgImageUrl;
     private String cardImageUrl;
     private String videoUrl;
@@ -40,6 +42,14 @@ public class Movie implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 
     public String getStudio() {
