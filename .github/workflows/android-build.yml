@@ -1,0 +1,84 @@
+name: FireVisionIPTV - Android Build and Release
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+        
+    - name: Build release APK
+      run: ./gradlew assembleRelease
+      
+    - name: Debug APK file path
+      run: ls -R app/build/outputs/apk
+      
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: app-release.apk
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        
+    - name: Get app version
+      id: app_version
+      run: |
+        version=$(grep 'versionName "' app/build.gradle | awk -F'"' '{print $2}')
+        echo "version=$version" >> $GITHUB_ENV
+        echo "VERSION: $version"
+        
+    - name: Check if Release Exists
+      id: check_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ env.version }})
+        release_id=$(echo $response | jq -r '.id')
+        if [ "$release_id" == "null" ]; then
+          echo "release_exists=false" >> $GITHUB_ENV
+        else
+          echo "release_exists=true" >> $GITHUB_ENV
+          echo "release_id=$release_id" >> $GITHUB_ENV
+        fi
+
+    - name: Create or Update Release
+      id: create_or_update_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_EXISTS: ${{ env.release_exists }}
+        RELEASE_ID: ${{ env.release_id }}
+      run: |
+        if [ "$RELEASE_EXISTS" == "false" ]; then
+          response=$(curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" -d "{\"tag_name\":\"v${{ env.version }}\",\"name\":\"Release v${{ env.version }}\",\"draft\":false,\"prerelease\":false}" https://api.github.com/repos/${{ github.repository }}/releases)
+          release_id=$(echo $response | jq -r '.id')
+          echo "release_id=$release_id" >> $GITHUB_ENV
+        else
+          echo "Release already exists with ID $RELEASE_ID"
+        fi
+        
+    - name: Upload Release Asset
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_ID: ${{ env.release_id }}
+      run: |
+        upload_url="https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=FireVisionIPTV-v${{ env.version }}.apk"
+        asset_path=./app/build/outputs/apk/release/app-release-unsigned.apk
+        
+        curl -X POST \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Content-Type: application/vnd.android.package-archive" \
+          --data-binary "@$asset_path" \
+          "$upload_url"
