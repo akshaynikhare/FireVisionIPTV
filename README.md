@@ -4,9 +4,12 @@ FireVisionIPTV is a free IPTV application for Amazon Fire TV devices. It allows 
 
 ### Images
 
+<img src="/preview/preview.gif" alt="Preview GIF" width="800px">
+
 <img src="/preview/preview1.jpg" alt="Preview 1" width="200" height="150"> <img src="/preview/preview2.jpg" alt="Preview 2" width="200" height="150"> <img src="/preview/preview3.jpg" alt="Preview 3" width="200" height="150"> <img src="/preview/preview4.jpg" alt="Preview 4" width="200" height="150">
 
-[preview gif](/preview/preview.gif)
+
+
 
 
 ## Features
