@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentActivity;
 
 /**
  * Loads {@link PlaybackVideoFragment} and handles key events for channel navigation.
+ * Now supports overlay channel browser for better UX.
  */
 public class PlaybackActivity extends FragmentActivity {
 
@@ -15,33 +16,25 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_playback);
+
         if (savedInstanceState == null) {
             mPlaybackVideoFragment = new PlaybackVideoFragment();
             getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(android.R.id.content, mPlaybackVideoFragment)
+                    .replace(R.id.playback_fragment_container, mPlaybackVideoFragment)
                     .commit();
         } else {
             mPlaybackVideoFragment = (PlaybackVideoFragment) getSupportFragmentManager()
-                    .findFragmentById(android.R.id.content);
+                    .findFragmentById(R.id.playback_fragment_container);
         }
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (mPlaybackVideoFragment != null) {
-            switch (keyCode) {
-                case KeyEvent.KEYCODE_CHANNEL_UP:
-                case KeyEvent.KEYCODE_MEDIA_NEXT:
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    mPlaybackVideoFragment.nextChannel();
-                    return true;
-                case KeyEvent.KEYCODE_CHANNEL_DOWN:
-                case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    mPlaybackVideoFragment.previousChannel();
-                    return true;
-            }
+        // First, let the fragment handle the key event (for overlay)
+        if (mPlaybackVideoFragment != null && mPlaybackVideoFragment.onKeyDown(keyCode, event)) {
+            return true;
         }
         return super.onKeyDown(keyCode, event);
     }

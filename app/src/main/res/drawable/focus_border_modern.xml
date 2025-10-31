@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer bright glow -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="3dp"
+                android:color="#FF2E5BFF" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <!-- Middle glow layer -->
+    <item android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2dp"
+                android:color="#FF5B8DEE" />
+            <corners android:radius="11dp" />
+        </shape>
+    </item>
+    <!-- Inner sharp border -->
+    <item android:top="3dp" android:bottom="3dp" android:left="3dp" android:right="3dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#FFFFFFFF" />
+            <corners android:radius="9dp" />
+        </shape>
+    </item>
+</layer-list>

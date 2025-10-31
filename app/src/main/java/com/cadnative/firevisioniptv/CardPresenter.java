@@ -1,109 +1,131 @@
 package com.cadnative.firevisioniptv;
 
-import static java.security.AccessController.getContext;
-
-import android.graphics.Color;
+import android.animation.ObjectAnimator;
+import android.animation.AnimatorSet;
 import android.graphics.drawable.Drawable;
-
-import androidx.leanback.widget.ImageCardView;
-import androidx.leanback.widget.Presenter;
-import androidx.core.content.ContextCompat;
-
-import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.TextView;
+
+import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
+import androidx.leanback.widget.Presenter;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 
-/*
- * A CardPresenter is used to generate Views and bind Objects to them on demand.
- * It contains an Image CardView
+/**
+ * Modern CardPresenter with custom layout
+ * 80% icon space, 20% name space, wider than tall
  */
 public class CardPresenter extends Presenter {
     private static final String TAG = "CardPresenter";
 
-    private static final int CARD_WIDTH = 313;
-    private static final int CARD_HEIGHT = 176;
-    private static int sSelectedBackgroundColor;
-    private static int sDefaultBackgroundColor;
-    private Drawable mDefaultCardImage;
+    private static final float SCALE_SELECTED = 1.10f;
+    private static final float SCALE_DEFAULT = 1.0f;
+    private static final int ANIMATION_DURATION = 200;
 
-    private static void updateCardBackgroundColor(ImageCardView view, boolean selected) {
-        int color = selected ? sSelectedBackgroundColor : sDefaultBackgroundColor;
-        // Both background colors should be set because the view"s background is temporarily visible
-        // during animations.
-        view.setBackgroundColor(color);
-        view.setInfoAreaBackgroundColor(color);
-    }
+    private Drawable mDefaultCardImage;
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent) {
         Log.d(TAG, "onCreateViewHolder");
 
-        sDefaultBackgroundColor =
-                ContextCompat.getColor(parent.getContext(), R.color.default_background);
-        sSelectedBackgroundColor =
-                ContextCompat.getColor(parent.getContext(), R.color.selected_background);
-        /*
-         * This template uses a default image in res/drawable, but the general case for Android TV
-         * will require your resources in xhdpi. For more information, see
-         * https://developer.android.com/training/tv/start/layouts.html#density-resources
-         */
         mDefaultCardImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.movie);
 
-        ImageCardView cardView =
-                new ImageCardView(parent.getContext()) {
-                    @Override
-                    public void setSelected(boolean selected) {
-                        updateCardBackgroundColor(this, selected);
-                        super.setSelected(selected);
-                    }
-                };
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_channel_card, parent, false);
 
-        cardView.setFocusable(true);
-        cardView.setFocusableInTouchMode(true);
-        updateCardBackgroundColor(cardView, false);
-        return new ViewHolder(cardView);
+        view.setFocusable(true);
+        view.setFocusableInTouchMode(true);
+
+        return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(Presenter.ViewHolder viewHolder, Object item) {
         Movie movie = (Movie) item;
-        ImageCardView cardView = (ImageCardView) viewHolder.view;
+        View cardView = viewHolder.view;
 
         Log.d(TAG, "onBindViewHolder");
-        if (movie.getCardImageUrl() != null) {
-            cardView.setTitleText(movie.getTitle());
-            cardView.setContentText(movie.getStudio());
-            cardView.setMainImageDimensions(CARD_WIDTH, CARD_HEIGHT);
 
-            cardView.getMainImageView().setPadding(20, 20, 20, 20);
-            GradientDrawable gradientDrawable = new GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM, // or any other orientation
-                    new int[] {
-                            ContextCompat.getColor(viewHolder.view.getContext(), R.color.card_background_startColor),
-                            ContextCompat.getColor(viewHolder.view.getContext(), R.color.card_background_endColor)
-                    }
-            );
-            cardView.getMainImageView().setBackground(gradientDrawable); // You can replace with any color you prefer
+        ImageView channelImage = cardView.findViewById(R.id.channel_image);
+        TextView channelName = cardView.findViewById(R.id.channel_name);
+        View focusBorder = cardView.findViewById(R.id.focus_border);
 
-            cardView.getMainImageView().setScaleType(ImageView.ScaleType.FIT_CENTER);
-            Glide.with(viewHolder.view.getContext())
-                    .load(movie.getCardImageUrl())
-                    .fitCenter()
-                    .error(mDefaultCardImage)
-                    .into(cardView.getMainImageView());
+        // Set channel name
+        if (channelName != null) {
+            channelName.setText(movie.getTitle());
         }
-    }
 
+        // Load channel icon/logo with Glide
+        if (channelImage != null && movie.getCardImageUrl() != null) {
+            RequestOptions requestOptions = new RequestOptions()
+                    .fitCenter()
+                    .error(mDefaultCardImage);
+
+            Glide.with(cardView.getContext())
+                    .load(movie.getCardImageUrl())
+                    .apply(requestOptions)
+                    .into(channelImage);
+        }
+
+        // Setup focus handling
+        cardView.setOnFocusChangeListener((v, hasFocus) -> {
+            animateFocusChange(v, focusBorder, hasFocus);
+        });
+    }
 
     @Override
     public void onUnbindViewHolder(Presenter.ViewHolder viewHolder) {
         Log.d(TAG, "onUnbindViewHolder");
-        ImageCardView cardView = (ImageCardView) viewHolder.view;
-        // Remove references to images so that the garbage collector can free up memory
-        cardView.setBadgeImage(null);
-        cardView.setMainImage(null);
+
+        View cardView = viewHolder.view;
+        ImageView channelImage = cardView.findViewById(R.id.channel_image);
+
+        // Remove references to images for garbage collection
+        if (channelImage != null) {
+            channelImage.setImageDrawable(null);
+        }
+
+        // Remove focus listener
+        cardView.setOnFocusChangeListener(null);
+    }
+
+    private void animateFocusChange(View cardView, View focusBorder, boolean hasFocus) {
+        float targetScale = hasFocus ? SCALE_SELECTED : SCALE_DEFAULT;
+        float targetAlpha = hasFocus ? 1.0f : 0.0f;
+        float targetElevation = hasFocus ? 12f : 6f;
+
+        // Scale animation
+        AnimatorSet animatorSet = new AnimatorSet();
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(cardView, "scaleX", targetScale);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(cardView, "scaleY", targetScale);
+        scaleX.setDuration(ANIMATION_DURATION);
+        scaleY.setDuration(ANIMATION_DURATION);
+        scaleX.setInterpolator(new AccelerateDecelerateInterpolator());
+        scaleY.setInterpolator(new AccelerateDecelerateInterpolator());
+        animatorSet.playTogether(scaleX, scaleY);
+        animatorSet.start();
+
+        // Focus border animation
+        if (focusBorder != null) {
+            ObjectAnimator alphaAnimator = ObjectAnimator.ofFloat(focusBorder, "alpha", targetAlpha);
+            alphaAnimator.setDuration(ANIMATION_DURATION);
+            alphaAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            alphaAnimator.start();
+        }
+
+        // Elevation animation
+        CardView cardViewWidget = cardView.findViewById(R.id.card_view);
+        if (cardViewWidget != null) {
+            ObjectAnimator elevationAnimator = ObjectAnimator.ofFloat(cardViewWidget, "cardElevation", targetElevation);
+            elevationAnimator.setDuration(ANIMATION_DURATION);
+            elevationAnimator.start();
+        }
     }
 }

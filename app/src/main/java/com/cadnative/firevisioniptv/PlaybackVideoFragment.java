@@ -18,6 +18,7 @@ public class PlaybackVideoFragment extends VideoSupportFragment {
     private ChannelPlaybackTransportControlGlue<MediaPlayerAdapter> mTransportControlGlue;
     private List<Movie> mChannels; // List of channels (movies in this case)
     private int mCurrentChannelIndex;
+    private ChannelOverlayFragment mOverlayFragment;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,6 +44,36 @@ public class PlaybackVideoFragment extends VideoSupportFragment {
         WindowManager.LayoutParams params = window.getAttributes();
         params.flags |= WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
         window.setAttributes(params);
+
+        // Initialize overlay fragment
+        setupOverlay();
+    }
+
+    private void setupOverlay() {
+        mOverlayFragment = ChannelOverlayFragment.newInstance(mCurrentChannelIndex);
+        mOverlayFragment.setOnChannelSelectedListener(new ChannelOverlayFragment.OnChannelSelectedListener() {
+            @Override
+            public void onChannelSelected(Movie channel, int position) {
+                mCurrentChannelIndex = position;
+                updateChannelInfo(channel);
+            }
+
+            @Override
+            public void onOverlayDismissed() {
+                // Overlay dismissed, resume normal playback controls
+            }
+
+            @Override
+            public void onBackPressedWhenVisible() {
+                // Second BACK press - go back to channel list
+                getActivity().finish();
+            }
+        });
+
+        getActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.overlay_fragment_container, mOverlayFragment)
+                .commit();
     }
 
     private void updateChannelInfo(Movie movie) {
@@ -55,25 +86,56 @@ public class PlaybackVideoFragment extends VideoSupportFragment {
     public void nextChannel() {
         mCurrentChannelIndex = (mCurrentChannelIndex + 1) % mChannels.size();
         updateChannelInfo(mChannels.get(mCurrentChannelIndex));
+
+        // Update overlay if it exists
+        if (mOverlayFragment != null) {
+            mOverlayFragment.updateCurrentChannel(mCurrentChannelIndex);
+        }
     }
 
     public void previousChannel() {
         mCurrentChannelIndex = (mCurrentChannelIndex - 1 + mChannels.size()) % mChannels.size();
         updateChannelInfo(mChannels.get(mCurrentChannelIndex));
+
+        // Update overlay if it exists
+        if (mOverlayFragment != null) {
+            mOverlayFragment.updateCurrentChannel(mCurrentChannelIndex);
+        }
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // First, check if overlay should handle the key event
+        if (mOverlayFragment != null && mOverlayFragment.handleKeyEvent(keyCode, event)) {
+            return true;
+        }
+
+        // If overlay is visible, don't handle navigation keys (overlay will handle them)
+        if (mOverlayFragment != null && mOverlayFragment.isOverlayVisible()) {
+            return false;
+        }
+
+        // Handle channel navigation when overlay is not visible
         switch (keyCode) {
+            case KeyEvent.KEYCODE_BACK:
+                // Show overlay on BACK button
+                if (mOverlayFragment != null) {
+                    mOverlayFragment.show();
+                    return true;
+                }
+                return false;
+
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_CHANNEL_UP:
             case KeyEvent.KEYCODE_MEDIA_NEXT:
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
                 nextChannel();
                 return true;
+
+            case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_CHANNEL_DOWN:
             case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-            case KeyEvent.KEYCODE_DPAD_LEFT:
                 previousChannel();
                 return true;
+
             default:
                 return false;
         }

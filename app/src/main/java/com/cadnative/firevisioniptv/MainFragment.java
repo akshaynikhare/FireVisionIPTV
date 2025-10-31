@@ -69,7 +69,7 @@ public class MainFragment extends BrowseSupportFragment {
     private static final int BACKGROUND_UPDATE_DELAY = 300;
     private static final int GRID_ITEM_WIDTH = 200;
     private static final int GRID_ITEM_HEIGHT = 200;
-    private static final int MAX_NUM_COLS =5;
+    private static final int MAX_NUM_COLS = 6; // Increased for modern widescreen layout
 
     private final Handler mHandler = new Handler(Looper.myLooper());
     private Drawable mDefaultBackground;

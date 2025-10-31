@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Subtle gradient scrim - less intrusive -->
+    <View
+        android:id="@+id/scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/overlay_scrim_gradient" />
+
+    <!-- Golden Ratio Overlay Container (φ-based spacing: 21, 34, 55 = Fibonacci) -->
+    <LinearLayout
+        android:id="@+id/overlay_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="250dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/overlay_background_sleek"
+        android:orientation="vertical"
+        android:paddingStart="55dp"
+        android:paddingTop="21dp"
+        android:paddingEnd="55dp"
+        android:paddingBottom="34dp"
+        android:elevation="13dp">
+
+        <!-- Golden Ratio Header (13dp margin = Fibonacci) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="13dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/category_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Channels"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium" />
+
+            <!-- Compact Instructions -->
+            <TextView
+                android:id="@+id/instructions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="◀ ▶ Browse  •  OK Select  •  BACK Exit"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:alpha="0.75" />
+
+        </LinearLayout>
+
+        <!-- Golden Ratio Channel Grid (130dp ≈ φ × 80) -->
+        <androidx.leanback.widget.HorizontalGridView
+            android:id="@+id/channel_grid"
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:horizontalSpacing="13dp"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:focusable="true"
+            app:numberOfRows="1" />
+
+    </LinearLayout>
+
+</FrameLayout>

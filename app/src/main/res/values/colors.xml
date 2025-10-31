@@ -1,10 +1,42 @@
 <resources>
-    <color name="background_gradient_start">#E12A2A2A</color>
-    <color name="background_gradient_end">#E16D6D6D</color>
-    <color name="fastlane_background">#E12A2A2A</color>
-    <color name="card_background_startColor">#E16D6D6D</color>
-    <color name="card_background_endColor">#E12A2A2A</color>
-    <color name="search_opaque">#4DBAF6</color>
-    <color name="selected_background">#265F7F</color>
-    <color name="default_background">#E12A2A2A</color>
+    <!-- Modern Dark Theme Colors -->
+    <!-- Background Colors -->
+    <color name="background_gradient_start">#FF0A0E17</color>
+    <color name="background_gradient_end">#FF1A1F2E</color>
+    <color name="fastlane_background">#FF0A0E17</color>
+    <color name="default_background">#FF0A0E17</color>
+
+    <!-- Card Colors -->
+    <color name="card_background_startColor">#FF1E2538</color>
+    <color name="card_background_endColor">#FF151A28</color>
+    <color name="card_background_focused">#FF2A3348</color>
+    <color name="card_border_focused">#FF5B8DEE</color>
+    <color name="card_text_primary">#FFFFFFFF</color>
+    <color name="card_text_secondary">#FFB8BFCE</color>
+
+    <!-- Selection Colors -->
+    <color name="selected_background">#FF2E5BFF</color>
+    <color name="selected_background_light">#FF3D6AFF</color>
+    <color name="selected_border">#FF5B8DEE</color>
+
+    <!-- Accent Colors -->
+    <color name="search_opaque">#FF2E5BFF</color>
+    <color name="accent_primary">#FF2E5BFF</color>
+    <color name="accent_secondary">#FF5B8DEE</color>
+    <color name="accent_tertiary">#FF8AB4F8</color>
+
+    <!-- Overlay Colors -->
+    <color name="overlay_background">#E6000000</color>
+    <color name="overlay_card_background">#FF1E2538</color>
+    <color name="overlay_scrim">#99000000</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFB8BFCE</color>
+    <color name="text_hint">#FF6B7280</color>
+
+    <!-- Gradient Colors for Cards -->
+    <color name="gradient_start">#FF1E2538</color>
+    <color name="gradient_middle">#FF252C42</color>
+    <color name="gradient_end">#FF151A28</color>
 </resources>
