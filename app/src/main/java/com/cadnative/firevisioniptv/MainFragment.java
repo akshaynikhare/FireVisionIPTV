@@ -42,6 +42,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -78,6 +79,7 @@ public class MainFragment extends BrowseSupportFragment {
     private BackgroundManager mBackgroundManager;
 
     private AssetManager assetManager;
+    private ProgressBar loadingSpinner;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -86,6 +88,9 @@ public class MainFragment extends BrowseSupportFragment {
         assetManager = getContext().getAssets();
 
         super.onActivityCreated(savedInstanceState);
+
+        // Initialize loading spinner
+        loadingSpinner = getActivity().findViewById(R.id.loading_spinner);
 
         prepareBackgroundManager();
 
@@ -110,12 +115,46 @@ public class MainFragment extends BrowseSupportFragment {
         }
     }
 
+    private void showLoadingSpinner() {
+        if (loadingSpinner != null) {
+            loadingSpinner.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideLoadingSpinner() {
+        if (loadingSpinner != null) {
+            loadingSpinner.setVisibility(View.GONE);
+        }
+    }
+
 
 
     private void loadRows() {
+        // Show loading indicator
+        setTitle("FireVision IPTV");
+        showLoadingSpinner();
 
+        // Load channels from server with fallback to local M3U
+        MovieList.loadMoviesFromServer(assetManager, new MovieList.MovieListCallback() {
+            @Override
+            public void onSuccess(List<Movie> list) {
+                getActivity().runOnUiThread(() -> {
+                    displayChannels(list);
+                    hideLoadingSpinner();
+                });
+            }
 
-        List<Movie> list = MovieList.setupMovies(assetManager);
+            @Override
+            public void onError(String error) {
+                getActivity().runOnUiThread(() -> {
+                    hideLoadingSpinner();
+                    Toast.makeText(getContext(), "Using local channel list", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void displayChannels(List<Movie> list) {
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
