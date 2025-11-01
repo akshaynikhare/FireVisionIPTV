@@ -1,6 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/search_fragment"
-    android:name="androidx.leanback.app.SearchSupportFragment"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/default_background"
+    tools:context=".SearchActivity">
+
+    <!-- Netflix-style Sidebar - Fibonacci width (89dp) -->
+    <LinearLayout
+        android:id="@+id/sidebar"
+        android:layout_width="89dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/sidebar_background"
+        android:paddingTop="34dp"
+        android:paddingBottom="34dp"
+        android:paddingStart="13dp"
+        android:paddingEnd="13dp"
+        android:elevation="8dp">
+
+        <!-- Home -->
+        <FrameLayout
+            android:id="@+id/sidebar_home"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@drawable/sidebar_item_background"
+            android:layout_marginBottom="13dp">
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_home"
+                android:tint="@drawable/sidebar_icon_tint"/>
+        </FrameLayout>
+
+        <!-- Search -->
+        <FrameLayout
+            android:id="@+id/sidebar_search"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@drawable/sidebar_item_background"
+            android:layout_marginBottom="13dp">
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_search"
+                android:tint="@drawable/sidebar_icon_tint"/>
+        </FrameLayout>
+
+        <!-- Categories -->
+        <FrameLayout
+            android:id="@+id/sidebar_categories"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@drawable/sidebar_item_background"
+            android:layout_marginBottom="13dp">
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_categories"
+                android:tint="@drawable/sidebar_icon_tint"/>
+        </FrameLayout>
+
+        <!-- Favorites -->
+        <FrameLayout
+            android:id="@+id/sidebar_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@drawable/sidebar_item_background"
+            android:layout_marginBottom="13dp">
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_favorites"
+                android:tint="@drawable/sidebar_icon_tint"/>
+        </FrameLayout>
+
+        <!-- Spacer -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <!-- Settings (bottom aligned) -->
+        <FrameLayout
+            android:id="@+id/sidebar_settings"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:background="@drawable/sidebar_item_background">
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_settings"
+                android:tint="@drawable/sidebar_icon_tint"/>
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <!-- Main Search Content Area -->
+    <fragment
+        android:id="@+id/search_fragment"
+        android:name="androidx.leanback.app.SearchSupportFragment"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
+</LinearLayout>

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="300dp"
-    android:layout_height="185dp"
+    android:layout_width="210dp"
+    android:layout_height="130dp"
+    android:layout_margin="6dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:clipChildren="false"
@@ -13,9 +14,8 @@
         android:id="@+id/card_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="5dp"
-        android:elevation="8dp"
-        app:cardCornerRadius="14dp"
+        android:elevation="6dp"
+        app:cardCornerRadius="10dp"
         app:cardBackgroundColor="@color/overlay_card_background">
 
         <LinearLayout
@@ -29,7 +29,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="11"
-                android:padding="13dp">
+                android:padding="9dp">
 
                 <!-- Channel Icon/Logo - Golden proportions -->
                 <ImageView
@@ -38,7 +38,7 @@
                     android:layout_height="match_parent"
                     android:scaleType="fitCenter"
                     android:adjustViewBounds="true"
-                    android:padding="5dp" />
+                    android:padding="4dp" />
 
             </FrameLayout>
 
@@ -46,8 +46,8 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="18dp"
-                android:layout_marginEnd="18dp"
+                android:layout_marginStart="13dp"
+                android:layout_marginEnd="13dp"
                 android:background="#18FFFFFF"
                 android:alpha="0.38" />
 
@@ -57,10 +57,10 @@
                 android:layout_height="0dp"
                 android:layout_weight="3"
                 android:orientation="vertical"
-                android:paddingStart="13dp"
-                android:paddingEnd="13dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
+                android:paddingStart="9dp"
+                android:paddingEnd="9dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
                 android:gravity="center">
 
                 <TextView
@@ -69,7 +69,7 @@
                     android:layout_height="wrap_content"
                     android:text="Channel Name"
                     android:textColor="@color/text_primary"
-                    android:textSize="13sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -91,8 +91,20 @@
         android:id="@+id/focus_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="5dp"
         android:background="@drawable/focus_border_golden"
         android:alpha="0" />
+
+    <!-- Favorite Star Icon - Top Right Corner (Fibonacci padding) -->
+    <ImageView
+        android:id="@+id/favorite_star"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="9dp"
+        android:layout_marginEnd="9dp"
+        android:src="@drawable/ic_star_outline_small"
+        android:visibility="visible"
+        android:alpha="0.5"
+        android:elevation="9dp"/>
 
 </FrameLayout>

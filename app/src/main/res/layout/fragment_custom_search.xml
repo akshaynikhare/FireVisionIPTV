@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/default_background"
+    android:padding="40dp">
+
+    <!-- Search Input Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/edit_text_background"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:layout_marginBottom="32dp">
+
+        <!-- Search Icon -->
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_search"
+            android:tint="@color/text_secondary"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="16dp"/>
+
+        <!-- Search EditText -->
+        <EditText
+            android:id="@+id/search_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Search channels..."
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="24sp"
+            android:background="@android:color/transparent"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"/>
+
+    </LinearLayout>
+
+    <!-- Search History Section -->
+    <LinearLayout
+        android:id="@+id/search_history_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Recent Searches"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:paddingBottom="12dp"/>
+
+        <!-- Horizontal scroll view for search chips -->
+        <androidx.leanback.widget.HorizontalGridView
+            android:id="@+id/search_history_chips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"/>
+
+    </LinearLayout>
+
+    <!-- Search Results - Vertical grid of horizontal rows -->
+    <androidx.leanback.widget.VerticalGridView
+        android:id="@+id/search_results"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:clipChildren="false"
+        android:clipToPadding="false"/>
+
+</LinearLayout>

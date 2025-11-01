@@ -1,42 +1,52 @@
 <resources>
-    <!-- Modern Dark Theme Colors -->
-    <!-- Background Colors -->
-    <color name="background_gradient_start">#FF0A0E17</color>
-    <color name="background_gradient_end">#FF1A1F2E</color>
-    <color name="fastlane_background">#FF0A0E17</color>
-    <color name="default_background">#FF0A0E17</color>
+    <!-- Netflix-Inspired Dark Theme Colors -->
 
-    <!-- Card Colors -->
-    <color name="card_background_startColor">#FF1E2538</color>
-    <color name="card_background_endColor">#FF151A28</color>
-    <color name="card_background_focused">#FF2A3348</color>
-    <color name="card_border_focused">#FF5B8DEE</color>
+    <!-- Background Colors - Pure black for premium Netflix feel -->
+    <color name="background_gradient_start">#FF000000</color>
+    <color name="background_gradient_end">#FF0D0D0D</color>
+    <color name="fastlane_background">#FF000000</color>
+    <color name="default_background">#FF000000</color>
+    <color name="sidebar_background">#FF0A0A0A</color>
+    <color name="sidebar_item_selected">#FF1A1A1A</color>
+
+    <!-- Card Colors - Sleek dark cards with subtle depth -->
+    <color name="card_background_startColor">#FF1A1A1A</color>
+    <color name="card_background_endColor">#FF0F0F0F</color>
+    <color name="card_background_focused">#FF2A2A2A</color>
+    <color name="card_border_focused">#FFFFFFFF</color>
     <color name="card_text_primary">#FFFFFFFF</color>
     <color name="card_text_secondary">#FFB8BFCE</color>
 
-    <!-- Selection Colors -->
-    <color name="selected_background">#FF2E5BFF</color>
-    <color name="selected_background_light">#FF3D6AFF</color>
-    <color name="selected_border">#FF5B8DEE</color>
+    <!-- Selection Colors - Netflix-style red accent -->
+    <color name="selected_background">#FFE50914</color>
+    <color name="selected_background_light">#FFF40612</color>
+    <color name="selected_border">#FFFFFFFF</color>
 
-    <!-- Accent Colors -->
-    <color name="search_opaque">#FF2E5BFF</color>
-    <color name="accent_primary">#FF2E5BFF</color>
-    <color name="accent_secondary">#FF5B8DEE</color>
-    <color name="accent_tertiary">#FF8AB4F8</color>
+    <!-- Search Colors -->
+    <color name="search_opaque">#FFAA3F</color>
+    <color name="search_focused">#FFAA3F</color>
+    <color name="search_result_background">#0277BD</color>
+    <color name="search_orb_color">#FFE50914</color>
+    <color name="search_color">#FFE50914</color>
+    <color name="search_bright_color">#FFF40612</color>
 
-    <!-- Overlay Colors -->
+    <!-- Accent Colors - Netflix red theme -->
+    <color name="accent_primary">#FFE50914</color>
+    <color name="accent_secondary">#FFB20710</color>
+    <color name="accent_tertiary">#FFF40612</color>
+
+    <!-- Overlay Colors - Deep black with transparency -->
     <color name="overlay_background">#E6000000</color>
-    <color name="overlay_card_background">#FF1E2538</color>
+    <color name="overlay_card_background">#FF1A1A1A</color>
     <color name="overlay_scrim">#99000000</color>
 
-    <!-- Text Colors -->
+    <!-- Text Colors - High contrast for readability -->
     <color name="text_primary">#FFFFFFFF</color>
-    <color name="text_secondary">#FFB8BFCE</color>
-    <color name="text_hint">#FF6B7280</color>
+    <color name="text_secondary">#FFB3B3B3</color>
+    <color name="text_hint">#FF808080</color>
 
-    <!-- Gradient Colors for Cards -->
-    <color name="gradient_start">#FF1E2538</color>
-    <color name="gradient_middle">#FF252C42</color>
-    <color name="gradient_end">#FF151A28</color>
+    <!-- Gradient Colors for Cards - Subtle dark gradients -->
+    <color name="gradient_start">#FF1A1A1A</color>
+    <color name="gradient_middle">#FF141414</color>
+    <color name="gradient_end">#FF0F0F0F</color>
 </resources>

@@ -38,7 +38,7 @@ public class UpdateManager {
     public void checkForUpdates(boolean showNoUpdateDialog) {
         int currentVersionCode = getCurrentVersionCode();
 
-        ApiClient.checkForUpdates(currentVersionCode, new ApiClient.AppVersionCallback() {
+        ApiClient.checkForUpdates(activity, currentVersionCode, new ApiClient.AppVersionCallback() {
             @Override
             public void onSuccess(ApiClient.AppVersionInfo versionInfo) {
                 activity.runOnUiThread(() -> {

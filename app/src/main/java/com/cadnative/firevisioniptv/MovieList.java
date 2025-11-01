@@ -31,7 +31,7 @@ public final class MovieList {
     /**
      * Load movies from server with fallback to local M3U
      */
-    public static void loadMoviesFromServer(AssetManager assetManager, final MovieListCallback callback) {
+    public static void loadMoviesFromServer(Context context, AssetManager assetManager, final MovieListCallback callback) {
         if (isLoadingFromServer) {
             Log.d(TAG, "Already loading from server, skipping duplicate request");
             return;
@@ -39,7 +39,7 @@ public final class MovieList {
 
         isLoadingFromServer = true;
 
-        ApiClient.fetchChannelList(new ApiClient.ChannelListCallback() {
+        ApiClient.fetchChannelList(context, new ApiClient.ChannelListCallback() {
             @Override
             public void onSuccess(List<Channel> channels) {
                 isLoadingFromServer = false;

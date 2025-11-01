@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.api;
 
+import android.content.Context;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -14,11 +15,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.cadnative.firevisioniptv.Channel;
+import com.cadnative.firevisioniptv.SettingsActivity;
 
 public class ApiClient {
     private static final String TAG = "ApiClient";
-    private static final String BASE_URL = "https://tv.cadnative.com";
+    private static final String DEFAULT_BASE_URL = "https://tv.cadnative.com";
     private static final int TIMEOUT = 30000; // 30 seconds
+
+    /**
+     * Get the base URL from settings, or use default
+     */
+    private static String getBaseUrl(Context context) {
+        String savedUrl = SettingsActivity.getServerUrl(context);
+        if (savedUrl != null && !savedUrl.isEmpty()) {
+            return savedUrl;
+        }
+        return DEFAULT_BASE_URL;
+    }
 
     public interface ChannelListCallback {
         void onSuccess(List<Channel> channels);
@@ -57,11 +70,12 @@ public class ApiClient {
     /**
      * Fetch channel list from server
      */
-    public static void fetchChannelList(final ChannelListCallback callback) {
+    public static void fetchChannelList(Context context, final ChannelListCallback callback) {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
-                URL url = new URL(BASE_URL + "/api/v1/channels");
+                String baseUrl = getBaseUrl(context);
+                URL url = new URL(baseUrl + "/api/v1/channels");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(TIMEOUT);
@@ -106,11 +120,12 @@ public class ApiClient {
     /**
      * Check for app updates
      */
-    public static void checkForUpdates(int currentVersionCode, final AppVersionCallback callback) {
+    public static void checkForUpdates(Context context, int currentVersionCode, final AppVersionCallback callback) {
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
-                URL url = new URL(BASE_URL + "/api/v1/app/version?currentVersion=" + currentVersionCode);
+                String baseUrl = getBaseUrl(context);
+                URL url = new URL(baseUrl + "/api/v1/app/version?currentVersion=" + currentVersionCode);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(TIMEOUT);

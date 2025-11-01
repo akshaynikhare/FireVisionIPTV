@@ -65,6 +65,7 @@ import android.content.pm.PackageManager;
 
 public class MainFragment extends BrowseSupportFragment {
     private static final String TAG = "MainFragment";
+    private static final String ARG_FAVORITES_ONLY = "favorites_only";
 
     private static final int BACKGROUND_UPDATE_DELAY = 300;
     private static final int GRID_ITEM_WIDTH = 200;
@@ -80,12 +81,29 @@ public class MainFragment extends BrowseSupportFragment {
 
     private AssetManager assetManager;
     private ProgressBar loadingSpinner;
+    private boolean showFavoritesOnly = false;
+
+    /**
+     * Create a new instance showing only favorites
+     */
+    public static MainFragment newInstanceForFavorites() {
+        MainFragment fragment = new MainFragment();
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_FAVORITES_ONLY, true);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
 
         assetManager = getContext().getAssets();
+
+        // Check if we should show only favorites
+        if (getArguments() != null) {
+            showFavoritesOnly = getArguments().getBoolean(ARG_FAVORITES_ONLY, false);
+        }
 
         super.onActivityCreated(savedInstanceState);
 
@@ -130,12 +148,10 @@ public class MainFragment extends BrowseSupportFragment {
 
 
     private void loadRows() {
-        // Show loading indicator
-        setTitle("FireVision IPTV");
         showLoadingSpinner();
 
         // Load channels from server with fallback to local M3U
-        MovieList.loadMoviesFromServer(assetManager, new MovieList.MovieListCallback() {
+        MovieList.loadMoviesFromServer(getContext(), assetManager, new MovieList.MovieListCallback() {
             @Override
             public void onSuccess(List<Movie> list) {
                 getActivity().runOnUiThread(() -> {
@@ -155,8 +171,23 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void displayChannels(List<Movie> list) {
-        ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
+        ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new NetflixListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
+
+        // Filter for favorites if needed
+        if (showFavoritesOnly) {
+            FavoritesManager favManager = FavoritesManager.getInstance(getContext());
+            List<Movie> favoritesList = new ArrayList<>();
+            for (Movie movie : list) {
+                if (favManager.isFavorite(String.valueOf(movie.getId()))) {
+                    favoritesList.add(movie);
+                }
+            }
+            list = favoritesList;
+
+            // Update title to show we're in favorites view
+            setTitle("My Favorites");
+        }
 
         Map<String, List<Movie>> groupedMovies = new TreeMap<>();  // Using TreeMap for alphabetical sorting
 
@@ -259,7 +290,9 @@ public class MainFragment extends BrowseSupportFragment {
     private void prepareBackgroundManager() {
 
         mBackgroundManager = BackgroundManager.getInstance(getActivity());
-        mBackgroundManager.attach(getActivity().getWindow());
+        if (!mBackgroundManager.isAttached()) {
+            mBackgroundManager.attach(getActivity().getWindow());
+        }
 
         mDefaultBackground = ContextCompat.getDrawable(getContext(), R.drawable.default_background);
         mMetrics = new DisplayMetrics();
@@ -271,14 +304,15 @@ public class MainFragment extends BrowseSupportFragment {
         String appVersion = getAppVersion(requireContext());
         setTitle(getString(R.string.browse_title) + " (v" + appVersion + ")");
 
+        // Netflix-style: Hide headers for cleaner look
+        setHeadersState(HEADERS_DISABLED);
+        setHeadersTransitionOnBackEnabled(false);
 
-        setHeadersState(HEADERS_HIDDEN);
-        setHeadersTransitionOnBackEnabled(true);
-
-        // set fastLane (or headers) background color
+        // Set pure black background for Netflix aesthetic
         setBrandColor(ContextCompat.getColor(getContext(), R.color.fastlane_background));
-        // set search icon color
-        setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.search_opaque));
+
+        // Hide search icon - we use sidebar navigation instead
+        getView().findViewById(androidx.leanback.R.id.title_orb).setVisibility(View.GONE);
 
     }
 
@@ -294,16 +328,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void setupEventListeners() {
-
-        setOnSearchClickedListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), SearchActivity.class);
-                startActivity(intent);
-            }
-        });
-
-
         setOnItemViewClickedListener(new ItemViewClickedListener());
         setOnItemViewSelectedListener(new ItemViewSelectedListener());
     }

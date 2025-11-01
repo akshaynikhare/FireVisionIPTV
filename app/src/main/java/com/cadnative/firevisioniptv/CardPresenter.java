@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv;
 
 import android.animation.ObjectAnimator;
 import android.animation.AnimatorSet;
+import android.app.AlertDialog;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -56,6 +57,7 @@ public class CardPresenter extends Presenter {
         ImageView channelImage = cardView.findViewById(R.id.channel_image);
         TextView channelName = cardView.findViewById(R.id.channel_name);
         View focusBorder = cardView.findViewById(R.id.focus_border);
+        ImageView favoriteStar = cardView.findViewById(R.id.favorite_star);
 
         // Set channel name
         if (channelName != null) {
@@ -74,10 +76,69 @@ public class CardPresenter extends Presenter {
                     .into(channelImage);
         }
 
+        // Setup favorite star
+        if (favoriteStar != null) {
+            FavoritesManager favManager = FavoritesManager.getInstance(cardView.getContext());
+            String channelId = String.valueOf(movie.getId());
+            updateFavoriteStar(favoriteStar, favManager.isFavorite(channelId));
+
+            // Hide star by default, show only for favorites
+            favoriteStar.setVisibility(favManager.isFavorite(channelId) ? View.VISIBLE : View.GONE);
+        }
+
+        // Setup long-press to show options menu
+        cardView.setOnLongClickListener(v -> {
+            showChannelOptionsDialog(cardView, movie, favoriteStar);
+            return true;
+        });
+
         // Setup focus handling
         cardView.setOnFocusChangeListener((v, hasFocus) -> {
             animateFocusChange(v, focusBorder, hasFocus);
         });
+    }
+
+    private void showChannelOptionsDialog(View cardView, Movie movie, ImageView favoriteStar) {
+        FavoritesManager favManager = FavoritesManager.getInstance(cardView.getContext());
+        String channelId = String.valueOf(movie.getId());
+        boolean isFavorite = favManager.isFavorite(channelId);
+
+        String[] options = {
+            isFavorite ? "Remove from Favorites" : "Add to Favorites",
+            "Set as Auto-load Channel"
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(cardView.getContext());
+        builder.setTitle(movie.getTitle())
+               .setItems(options, (dialog, which) -> {
+                   switch (which) {
+                       case 0: // Toggle Favorite
+                           boolean newFavoriteState = favManager.toggleFavorite(channelId);
+                           if (favoriteStar != null) {
+                               updateFavoriteStar(favoriteStar, newFavoriteState);
+                               favoriteStar.setVisibility(newFavoriteState ? View.VISIBLE : View.GONE);
+                           }
+                           String favMessage = newFavoriteState ? "Added to Favorites" : "Removed from Favorites";
+                           android.widget.Toast.makeText(cardView.getContext(), favMessage, android.widget.Toast.LENGTH_SHORT).show();
+                           break;
+
+                       case 1: // Set as Auto-load
+                           SettingsActivity.setAutoloadChannel(cardView.getContext(), channelId, movie.getTitle());
+                           android.widget.Toast.makeText(cardView.getContext(),
+                               "Set as auto-load channel: " + movie.getTitle(),
+                               android.widget.Toast.LENGTH_SHORT).show();
+                           break;
+                   }
+               });
+        builder.show();
+    }
+
+    private void updateFavoriteStar(ImageView starView, boolean isFavorite) {
+        if (isFavorite) {
+            starView.setImageResource(R.drawable.ic_star_small);
+        } else {
+            starView.setImageResource(R.drawable.ic_star_outline_small);
+        }
     }
 
     @Override

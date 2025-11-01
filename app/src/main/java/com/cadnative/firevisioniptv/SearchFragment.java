@@ -1,9 +1,14 @@
 package com.cadnative.firevisioniptv;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
 
 import androidx.leanback.app.SearchSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
@@ -11,6 +16,11 @@ import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.ObjectAdapter;
+import androidx.leanback.widget.OnItemViewClickedListener;
+import androidx.leanback.widget.Presenter;
+import androidx.leanback.widget.Row;
+import androidx.leanback.widget.RowPresenter;
+import androidx.leanback.widget.SpeechRecognitionCallback;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,28 +30,80 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SearchResultProvider implements SearchSupportFragment.SearchResultProvider {
-    private static final String TAG = "SearchResultProvider";
+public class SearchFragment extends SearchSupportFragment implements SearchSupportFragment.SearchResultProvider {
+    private static final String TAG = "SearchFragment";
     private static final int SEARCH_DELAY_MS = 300;
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
-    
-    private final ArrayObjectAdapter mRowsAdapter;
-    private final List<Movie> mAllMovies;
-    private final Handler mHandler;
-    private final Map<String, List<String>> mSearchSuggestions;
-    
+
+    private ArrayObjectAdapter mRowsAdapter;
+    private List<Movie> mAllMovies;
+    private Handler mHandler;
+    private Map<String, List<String>> mSearchSuggestions;
     private Runnable mDelayedLoad;
 
-    SearchResultProvider() {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
         mRowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        mAllMovies = MovieList.setupMovies(FirevisionApplication.getAppContext().getAssets());
+        mAllMovies = MovieList.setupMovies(getActivity().getAssets());
         mHandler = new Handler(Looper.getMainLooper());
         mSearchSuggestions = buildSearchSuggestions();
+
+        setOnItemViewClickedListener(new OnItemViewClickedListener() {
+            @Override
+            public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
+                                      RowPresenter.ViewHolder rowViewHolder, Row row) {
+                if (item instanceof Movie) {
+                    Movie movie = (Movie) item;
+                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                    intent.putExtra(DetailsActivity.MOVIE, movie);
+                    startActivity(intent);
+                }
+            }
+        });
+
+        // Set this fragment as its own search result provider
+        setSearchResultProvider(this);
+
+        // Enable voice search
+        if (!hasVoiceRecognition()) {
+            setSpeechRecognitionCallback(new SpeechRecognitionCallback() {
+                @Override
+                public void recognizeSpeech() {
+                    // Start voice recognition if available
+                    startActivityForResult(getRecognizerIntent(), 0);
+                }
+            });
+        }
+
+        // Customize search fragment appearance
+        setBadgeDrawable(null); // Remove the badge/logo to avoid duplicate icons
+
+        // Set search colors to match theme (Netflix red)
+        int searchColor = getResources().getColor(R.color.search_orb_color, null);
+        setSearchAffordanceColors(
+            new androidx.leanback.widget.SearchOrbView.Colors(
+                searchColor,  // Main color
+                searchColor,  // Bright color
+                getResources().getColor(R.color.search_color, null)  // Icon color
+            )
+        );
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Set the background color to match main screen
+        if (view != null) {
+            view.setBackgroundColor(getResources().getColor(R.color.default_background, null));
+        }
     }
 
     private Map<String, List<String>> buildSearchSuggestions() {
         Map<String, List<String>> suggestions = new HashMap<>();
-        
+
         // Group-based suggestions
         Map<String, List<String>> groupSuggestions = new TreeMap<>();
         for (Movie movie : mAllMovies) {
@@ -54,7 +116,7 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
             }
         }
         suggestions.put("Groups", new ArrayList<>(groupSuggestions.keySet()));
-        
+
         return suggestions;
     }
 
@@ -69,7 +131,7 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
             showSearchSuggestions();
             return true;
         }
-        
+
         // Cancel any pending search
         if (mDelayedLoad != null) {
             mHandler.removeCallbacks(mDelayedLoad);
@@ -95,19 +157,19 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
         return true;
     }
 
-    public void loadQueryResults(String query) {
+    private void loadQueryResults(String query) {
         EXECUTOR.execute(() -> {
             final List<Movie> titleResults = new ArrayList<>();
             final Map<String, List<Movie>> groupResults = new HashMap<>();
-            
+
             String lowerQuery = query.toLowerCase();
-            
+
             for (Movie movie : mAllMovies) {
                 // Search by title
                 if (movie.getTitle().toLowerCase().contains(lowerQuery)) {
                     titleResults.add(movie);
                 }
-                
+
                 // Search by group
                 String group = movie.getGroup();
                 if (!TextUtils.isEmpty(group) && group.toLowerCase().contains(lowerQuery)) {
@@ -117,11 +179,11 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
                     groupResults.get(group).add(movie);
                 }
             }
-            
+
             // Update UI on main thread
             mHandler.post(() -> {
                 mRowsAdapter.clear();
-                
+
                 // Add title results
                 if (!titleResults.isEmpty()) {
                     HeaderItem titleHeader = new HeaderItem("Channels");
@@ -129,7 +191,7 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
                     titleAdapter.addAll(0, titleResults);
                     mRowsAdapter.add(new ListRow(titleHeader, titleAdapter));
                 }
-                
+
                 // Add group results
                 for (Map.Entry<String, List<Movie>> entry : groupResults.entrySet()) {
                     HeaderItem groupHeader = new HeaderItem(entry.getKey());
@@ -137,7 +199,7 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
                     groupAdapter.addAll(0, entry.getValue());
                     mRowsAdapter.add(new ListRow(groupHeader, groupAdapter));
                 }
-                
+
                 // Show message if no results found
                 if (titleResults.isEmpty() && groupResults.isEmpty()) {
                     showNoResults();
@@ -145,10 +207,10 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
             });
         });
     }
-    
+
     private void showSearchSuggestions() {
         mRowsAdapter.clear();
-        
+
         // Add suggestion categories
         for (Map.Entry<String, List<String>> entry : mSearchSuggestions.entrySet()) {
             if (!entry.getValue().isEmpty()) {
@@ -159,11 +221,27 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
             }
         }
     }
-    
+
     private void showNoResults() {
         HeaderItem header = new HeaderItem("No Results");
         ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new StringPresenter());
         listRowAdapter.add("No channels found matching your search");
         mRowsAdapter.add(new ListRow(header, listRowAdapter));
+    }
+
+    private boolean hasVoiceRecognition() {
+        return getActivity().getPackageManager().queryIntentActivities(
+                getRecognizerIntent(), 0).isEmpty();
+    }
+
+    public boolean handleKeyDown(int keyCode, KeyEvent event) {
+        // Handle voice search activation with microphone button
+        if (keyCode == KeyEvent.KEYCODE_BUTTON_3) {
+            if (!hasVoiceRecognition()) {
+                startRecognition();
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state -->
+    <item android:state_selected="true" android:color="@color/text_primary"/>
+    <!-- Focused state -->
+    <item android:state_focused="true" android:color="@color/text_primary"/>
+    <!-- Default state -->
+    <item android:color="@color/text_secondary"/>
+</selector>
