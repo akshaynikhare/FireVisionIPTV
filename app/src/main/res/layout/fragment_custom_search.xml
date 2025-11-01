@@ -4,7 +4,9 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/default_background"
-    android:padding="40dp">
+    android:padding="40dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <!-- Search Input Area -->
     <LinearLayout
@@ -51,7 +53,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone"
-        android:paddingBottom="24dp">
+        android:paddingBottom="24dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <TextView
             android:layout_width="match_parent"
@@ -66,7 +70,9 @@
             android:id="@+id/search_history_chips"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="8dp"/>
+            android:paddingBottom="8dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"/>
 
     </LinearLayout>
 

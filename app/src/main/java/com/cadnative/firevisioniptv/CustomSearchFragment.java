@@ -168,7 +168,9 @@ public class CustomSearchFragment extends Fragment {
 
     private void setupSearchResults() {
         // Use ListRowPresenter to show horizontal rows (like main screen)
-        resultsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
+        ListRowPresenter listRowPresenter = new ListRowPresenter();
+        listRowPresenter.setShadowEnabled(false);
+        resultsAdapter = new ArrayObjectAdapter(listRowPresenter);
 
         // Set to 1 column - each row will be a horizontal list
         searchResults.setNumColumns(1);
@@ -176,83 +178,6 @@ public class CustomSearchFragment extends Fragment {
         // Create bridge adapter to connect ArrayObjectAdapter to VerticalGridView
         ItemBridgeAdapter bridgeAdapter = new ItemBridgeAdapter(resultsAdapter);
         searchResults.setAdapter(bridgeAdapter);
-
-        // Handle item clicks
-        bridgeAdapter.setAdapterListener(new ItemBridgeAdapter.AdapterListener() {
-            @Override
-            public void onCreate(ItemBridgeAdapter.ViewHolder viewHolder) {
-                // Set up click listener for items in the row
-                if (viewHolder.itemView instanceof android.view.ViewGroup) {
-                    android.view.ViewGroup viewGroup = (android.view.ViewGroup) viewHolder.itemView;
-                    // Find the HorizontalGridView within the ListRow
-                    viewGroup.postDelayed(() -> {
-                        for (int i = 0; i < viewGroup.getChildCount(); i++) {
-                            android.view.View child = viewGroup.getChildAt(i);
-                            if (child instanceof HorizontalGridView) {
-                                HorizontalGridView horizontalGridView = (HorizontalGridView) child;
-                                setupRowClickListener(horizontalGridView);
-                                break;
-                            }
-                        }
-                    }, 100);
-                }
-            }
-
-            @Override
-            public void onBind(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-            @Override
-            public void onUnbind(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-            @Override
-            public void onAttachedToWindow(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-            @Override
-            public void onDetachedFromWindow(ItemBridgeAdapter.ViewHolder viewHolder) {}
-        });
-    }
-
-    private void setupRowClickListener(HorizontalGridView horizontalGridView) {
-        horizontalGridView.setOnChildViewHolderSelectedListener(new androidx.leanback.widget.OnChildViewHolderSelectedListener() {
-            @Override
-            public void onChildViewHolderSelected(androidx.recyclerview.widget.RecyclerView parent,
-                                                   androidx.recyclerview.widget.RecyclerView.ViewHolder child,
-                                                   int position, int subposition) {
-                // Selection changed
-            }
-        });
-
-        // Set click listener using adapter
-        if (horizontalGridView.getAdapter() instanceof ItemBridgeAdapter) {
-            ItemBridgeAdapter adapter = (ItemBridgeAdapter) horizontalGridView.getAdapter();
-            adapter.setAdapterListener(new ItemBridgeAdapter.AdapterListener() {
-                @Override
-                public void onCreate(ItemBridgeAdapter.ViewHolder viewHolder) {
-                    viewHolder.itemView.setOnClickListener(v -> {
-                        Object item = viewHolder.getItem();
-                        if (item instanceof Movie) {
-                            Movie movie = (Movie) item;
-                            trackChannelClick(movie);
-                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                            intent.putExtra(DetailsActivity.MOVIE, movie);
-                            startActivity(intent);
-                        }
-                    });
-                }
-
-                @Override
-                public void onBind(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-                @Override
-                public void onUnbind(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-                @Override
-                public void onAttachedToWindow(ItemBridgeAdapter.ViewHolder viewHolder) {}
-
-                @Override
-                public void onDetachedFromWindow(ItemBridgeAdapter.ViewHolder viewHolder) {}
-            });
-        }
     }
 
     private void showAllChannels() {
@@ -304,7 +229,7 @@ public class CustomSearchFragment extends Fragment {
                 if (!results.isEmpty()) {
                     // Create a horizontal row with search results
                     HeaderItem header = new HeaderItem("Search Results (" + results.size() + " channels)");
-                    ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
+                    ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new SearchCardPresenter());
                     listRowAdapter.addAll(0, results);
                     resultsAdapter.add(new ListRow(header, listRowAdapter));
                 }
@@ -334,7 +259,7 @@ public class CustomSearchFragment extends Fragment {
                 // Add popular channels as a horizontal row
                 if (!popularChannels.isEmpty()) {
                     HeaderItem header = new HeaderItem("Popular Channels");
-                    ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
+                    ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new SearchCardPresenter());
                     listRowAdapter.addAll(0, popularChannels);
                     resultsAdapter.add(new ListRow(header, listRowAdapter));
                 }
@@ -436,6 +361,45 @@ public class CustomSearchFragment extends Fragment {
         super.onDestroyView();
         if (delayedSearch != null) {
             handler.removeCallbacks(delayedSearch);
+        }
+    }
+
+    /**
+     * Custom CardPresenter for search results that handles clicks
+     */
+    private class SearchCardPresenter extends CardPresenter {
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent) {
+            ViewHolder vh = super.onCreateViewHolder(parent);
+
+            // Set up click listener
+            vh.view.setOnClickListener(v -> {
+                // Get the movie from the view holder
+                if (vh.view.getTag() instanceof Movie) {
+                    Movie movie = (Movie) vh.view.getTag();
+                    trackChannelClick(movie);
+                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                    intent.putExtra(DetailsActivity.MOVIE, movie);
+                    startActivity(intent);
+                }
+            });
+
+            return vh;
+        }
+
+        @Override
+        public void onBindViewHolder(Presenter.ViewHolder viewHolder, Object item) {
+            super.onBindViewHolder(viewHolder, item);
+            // Store the movie in the view tag for click handling
+            if (item instanceof Movie) {
+                viewHolder.view.setTag(item);
+            }
+        }
+
+        @Override
+        public void onUnbindViewHolder(Presenter.ViewHolder viewHolder) {
+            super.onUnbindViewHolder(viewHolder);
+            viewHolder.view.setTag(null);
         }
     }
 }
