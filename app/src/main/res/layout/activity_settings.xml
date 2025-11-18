@@ -66,6 +66,28 @@
                 android:singleLine="true"
                 android:layout_marginBottom="21dp"/>
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TV Pairing Code"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp"/>
+
+            <EditText
+                android:id="@+id/tv_code_input"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:background="@drawable/edit_text_background"
+                android:padding="13dp"
+                android:hint="Enter TV code"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
+                android:textSize="16sp"
+                android:inputType="textCapCharacters"
+                android:singleLine="true"
+                android:layout_marginBottom="21dp"/>
+
             <!-- Save Button -->
             <FrameLayout
                 android:id="@+id/save_button"
@@ -101,6 +123,52 @@
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
         android:layout_marginTop="13dp"/>
+
+    <!-- QR Code Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="21dp"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@color/overlay_card_background">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="34dp"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TV App Signup QR Code"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="13dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scan this QR code with your mobile device to quickly pair with the TV app"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginBottom="21dp"/>
+
+            <ImageView
+                android:id="@+id/qr_code_image"
+                android:layout_width="300dp"
+                android:layout_height="300dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter"
+                android:contentDescription="QR Code for TV signup"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
 
     <!-- Auto-load Channel Card -->
     <androidx.cardview.widget.CardView

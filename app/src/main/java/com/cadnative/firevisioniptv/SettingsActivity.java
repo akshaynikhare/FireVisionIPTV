@@ -1,13 +1,24 @@
 package com.cadnative.firevisioniptv;
 
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Settings Activity for server configuration
@@ -16,13 +27,17 @@ public class SettingsActivity extends FragmentActivity {
     private static final String TAG = "SettingsActivity";
     private static final String PREFS_NAME = "FireVisionSettings";
     private static final String SERVER_URL_KEY = "server_url";
+    private static final String TV_CODE_KEY = "tv_code";
     private static final String AUTOLOAD_CHANNEL_ID_KEY = "autoload_channel_id";
     private static final String AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name";
     private static final String DEFAULT_SERVER_URL = "https://tv.cadnative.com";
+    private static final String DEFAULT_TV_CODE = "5T6FEP";
 
     private EditText serverUrlInput;
+    private EditText tvCodeInput;
     private TextView currentServerInfo;
     private TextView autoloadChannelInfo;
+    private ImageView qrCodeImageView;
     private View saveButton;
     private View clearAutoloadButton;
 
@@ -32,55 +47,83 @@ public class SettingsActivity extends FragmentActivity {
         setContentView(R.layout.activity_settings);
 
         serverUrlInput = findViewById(R.id.server_url_input);
+        tvCodeInput = findViewById(R.id.tv_code_input);
         currentServerInfo = findViewById(R.id.current_server_info);
         autoloadChannelInfo = findViewById(R.id.autoload_channel_info);
+        qrCodeImageView = findViewById(R.id.qr_code_image);
         saveButton = findViewById(R.id.save_button);
         clearAutoloadButton = findViewById(R.id.clear_autoload_button);
 
-        // Initialize default URL if not set
-        initializeDefaultUrl();
+        // Initialize defaults if not set
+        initializeDefaults();
 
         // Load current server URL
         loadCurrentServerUrl();
 
+        // Load current TV code
+        loadCurrentTvCode();
+
         // Load auto-load channel info
         loadAutoloadChannelInfo();
 
+        // Generate QR code
+        generateQRCode();
+
         // Setup save button
-        saveButton.setOnClickListener(v -> saveServerUrl());
+        saveButton.setOnClickListener(v -> saveSettings());
 
         // Setup clear auto-load button
         clearAutoloadButton.setOnClickListener(v -> clearAutoloadChannel());
     }
 
-    private void initializeDefaultUrl() {
+    private void initializeDefaults() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String currentUrl = prefs.getString(SERVER_URL_KEY, "");
+        SharedPreferences.Editor editor = prefs.edit();
+        boolean changed = false;
 
+        String currentUrl = prefs.getString(SERVER_URL_KEY, "");
         if (currentUrl.isEmpty()) {
-            SharedPreferences.Editor editor = prefs.edit();
             editor.putString(SERVER_URL_KEY, DEFAULT_SERVER_URL);
+            changed = true;
+        }
+
+        String currentTvCode = prefs.getString(TV_CODE_KEY, "");
+        if (currentTvCode.isEmpty()) {
+            editor.putString(TV_CODE_KEY, DEFAULT_TV_CODE);
+            changed = true;
+        }
+
+        if (changed) {
             editor.apply();
         }
     }
 
     private void loadCurrentServerUrl() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String currentUrl = prefs.getString(SERVER_URL_KEY, "");
+        String currentUrl = prefs.getString(SERVER_URL_KEY, DEFAULT_SERVER_URL);
 
-        if (!currentUrl.isEmpty()) {
-            serverUrlInput.setText(currentUrl);
-            currentServerInfo.setText("Current server: " + currentUrl);
-        } else {
-            currentServerInfo.setText("Current server: Not set");
-        }
+        serverUrlInput.setText(currentUrl);
+        currentServerInfo.setText("Current server: " + currentUrl);
     }
 
-    private void saveServerUrl() {
+    private void loadCurrentTvCode() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String currentCode = prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE);
+
+        tvCodeInput.setText(currentCode);
+    }
+
+    private void saveSettings() {
         String url = serverUrlInput.getText().toString().trim();
+        String tvCode = tvCodeInput.getText().toString().trim();
 
         if (url.isEmpty()) {
             Toast.makeText(this, "Please enter a server URL", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (tvCode.isEmpty()) {
+            Toast.makeText(this, "Please enter a TV code", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -94,12 +137,16 @@ public class SettingsActivity extends FragmentActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(SERVER_URL_KEY, url);
+        editor.putString(TV_CODE_KEY, tvCode);
         editor.apply();
 
         // Update current server info
         currentServerInfo.setText("Current server: " + url);
 
-        Toast.makeText(this, "Server URL saved successfully", Toast.LENGTH_SHORT).show();
+        // Regenerate QR code with new values
+        generateQRCode();
+
+        Toast.makeText(this, "Settings saved successfully", Toast.LENGTH_SHORT).show();
     }
 
     private void loadAutoloadChannelInfo() {
@@ -125,11 +172,58 @@ public class SettingsActivity extends FragmentActivity {
     }
 
     /**
+     * Generate QR code for TV app signup
+     */
+    private void generateQRCode() {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            String serverUrl = prefs.getString(SERVER_URL_KEY, DEFAULT_SERVER_URL);
+            String tvCode = prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE);
+
+            // Create JSON object with signup information
+            JSONObject signupData = new JSONObject();
+            signupData.put("serverUrl", serverUrl);
+            signupData.put("tvCode", tvCode);
+            signupData.put("action", "tv_signup");
+
+            String qrContent = signupData.toString();
+
+            // Generate QR code bitmap
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(qrContent, BarcodeFormat.QR_CODE, 512, 512);
+            int width = bitMatrix.getWidth();
+            int height = bitMatrix.getHeight();
+            Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bmp.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+
+            // Display QR code
+            qrCodeImageView.setImageBitmap(bmp);
+
+        } catch (WriterException | JSONException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error generating QR code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
      * Static method to get server URL from SharedPreferences
      */
     public static String getServerUrl(android.content.Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        return prefs.getString(SERVER_URL_KEY, "");
+        return prefs.getString(SERVER_URL_KEY, DEFAULT_SERVER_URL);
+    }
+
+    /**
+     * Static method to get TV code from SharedPreferences
+     */
+    public static String getTvCode(android.content.Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE);
     }
 
     /**

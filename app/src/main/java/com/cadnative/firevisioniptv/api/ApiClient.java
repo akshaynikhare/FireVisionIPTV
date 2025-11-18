@@ -75,12 +75,14 @@ public class ApiClient {
             HttpURLConnection connection = null;
             try {
                 String baseUrl = getBaseUrl(context);
+                String tvCode = SettingsActivity.getTvCode(context);
                 URL url = new URL(baseUrl + "/api/v1/channels");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(TIMEOUT);
                 connection.setReadTimeout(TIMEOUT);
                 connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("X-TV-Code", tvCode);
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -125,12 +127,14 @@ public class ApiClient {
             HttpURLConnection connection = null;
             try {
                 String baseUrl = getBaseUrl(context);
+                String tvCode = SettingsActivity.getTvCode(context);
                 URL url = new URL(baseUrl + "/api/v1/app/version?currentVersion=" + currentVersionCode);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(TIMEOUT);
                 connection.setReadTimeout(TIMEOUT);
                 connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("X-TV-Code", tvCode);
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {

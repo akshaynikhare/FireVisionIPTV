@@ -57,3 +57,10 @@ If you would like to contribute to the development of FireVisionIPTV, feel free 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+
+## how to release 
+- make a tag with 
+``` git tag -a v1.4  -m "Release version 1.4" ```
+- push the tag
+``` git push origin v1.4 ```
