@@ -36,7 +36,7 @@ public class CardPresenter extends Presenter {
     public ViewHolder onCreateViewHolder(ViewGroup parent) {
         Log.d(TAG, "onCreateViewHolder");
 
-        mDefaultCardImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.movie);
+        mDefaultCardImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.ic_channel_placeholder);
 
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_channel_card, parent, false);
@@ -65,15 +65,20 @@ public class CardPresenter extends Presenter {
         }
 
         // Load channel icon/logo with Glide
-        if (channelImage != null && movie.getCardImageUrl() != null) {
-            RequestOptions requestOptions = new RequestOptions()
-                    .fitCenter()
-                    .error(mDefaultCardImage);
+        if (channelImage != null) {
+            if (movie.getCardImageUrl() != null && !movie.getCardImageUrl().isEmpty()) {
+                RequestOptions requestOptions = new RequestOptions()
+                        .fitCenter()
+                        .error(PlaceholderHelper.createTextPlaceholder(cardView.getContext(), movie.getTitle()));
 
-            Glide.with(cardView.getContext())
-                    .load(movie.getCardImageUrl())
-                    .apply(requestOptions)
-                    .into(channelImage);
+                Glide.with(cardView.getContext())
+                        .load(movie.getCardImageUrl())
+                        .apply(requestOptions)
+                        .into(channelImage);
+            } else {
+                // No image URL, use text placeholder directly
+                channelImage.setImageDrawable(PlaceholderHelper.createTextPlaceholder(cardView.getContext(), movie.getTitle()));
+            }
         }
 
         // Setup favorite star

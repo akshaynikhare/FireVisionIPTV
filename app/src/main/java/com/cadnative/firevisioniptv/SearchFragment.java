@@ -46,7 +46,8 @@ public class SearchFragment extends SearchSupportFragment implements SearchSuppo
         super.onCreate(savedInstanceState);
 
         mRowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        mAllMovies = MovieList.setupMovies(getActivity().getAssets());
+        // Movies should be loaded from server via loadMoviesFromServer
+        mAllMovies = new ArrayList<>();
         mHandler = new Handler(Looper.getMainLooper());
         mSearchSuggestions = buildSearchSuggestions();
 

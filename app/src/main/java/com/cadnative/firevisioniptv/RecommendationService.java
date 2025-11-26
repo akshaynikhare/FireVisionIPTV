@@ -35,7 +35,8 @@ public class RecommendationService extends JobService {
         mRecommendationTask = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
-                List<Movie> movies = MovieList.setupMovies(getAssets());
+                // Movies should be loaded from server
+                List<Movie> movies = new ArrayList<>();
                 updateRecommendations(movies);
                 return null;
             }

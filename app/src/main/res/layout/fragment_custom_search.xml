@@ -4,30 +4,42 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/default_background"
-    android:padding="40dp"
+    android:padding="@dimen/spacing_large"
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Search Input Area -->
+    <!-- Page Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Search"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_size_title"
+        android:textStyle="bold"
+        android:layout_marginBottom="@dimen/spacing_medium"/>
+
+    <!-- Search Input Area with Netflix-style Design -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/edit_text_background"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="16dp"
-        android:layout_marginBottom="32dp">
+        android:background="@drawable/search_input_background"
+        android:paddingStart="@dimen/padding_medium"
+        android:paddingEnd="@dimen/padding_medium"
+        android:paddingTop="@dimen/padding_small"
+        android:paddingBottom="@dimen/padding_small"
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:elevation="@dimen/card_elevation">
 
         <!-- Search Icon -->
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="@dimen/icon_size_small"
+            android:layout_height="@dimen/icon_size_small"
             android:src="@drawable/ic_search"
             android:tint="@color/text_secondary"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="16dp"/>
+            android:layout_marginEnd="@dimen/margin_xs"
+            android:contentDescription="@string/search"/>
 
         <!-- Search EditText -->
         <EditText
@@ -35,14 +47,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Search channels..."
+            android:hint="Search channels, categories..."
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_hint"
-            android:textSize="24sp"
+            android:textSize="@dimen/text_size_subheading"
             android:background="@android:color/transparent"
             android:imeOptions="actionSearch"
             android:inputType="text"
-            android:maxLines="1"/>
+            android:maxLines="1"
+            android:focusable="true"
+            android:focusableInTouchMode="true"/>
 
     </LinearLayout>
 
@@ -53,7 +67,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone"
-        android:paddingBottom="24dp"
+        android:paddingBottom="@dimen/padding_medium"
         android:clipChildren="false"
         android:clipToPadding="false">
 
@@ -62,15 +76,15 @@
             android:layout_height="wrap_content"
             android:text="Recent Searches"
             android:textColor="@color/text_secondary"
-            android:textSize="16sp"
-            android:paddingBottom="12dp"/>
+            android:textSize="@dimen/text_size_body"
+            android:paddingBottom="@dimen/spacing_xs"/>
 
         <!-- Horizontal scroll view for search chips -->
         <androidx.leanback.widget.HorizontalGridView
             android:id="@+id/search_history_chips"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="8dp"
+            android:paddingBottom="@dimen/spacing_xxs"
             android:clipChildren="false"
             android:clipToPadding="false"/>
 

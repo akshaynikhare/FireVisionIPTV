@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Background gradient -->
+    <path
+        android:pathData="M0,0 L200,0 L200,200 L0,200 Z"
+        android:fillType="evenOdd">
+        <aapt:attr name="android:fillColor" xmlns:aapt="http://schemas.android.com/aapt">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="200"
+                android:endY="200"
+                android:startColor="#2C3E50"
+                android:endColor="#34495E" />
+        </aapt:attr>
+    </path>
+    
+    <!-- TV Screen outline -->
+    <path
+        android:pathData="M40,50 L160,50 L160,130 L40,130 Z"
+        android:strokeWidth="4"
+        android:strokeColor="#ECF0F1"
+        android:fillColor="#1A252F" />
+    
+    <!-- TV Stand -->
+    <path
+        android:pathData="M80,130 L80,145 M120,130 L120,145 M70,145 L130,145"
+        android:strokeWidth="4"
+        android:strokeColor="#ECF0F1"
+        android:strokeLineCap="round" />
+    
+    <!-- Play icon in center -->
+    <path
+        android:pathData="M85,75 L85,105 L115,90 Z"
+        android:fillColor="#3498DB"
+        android:strokeWidth="2"
+        android:strokeColor="#ECF0F1"
+        android:strokeLineJoin="round" />
+    
+    <!-- Signal waves (top right) -->
+    <path
+        android:pathData="M140,60 Q145,65 140,70"
+        android:strokeWidth="2.5"
+        android:strokeColor="#3498DB"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+    
+    <path
+        android:pathData="M145,57 Q152,65 145,73"
+        android:strokeWidth="2.5"
+        android:strokeColor="#3498DB"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:alpha="0.7" />
+    
+    <path
+        android:pathData="M150,54 Q159,65 150,76"
+        android:strokeWidth="2.5"
+        android:strokeColor="#3498DB"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:alpha="0.4" />
+</vector>

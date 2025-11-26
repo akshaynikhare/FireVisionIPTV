@@ -81,6 +81,8 @@ public class MainFragment extends BrowseSupportFragment {
 
     private AssetManager assetManager;
     private ProgressBar loadingSpinner;
+    private View errorContainer;
+    private TextView errorMessage;
     private boolean showFavoritesOnly = false;
 
     /**
@@ -107,8 +109,10 @@ public class MainFragment extends BrowseSupportFragment {
 
         super.onActivityCreated(savedInstanceState);
 
-        // Initialize loading spinner
+        // Initialize loading spinner and error container
         loadingSpinner = getActivity().findViewById(R.id.loading_spinner);
+        errorContainer = getActivity().findViewById(R.id.error_container);
+        errorMessage = getActivity().findViewById(R.id.error_message);
 
         prepareBackgroundManager();
 
@@ -145,18 +149,45 @@ public class MainFragment extends BrowseSupportFragment {
         }
     }
 
+    private void showErrorMessage(String message) {
+        if (errorContainer != null) {
+            errorContainer.setVisibility(View.VISIBLE);
+        }
+        if (errorMessage != null && message != null) {
+            errorMessage.setText(message);
+        }
+        // Hide the browse fragment content
+        if (getView() != null) {
+            getView().setVisibility(View.GONE);
+        }
+    }
 
+    private void hideErrorMessage() {
+        if (errorContainer != null) {
+            errorContainer.setVisibility(View.GONE);
+        }
+        // Show the browse fragment content
+        if (getView() != null) {
+            getView().setVisibility(View.VISIBLE);
+        }
+    }
 
     private void loadRows() {
         showLoadingSpinner();
+        hideErrorMessage();
 
-        // Load channels from server with fallback to local M3U
+        // Load channels from server
         MovieList.loadMoviesFromServer(getContext(), assetManager, new MovieList.MovieListCallback() {
             @Override
             public void onSuccess(List<Movie> list) {
                 getActivity().runOnUiThread(() -> {
-                    displayChannels(list);
                     hideLoadingSpinner();
+                    if (list != null && !list.isEmpty()) {
+                        hideErrorMessage();
+                        displayChannels(list);
+                    } else {
+                        showErrorMessage("No channels available. Please check with your administrator.");
+                    }
                 });
             }
 
@@ -164,7 +195,8 @@ public class MainFragment extends BrowseSupportFragment {
             public void onError(String error) {
                 getActivity().runOnUiThread(() -> {
                     hideLoadingSpinner();
-                    Toast.makeText(getContext(), "Using local channel list", Toast.LENGTH_SHORT).show();
+                    showErrorMessage("Failed to load channels from server.\nPlease check your connection and TV code.");
+                    Log.e(TAG, "Channel load error: " + error);
                 });
             }
         });
@@ -357,9 +389,7 @@ public class MainFragment extends BrowseSupportFragment {
         mBackgroundTimer.schedule(new UpdateBackgroundTask(), BACKGROUND_UPDATE_DELAY);
     }
 
-    private List<Movie> loadAllMovies() {
-        return MovieList.setupMovies(FirevisionApplication.getAppContext().getAssets());
-    }
+
 
     private final class ItemViewClickedListener implements OnItemViewClickedListener {
         @Override

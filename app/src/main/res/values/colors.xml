@@ -10,30 +10,30 @@
     <color name="sidebar_item_selected">#FF1A1A1A</color>
 
     <!-- Card Colors - Sleek dark cards with subtle depth -->
-    <color name="card_background_startColor">#FF1A1A1A</color>
+    <color name="card_background_startColor">#FF181818</color>
     <color name="card_background_endColor">#FF0F0F0F</color>
-    <color name="card_background_focused">#FF2A2A2A</color>
+    <color name="card_background_focused">#FF202020</color>
     <color name="card_border_focused">#FFFFFFFF</color>
     <color name="card_text_primary">#FFFFFFFF</color>
-    <color name="card_text_secondary">#FFB8BFCE</color>
+    <color name="card_text_secondary">#FFB3B3B3</color>
 
-    <!-- Selection Colors - Netflix-style red accent -->
-    <color name="selected_background">#FFE50914</color>
-    <color name="selected_background_light">#FFF40612</color>
+    <!-- Selection Colors - Unique blue accent -->
+    <color name="selected_background">#FF2196F3</color>
+    <color name="selected_background_light">#FF42A5F5</color>
     <color name="selected_border">#FFFFFFFF</color>
 
     <!-- Search Colors -->
     <color name="search_opaque">#FFAA3F</color>
     <color name="search_focused">#FFAA3F</color>
     <color name="search_result_background">#0277BD</color>
-    <color name="search_orb_color">#FFE50914</color>
-    <color name="search_color">#FFE50914</color>
-    <color name="search_bright_color">#FFF40612</color>
+    <color name="search_orb_color">#FF2196F3</color>
+    <color name="search_color">#FF2196F3</color>
+    <color name="search_bright_color">#FF42A5F5</color>
 
-    <!-- Accent Colors - Netflix red theme -->
-    <color name="accent_primary">#FFE50914</color>
-    <color name="accent_secondary">#FFB20710</color>
-    <color name="accent_tertiary">#FFF40612</color>
+    <!-- Accent Colors - Unique blue theme -->
+    <color name="accent_primary">#FF2196F3</color>
+    <color name="accent_secondary">#FF1976D2</color>
+    <color name="accent_tertiary">#FF1565C0</color>
 
     <!-- Overlay Colors - Deep black with transparency -->
     <color name="overlay_background">#E6000000</color>
@@ -44,9 +44,15 @@
     <color name="text_primary">#FFFFFFFF</color>
     <color name="text_secondary">#FFB3B3B3</color>
     <color name="text_hint">#FF808080</color>
+    <color name="divider">#FF2A2A2A</color>
 
     <!-- Gradient Colors for Cards - Subtle dark gradients -->
-    <color name="gradient_start">#FF1A1A1A</color>
-    <color name="gradient_middle">#FF141414</color>
-    <color name="gradient_end">#FF0F0F0F</color>
+    <color name="gradient_start">#FF181818</color>
+    <color name="gradient_middle">#FF121212</color>
+    <color name="gradient_end">#FF0C0C0C</color>
+    
+    <!-- Focus Animation Colors -->
+    <color name="focus_glow_outer">#602196F3</color>
+    <color name="focus_glow_inner">#802196F3</color>
+    <color name="focus_border_bright">#FF2196F3</color>
 </resources>

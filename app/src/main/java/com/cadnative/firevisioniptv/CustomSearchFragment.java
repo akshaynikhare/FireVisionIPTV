@@ -76,7 +76,8 @@ public class CustomSearchFragment extends Fragment {
         searchHistoryChips = view.findViewById(R.id.search_history_chips);
 
         handler = new Handler(Looper.getMainLooper());
-        allMovies = MovieList.setupMovies(requireContext().getAssets());
+        // Movies should be loaded from server via loadMoviesFromServer
+        allMovies = new ArrayList<>();
         prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
         setupSearchInput();

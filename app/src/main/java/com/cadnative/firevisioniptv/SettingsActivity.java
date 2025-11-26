@@ -31,6 +31,7 @@ public class SettingsActivity extends FragmentActivity {
     private static final String DEFAULT_SERVER_URL = "https://tv.cadnative.com";
     private static final String DEFAULT_TV_CODE = "5T6FEP";
 
+    private SidebarManager sidebarManager;
     private EditText serverUrlInput;
     private EditText tvCodeInput;
     private TextView currentServerInfo;
@@ -43,7 +44,11 @@ public class SettingsActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_settings);
+        setContentView(R.layout.activity_settings_new);
+
+        // Initialize sidebar with SidebarManager
+        sidebarManager = new SidebarManager(this);
+        sidebarManager.setup(SidebarManager.SidebarItem.SETTINGS);
 
         serverUrlInput = findViewById(R.id.server_url_input);
         tvCodeInput = findViewById(R.id.tv_code_input);

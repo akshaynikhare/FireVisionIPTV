@@ -50,7 +50,7 @@ public class ChannelOverlayAdapter extends RecyclerView.Adapter<ChannelOverlayAd
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_channel_overlay, parent, false);
 
-        mDefaultImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.movie);
+        mDefaultImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.ic_channel_placeholder);
 
         return new ViewHolder(view);
     }
@@ -90,14 +90,19 @@ public class ChannelOverlayAdapter extends RecyclerView.Adapter<ChannelOverlayAd
 
             // Load channel icon/logo with Glide - fitCenter for clear icon display with padding
             if (channelImage != null) {
-                RequestOptions requestOptions = new RequestOptions()
-                        .fitCenter()
-                        .error(mDefaultImage);
+                if (channel.getCardImageUrl() != null && !channel.getCardImageUrl().isEmpty()) {
+                    RequestOptions requestOptions = new RequestOptions()
+                            .fitCenter()
+                            .error(PlaceholderHelper.createTextPlaceholder(itemView.getContext(), channel.getTitle()));
 
-                Glide.with(itemView.getContext())
-                        .load(channel.getCardImageUrl())
-                        .apply(requestOptions)
-                        .into(channelImage);
+                    Glide.with(itemView.getContext())
+                            .load(channel.getCardImageUrl())
+                            .apply(requestOptions)
+                            .into(channelImage);
+                } else {
+                    // No image URL, use text placeholder directly
+                    channelImage.setImageDrawable(PlaceholderHelper.createTextPlaceholder(itemView.getContext(), channel.getTitle()));
+                }
             }
 
             // Set up click listener

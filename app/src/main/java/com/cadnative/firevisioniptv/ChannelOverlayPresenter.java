@@ -37,7 +37,7 @@ public class ChannelOverlayPresenter extends Presenter {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_channel_overlay, parent, false);
 
-        mDefaultImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.movie);
+        mDefaultImage = ContextCompat.getDrawable(parent.getContext(), R.drawable.ic_channel_placeholder);
 
         ViewHolder viewHolder = new ViewHolder(view);
         setupFocusHandling(view);
@@ -60,15 +60,20 @@ public class ChannelOverlayPresenter extends Presenter {
 
         // Load channel image with Glide
         if (channelImage != null) {
-            RequestOptions requestOptions = new RequestOptions()
-                    .centerCrop()
-                    .transform(new RoundedCorners(CARD_CORNER_RADIUS))
-                    .error(mDefaultImage);
+            if (channel.getCardImageUrl() != null && !channel.getCardImageUrl().isEmpty()) {
+                RequestOptions requestOptions = new RequestOptions()
+                        .centerCrop()
+                        .transform(new RoundedCorners(CARD_CORNER_RADIUS))
+                        .error(PlaceholderHelper.createTextPlaceholder(cardView.getContext(), channel.getTitle()));
 
-            Glide.with(cardView.getContext())
-                    .load(channel.getCardImageUrl())
-                    .apply(requestOptions)
-                    .into(channelImage);
+                Glide.with(cardView.getContext())
+                        .load(channel.getCardImageUrl())
+                        .apply(requestOptions)
+                        .into(channelImage);
+            } else {
+                // No image URL, use text placeholder directly
+                channelImage.setImageDrawable(PlaceholderHelper.createTextPlaceholder(cardView.getContext(), channel.getTitle()));
+            }
         }
 
         // Set rounded corners on the card

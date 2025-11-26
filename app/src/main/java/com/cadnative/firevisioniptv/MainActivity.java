@@ -26,12 +26,7 @@ import com.cadnative.firevisioniptv.update.UpdateManager;
 public class MainActivity extends FragmentActivity {
     private static final String TAG = "MainActivity";
     private UpdateManager updateManager;
-
-    private View sidebarHome;
-    private View sidebarSearch;
-    private View sidebarCategories;
-    private View sidebarFavorites;
-    private View sidebarSettings;
+    private SidebarManager sidebarManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,8 +34,11 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         FirebaseApp.initializeApp(this);
 
-        // Check if TV code is configured, if not redirect to pairing
-        if (!isTvCodeConfigured()) {
+        // Check if this is the first launch and TV code is not configured
+        if (isFirstLaunch() && !isTvCodeConfigured()) {
+            // Mark that we've launched before
+            markFirstLaunchComplete();
+            
             Intent pairingIntent = new Intent(this, PairingActivity.class);
             startActivity(pairingIntent);
             finish();
@@ -65,8 +63,9 @@ public class MainActivity extends FragmentActivity {
         //     RecommendationService.scheduleRecommendationUpdate(this);
         // }
 
-        // Initialize sidebar
-        setupSidebar();
+        // Initialize sidebar with SidebarManager
+        sidebarManager = new SidebarManager(this);
+        sidebarManager.setup(SidebarManager.SidebarItem.HOME);
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -75,12 +74,6 @@ public class MainActivity extends FragmentActivity {
 
             // Check for auto-load channel
             checkAndPlayAutoloadChannel();
-        }
-
-        // Set home as selected initially
-        if (sidebarHome != null) {
-            sidebarHome.setSelected(true);
-            sidebarHome.requestFocus();
         }
     }
 
@@ -104,82 +97,44 @@ public class MainActivity extends FragmentActivity {
         sendBroadcast(intent);
     }
 
-    private void setupSidebar() {
-        sidebarHome = findViewById(R.id.sidebar_home);
-        sidebarSearch = findViewById(R.id.sidebar_search);
-        sidebarCategories = findViewById(R.id.sidebar_categories);
-        sidebarFavorites = findViewById(R.id.sidebar_favorites);
-        sidebarSettings = findViewById(R.id.sidebar_settings);
-
-        // Home - Already showing MainFragment
-        sidebarHome.setOnClickListener(v -> {
-            selectSidebarItem(sidebarHome);
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main_browse_fragment, new MainFragment())
-                    .commit();
-        });
-
-        // Search
-        sidebarSearch.setOnClickListener(v -> {
-            selectSidebarItem(sidebarSearch);
-            // Load CustomSearchFragment in the main content area
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main_browse_fragment, new CustomSearchFragment())
-                    .commit();
-        });
-
-        // Categories - Same as home for now
-        sidebarCategories.setOnClickListener(v -> {
-            selectSidebarItem(sidebarCategories);
-            // Refresh MainFragment
-            MainFragment mainFragment = new MainFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main_browse_fragment, mainFragment)
-                    .commit();
-        });
-
-        // Favorites - Filter to show only favorites
-        sidebarFavorites.setOnClickListener(v -> {
-            selectSidebarItem(sidebarFavorites);
-            // Create MainFragment that will show favorites
-            MainFragment favFragment = MainFragment.newInstanceForFavorites();
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main_browse_fragment, favFragment)
-                    .commit();
-        });
-
-        // Settings
-        sidebarSettings.setOnClickListener(v -> {
-            selectSidebarItem(sidebarSettings);
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
-        });
-
-        // Set up focus change listeners for visual feedback
-        setupFocusListener(sidebarHome);
-        setupFocusListener(sidebarSearch);
-        setupFocusListener(sidebarCategories);
-        setupFocusListener(sidebarFavorites);
-        setupFocusListener(sidebarSettings);
+    /**
+     * Show home fragment (called by SidebarManager)
+     */
+    public void showHomeFragment() {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, new MainFragment())
+                .commit();
     }
 
-    private void setupFocusListener(View view) {
-        view.setOnFocusChangeListener((v, hasFocus) -> {
-            // Don't change selection state on focus - let click handlers manage it
-            // Just update visual feedback if needed
-        });
+    /**
+     * Show search fragment (called by SidebarManager)
+     */
+    public void showSearchFragment() {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, new CustomSearchFragment())
+                .commit();
     }
 
-    private void selectSidebarItem(View selectedItem) {
-        // Deselect all
-        sidebarHome.setSelected(false);
-        sidebarSearch.setSelected(false);
-        sidebarCategories.setSelected(false);
-        sidebarFavorites.setSelected(false);
-        sidebarSettings.setSelected(false);
+    /**
+     * Show categories fragment (called by SidebarManager)
+     */
+    public void showCategoriesFragment() {
+        // Refresh MainFragment
+        MainFragment mainFragment = new MainFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, mainFragment)
+                .commit();
+    }
 
-        // Select the clicked item
-        selectedItem.setSelected(true);
+    /**
+     * Show favorites fragment (called by SidebarManager)
+     */
+    public void showFavoritesFragment() {
+        // Create MainFragment that will show favorites
+        MainFragment favFragment = MainFragment.newInstanceForFavorites();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, favFragment)
+                .commit();
     }
 
     private void handleDeepLink(android.net.Uri data) {
@@ -196,7 +151,7 @@ public class MainActivity extends FragmentActivity {
         // If we're on CustomSearchFragment or SearchFragment, go back to MainFragment
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_browse_fragment);
         if (currentFragment instanceof CustomSearchFragment || currentFragment instanceof SearchFragment) {
-            sidebarHome.setSelected(true);
+            sidebarManager.selectSidebarItem(SidebarManager.SidebarItem.HOME);
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.main_browse_fragment, new MainFragment())
                     .commit();
@@ -213,6 +168,24 @@ public class MainActivity extends FragmentActivity {
         String tvCode = SettingsActivity.getTvCode(this);
         // Consider configured if not empty and not the default demo code
         return tvCode != null && !tvCode.isEmpty() && !tvCode.equals("5T6FEP");
+    }
+
+    /**
+     * Check if this is the first time the app is being launched
+     */
+    private boolean isFirstLaunch() {
+        android.content.SharedPreferences prefs = getSharedPreferences("FireVisionSettings", MODE_PRIVATE);
+        return !prefs.getBoolean("has_launched_before", false);
+    }
+
+    /**
+     * Mark that the app has been launched before
+     */
+    private void markFirstLaunchComplete() {
+        android.content.SharedPreferences prefs = getSharedPreferences("FireVisionSettings", MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean("has_launched_before", true);
+        editor.apply();
     }
 
     @Override

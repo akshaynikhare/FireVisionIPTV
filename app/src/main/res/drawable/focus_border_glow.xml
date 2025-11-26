@@ -1,20 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Outer glow -->
+    <!-- Outer glow - Netflix Red -->
     <item>
         <shape android:shape="rectangle">
             <stroke
-                android:width="4dp"
-                android:color="#802E5BFF" />
-            <corners android:radius="10dp" />
+                android:width="3dp"
+                android:color="@color/focus_glow_outer" />
+            <corners android:radius="8dp" />
         </shape>
     </item>
-    <!-- Inner border -->
+    <!-- Middle glow -->
+    <item android:top="1dp" android:bottom="1dp" android:left="1dp" android:right="1dp">
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2dp"
+                android:color="@color/focus_glow_inner" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <!-- Inner border - Bright Netflix Red -->
     <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
         <shape android:shape="rectangle">
             <stroke
                 android:width="2dp"
-                android:color="@color/selected_border" />
+                android:color="@color/focus_border_bright" />
             <corners android:radius="8dp" />
         </shape>
     </item>

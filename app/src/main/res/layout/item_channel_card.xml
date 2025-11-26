@@ -3,19 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="210dp"
     android:layout_height="130dp"
-    android:layout_margin="6dp"
+    android:layout_margin="@dimen/margin_xxs"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:clipChildren="false"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:transitionName="channel_card_transition">
 
-    <!-- Golden Ratio Card Container (φ = 1.618) -->
+    <!-- Netflix-Style Card Container -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="6dp"
-        app:cardCornerRadius="10dp"
+        android:elevation="@dimen/card_elevation"
+        android:stateListAnimator="@null"
+        app:cardCornerRadius="8dp"
         app:cardBackgroundColor="@color/overlay_card_background">
 
         <LinearLayout
@@ -24,43 +26,42 @@
             android:orientation="vertical"
             android:background="@drawable/card_background_gradient">
 
-            <!-- Icon Container - Golden Ratio height (φ-1)/φ ≈ 78.6% -->
+            <!-- Icon Container - Tighter Netflix Style -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="11"
-                android:padding="9dp">
+                android:padding="@dimen/padding_xs">
 
-                <!-- Channel Icon/Logo - Golden proportions -->
+                <!-- Channel Icon/Logo -->
                 <ImageView
                     android:id="@+id/channel_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="fitCenter"
                     android:adjustViewBounds="true"
-                    android:padding="4dp" />
+                    android:padding="@dimen/padding_xxs" />
 
             </FrameLayout>
 
-            <!-- Fibonacci Divider (1px golden division) -->
+            <!-- Divider -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginStart="13dp"
-                android:layout_marginEnd="13dp"
-                android:background="#18FFFFFF"
-                android:alpha="0.38" />
+                android:layout_marginStart="@dimen/margin_xs"
+                android:layout_marginEnd="@dimen/margin_xs"
+                android:background="#10FFFFFF" />
 
-            <!-- Channel Name - Golden complement (1/φ ≈ 21.4%) -->
+            <!-- Channel Name - Compact -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="3"
                 android:orientation="vertical"
-                android:paddingStart="9dp"
-                android:paddingEnd="9dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
+                android:paddingStart="@dimen/padding_xs"
+                android:paddingEnd="@dimen/padding_xs"
+                android:paddingTop="@dimen/padding_xxs"
+                android:paddingBottom="@dimen/padding_xxs"
                 android:gravity="center">
 
                 <TextView
@@ -74,7 +75,7 @@
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:gravity="center"
-                    android:letterSpacing="0.015"
+                    android:letterSpacing="0.01"
                     android:shadowColor="#000000"
                     android:shadowDx="0"
                     android:shadowDy="1"
@@ -86,25 +87,25 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- Golden Ratio Focus Border -->
+    <!-- Netflix-Style Focus Border with Red Glow -->
     <View
         android:id="@+id/focus_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/focus_border_golden"
+        android:background="@drawable/focus_border_glow"
         android:alpha="0" />
 
-    <!-- Favorite Star Icon - Top Right Corner (Fibonacci padding) -->
+    <!-- Favorite Star Icon - Top Right Corner -->
     <ImageView
         android:id="@+id/favorite_star"
-        android:layout_width="18dp"
-        android:layout_height="18dp"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
         android:layout_gravity="top|end"
-        android:layout_marginTop="9dp"
-        android:layout_marginEnd="9dp"
+        android:layout_marginTop="@dimen/margin_xs"
+        android:layout_marginEnd="@dimen/margin_xs"
         android:src="@drawable/ic_star_outline_small"
         android:visibility="visible"
-        android:alpha="0.5"
-        android:elevation="9dp"/>
+        android:alpha="0.6"
+        android:elevation="8dp"/>
 
 </FrameLayout>

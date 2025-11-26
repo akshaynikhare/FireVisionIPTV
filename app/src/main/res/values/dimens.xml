@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Netflix-Style Design System - Fibonacci Sequence Based Spacing -->
+    
+    <!-- Corner Radius - Consistent across all components -->
+    <dimen name="corner_radius_small">8dp</dimen>
+    <dimen name="corner_radius_medium">12dp</dimen>
+    <dimen name="corner_radius_large">16dp</dimen>
+    <dimen name="corner_radius_chip">20dp</dimen>
+    
+    <!-- Spacing - Tighter Netflix-Style (4, 8, 12, 16, 24, 40) -->
+    <dimen name="spacing_xxs">4dp</dimen>
+    <dimen name="spacing_xs">8dp</dimen>
+    <dimen name="spacing_small">12dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+    <dimen name="spacing_xl">40dp</dimen>
+    <dimen name="spacing_xxl">89dp</dimen>
+    
+    <!-- Padding - Compact Netflix-Style -->
+    <dimen name="padding_xxs">4dp</dimen>
+    <dimen name="padding_xs">8dp</dimen>
+    <dimen name="padding_small">12dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="padding_large">20dp</dimen>
+    <dimen name="padding_xl">24dp</dimen>
+    
+    <!-- Margin - Minimal Netflix-Style -->
+    <dimen name="margin_xxs">4dp</dimen>
+    <dimen name="margin_xs">6dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">12dp</dimen>
+    <dimen name="margin_large">16dp</dimen>
+    <dimen name="margin_xl">24dp</dimen>
+    
+    <!-- Card Dimensions -->
+    <dimen name="card_elevation">2dp</dimen>
+    <dimen name="card_elevation_focused">6dp</dimen>
+    
+    <!-- Sidebar -->
+    <dimen name="sidebar_width">89dp</dimen>
+    <dimen name="sidebar_item_height">55dp</dimen>
+    <dimen name="sidebar_icon_size">28dp</dimen>
+    
+    <!-- Icon Sizes -->
+    <dimen name="icon_size_small">20dp</dimen>
+    <dimen name="icon_size">28dp</dimen>
+    <dimen name="icon_size_large">34dp</dimen>
+    
+    <!-- Animation Durations -->
+    <integer name="anim_duration_fast">150</integer>
+    <integer name="anim_duration_medium">250</integer>
+    <integer name="anim_duration_slow">350</integer>
+    
+    <!-- Button Heights -->
+    <dimen name="button_height">55dp</dimen>
+    <dimen name="button_height_small">48dp</dimen>
+    
+    <!-- Text Sizes -->
+    <dimen name="text_size_title">42sp</dimen>
+    <dimen name="text_size_heading">28sp</dimen>
+    <dimen name="text_size_subheading">20sp</dimen>
+    <dimen name="text_size_body">16sp</dimen>
+    <dimen name="text_size_caption">14sp</dimen>
+    <dimen name="text_size_pin">72sp</dimen>
+    
+    <!-- Stroke Width -->
+    <dimen name="stroke_width_thin">1dp</dimen>
+    <dimen name="stroke_width_medium">2dp</dimen>
+    <dimen name="stroke_width_thick">3dp</dimen>
+    
+    <!-- Input Fields -->
+    <dimen name="input_height">55dp</dimen>
+    <dimen name="input_padding">16dp</dimen>
+    
+    <!-- QR Code -->
+    <dimen name="qr_code_size">200dp</dimen>
+    <dimen name="qr_code_padding">8dp</dimen>
+</resources>

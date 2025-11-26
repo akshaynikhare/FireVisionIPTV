@@ -8,207 +8,130 @@
     android:padding="55dp">
 
     <!-- Title -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Settings"
-        android:textColor="@color/text_primary"
-        android:textSize="34sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="34dp"
-        android:fontFamily="sans-serif-medium"/>
 
     <!-- Settings Card with Golden Ratio proportions -->
-    <androidx.cardview.widget.CardView
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="21dp"
-        app:cardCornerRadius="14dp"
-        app:cardElevation="8dp"
-        app:cardBackgroundColor="@color/overlay_card_background"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        android:fadeScrollbars="false"
+        android:orientation="vertical">
 
+        <!-- Server URL Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="13dp"
+            android:text="Server Configuration"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Server URL"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/server_url_input"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginBottom="21dp"
+            android:background="@drawable/edit_text_background"
+            android:hint="Enter server URL"
+            android:inputType="textUri"
+            android:padding="13dp"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="TV Pairing Code"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/tv_code_input"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginBottom="21dp"
+            android:background="@drawable/edit_text_background"
+            android:hint="Enter TV code"
+            android:inputType="textCapCharacters"
+            android:padding="13dp"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="16sp" />
+
+        <!-- Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="34dp">
+            android:gravity="start"
+            android:orientation="horizontal">
 
-            <!-- Server URL Section -->
-            <TextView
+            <!-- Save Button -->
+            <FrameLayout
+                android:id="@+id/save_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Server Configuration"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="13dp"/>
+                android:layout_marginEnd="13dp"
+                android:background="@drawable/button_background"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:paddingStart="34dp"
+                android:paddingTop="13dp"
+                android:paddingEnd="34dp"
+                android:paddingBottom="13dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Server URL"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp"/>
-
-            <EditText
-                android:id="@+id/server_url_input"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:background="@drawable/edit_text_background"
-                android:padding="13dp"
-                android:hint="Enter server URL"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
-                android:textSize="16sp"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:layout_marginBottom="21dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="TV Pairing Code"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:layout_marginBottom="8dp"/>
-
-            <EditText
-                android:id="@+id/tv_code_input"
-                android:layout_width="match_parent"
-                android:layout_height="55dp"
-                android:background="@drawable/edit_text_background"
-                android:padding="13dp"
-                android:hint="Enter TV code"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_hint"
-                android:textSize="16sp"
-                android:inputType="textCapCharacters"
-                android:singleLine="true"
-                android:layout_marginBottom="21dp"/>
-
-            <!-- Buttons Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="start">
-
-                <!-- Save Button -->
-                <FrameLayout
-                    android:id="@+id/save_button"
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:background="@drawable/button_background"
-                    android:paddingStart="34dp"
-                    android:paddingEnd="34dp"
-                    android:paddingTop="13dp"
-                    android:paddingBottom="13dp"
-                    android:layout_marginEnd="13dp">
+                    android:text="Save"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Save"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"/>
-                </FrameLayout>
+            <!-- Pair Device Button -->
+            <FrameLayout
+                android:id="@+id/pair_device_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/button_background"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:paddingStart="34dp"
+                android:paddingTop="13dp"
+                android:paddingEnd="34dp"
+                android:paddingBottom="13dp">
 
-                <!-- Pair Device Button -->
-                <FrameLayout
-                    android:id="@+id/pair_device_button"
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:background="@drawable/button_background"
-                    android:paddingStart="34dp"
-                    android:paddingEnd="34dp"
-                    android:paddingTop="13dp"
-                    android:paddingBottom="13dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pair with PIN"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"/>
-                </FrameLayout>
-            </LinearLayout>
-
+                    android:text="Pair with PIN"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
+    </LinearLayout>
 
-    <!-- Current Server Info -->
-    <TextView
-        android:id="@+id/current_server_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Current server: Not set"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:layout_marginTop="13dp"/>
-
-    <!-- QR Code Card -->
-    <androidx.cardview.widget.CardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="21dp"
-        app:cardCornerRadius="14dp"
-        app:cardElevation="8dp"
-        app:cardBackgroundColor="@color/overlay_card_background">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="34dp"
-            android:gravity="center">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Registration QR Code"
-                android:textColor="@color/text_primary"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="13dp"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Scan this QR code to create a new account at tv.cadnative.com/user/register.html"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:layout_marginBottom="21dp"/>
-
-            <ImageView
-                android:id="@+id/qr_code_image"
-                android:layout_width="300dp"
-                android:layout_height="300dp"
-                android:layout_gravity="center"
-                android:scaleType="fitCenter"
-                android:contentDescription="QR Code for TV signup"/>
-
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
-
-    <!-- Auto-load Channel Card -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="21dp"
-        app:cardCornerRadius="14dp"
-        app:cardElevation="8dp"
-        app:cardBackgroundColor="@color/overlay_card_background">
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="34dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -219,40 +142,40 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="13dp"
                 android:text="Auto-Load Channel"
                 android:textColor="@color/text_primary"
                 android:textSize="22sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="13dp"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="13dp"
                 android:text="Long-press on any channel in the home screen to set it as auto-load on app startup"
                 android:textColor="@color/text_secondary"
-                android:textSize="14sp"
-                android:layout_marginBottom="13dp"/>
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/autoload_channel_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="13dp"
                 android:text="No channel set"
                 android:textColor="@color/text_hint"
-                android:textSize="14sp"
-                android:layout_marginBottom="13dp"/>
+                android:textSize="14sp" />
 
             <!-- Clear Auto-load Button -->
             <FrameLayout
                 android:id="@+id/clear_autoload_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/button_background"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
-                android:background="@drawable/button_background"
                 android:paddingStart="34dp"
-                android:paddingEnd="34dp"
                 android:paddingTop="13dp"
+                android:paddingEnd="34dp"
                 android:paddingBottom="13dp">
 
                 <TextView
@@ -261,11 +184,17 @@
                     android:text="Clear Auto-load"
                     android:textColor="@color/text_primary"
                     android:textSize="18sp"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold" />
             </FrameLayout>
 
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- Current Server Info -->
+
+    <!-- QR Code Card -->
+
+    <!-- Auto-load Channel Card -->
 
 </LinearLayout>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Netflix-style Sidebar - Reusable Component -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sidebar"
+    android:layout_width="@dimen/sidebar_width"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/sidebar_background"
+    android:paddingTop="@dimen/spacing_medium"
+    android:paddingBottom="@dimen/spacing_medium"
+    android:paddingStart="@dimen/spacing_xs"
+    android:paddingEnd="@dimen/spacing_xs"
+    android:elevation="@dimen/card_elevation_focused">
+
+    <!-- Home -->
+    <FrameLayout
+        android:id="@+id/sidebar_home"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_home"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/home"/>
+    </FrameLayout>
+
+    <!-- Search -->
+    <FrameLayout
+        android:id="@+id/sidebar_search"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_search"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/search"/>
+    </FrameLayout>
+
+    <!-- Categories -->
+    <FrameLayout
+        android:id="@+id/sidebar_categories"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_categories"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/categories"/>
+    </FrameLayout>
+
+    <!-- Favorites -->
+    <FrameLayout
+        android:id="@+id/sidebar_favorites"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_favorites"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/favorites"/>
+    </FrameLayout>
+
+    <!-- Spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <!-- Settings (bottom aligned) -->
+    <FrameLayout
+        android:id="@+id/sidebar_settings"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_settings"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/settings"/>
+    </FrameLayout>
+
+</LinearLayout>

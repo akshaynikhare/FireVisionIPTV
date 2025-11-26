@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Netflix-style Settings Activity with Sidebar -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/default_background"
+    tools:context=".SettingsActivity"
+    tools:deviceIds="tv">
+
+    <!-- Netflix-style Sidebar - Reusable Component -->
+    <include layout="@layout/include_sidebar"/>
+
+    <!-- Main Settings Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_large"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Page Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Settings"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"
+                android:layout_marginBottom="@dimen/spacing_medium"/>
+
+            <!-- Server Configuration Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/settings_card_background"
+                android:padding="@dimen/spacing_medium"
+                android:layout_marginBottom="@dimen/spacing_small"
+                android:elevation="@dimen/card_elevation">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Server Configuration"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_size_heading"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Server URL -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Server URL"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_body"
+                    android:layout_marginBottom="@dimen/spacing_xs"/>
+
+                <EditText
+                    android:id="@+id/server_url_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:background="@drawable/edit_text_background"
+                    android:hint="Enter server URL"
+                    android:inputType="textUri"
+                    android:padding="@dimen/padding_small"
+                    android:singleLine="true"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="@dimen/text_size_body"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Current Server Info -->
+                <TextView
+                    android:id="@+id/current_server_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Current server: Not configured"
+                    android:textColor="@color/text_hint"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- TV Pairing Code -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TV Pairing Code"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_body"
+                    android:layout_marginBottom="@dimen/spacing_xs"/>
+
+                <EditText
+                    android:id="@+id/tv_code_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:background="@drawable/edit_text_background"
+                    android:hint="Enter TV code"
+                    android:inputType="textCapCharacters"
+                    android:padding="@dimen/padding_small"
+                    android:singleLine="true"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="@dimen/text_size_body"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="start">
+
+                    <!-- Save Button -->
+                    <FrameLayout
+                        android:id="@+id/save_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/button_background"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        android:paddingStart="@dimen/padding_xl"
+                        android:paddingTop="@dimen/padding_small"
+                        android:paddingEnd="@dimen/padding_xl"
+                        android:paddingBottom="@dimen/padding_small"
+                        android:layout_marginEnd="@dimen/margin_xs">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Save Settings"
+                            android:textColor="@color/text_primary"
+                            android:textSize="@dimen/text_size_body"
+                            android:textStyle="bold"/>
+                    </FrameLayout>
+
+                    <!-- Pair Device Button -->
+                    <FrameLayout
+                        android:id="@+id/pair_device_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/button_accent_background"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        android:paddingStart="@dimen/padding_xl"
+                        android:paddingTop="@dimen/padding_small"
+                        android:paddingEnd="@dimen/padding_xl"
+                        android:paddingBottom="@dimen/padding_small">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pair with PIN"
+                            android:textColor="@color/text_primary"
+                            android:textSize="@dimen/text_size_body"
+                            android:textStyle="bold"/>
+                    </FrameLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- QR Code Registration Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/settings_card_background"
+                android:padding="@dimen/spacing_medium"
+                android:layout_marginBottom="@dimen/spacing_small"
+                android:elevation="@dimen/card_elevation">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Account Registration"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_size_heading"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scan this QR code with your mobile device to register an account"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- QR Code -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/white"
+                    android:padding="@dimen/qr_code_padding">
+
+                    <ImageView
+                        android:id="@+id/qr_code_image"
+                        android:layout_width="@dimen/qr_code_size"
+                        android:layout_height="@dimen/qr_code_size"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="@string/registration_qr_code"/>
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- Auto-load Channel Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/settings_card_background"
+                android:padding="@dimen/spacing_medium"
+                android:elevation="@dimen/card_elevation">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Auto-Load Channel"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_size_heading"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Long-press on any channel in the home screen to set it as auto-load on app startup"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Current Auto-load Channel -->
+                <TextView
+                    android:id="@+id/autoload_channel_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No channel set"
+                    android:textColor="@color/text_hint"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Clear Button -->
+                <FrameLayout
+                    android:id="@+id/clear_autoload_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_background"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="@dimen/padding_xl"
+                    android:paddingTop="@dimen/padding_small"
+                    android:paddingEnd="@dimen/padding_xl"
+                    android:paddingBottom="@dimen/padding_small">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Clear Auto-load"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_size_body"
+                        android:textStyle="bold"/>
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

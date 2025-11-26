@@ -34,7 +34,8 @@ public class SearchResultProvider implements SearchSupportFragment.SearchResultP
 
     SearchResultProvider() {
         mRowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        mAllMovies = MovieList.setupMovies(FirevisionApplication.getAppContext().getAssets());
+        // Movies should be loaded from server via loadMoviesFromServer
+        mAllMovies = new ArrayList<>();
         mHandler = new Handler(Looper.getMainLooper());
         mSearchSuggestions = buildSearchSuggestions();
     }
