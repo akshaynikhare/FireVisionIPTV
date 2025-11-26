@@ -17,17 +17,13 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file(System.getenv("SIGNING_KEY_STORE"))
-            storePassword System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
-        }
         release {
-            storeFile file(System.getenv("SIGNING_KEY_STORE"))
-            storePassword System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+            if (System.getenv("SIGNING_KEY_STORE") != null) {
+                storeFile file(System.getenv("SIGNING_KEY_STORE"))
+                storePassword System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+            }
         }
     }
 
@@ -39,7 +35,12 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
+        }
+        dev {
+            initWith debug
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
         }
     }
     compileOptions {
@@ -68,6 +69,10 @@ dependencies {
 
     // TV Provider support
     implementation 'androidx.tvprovider:tvprovider:1.1.0'
+
+    // ExoPlayer for better video playback with wake lock support
+    implementation 'androidx.media3:media3-exoplayer:1.2.0'
+    implementation 'androidx.media3:media3-ui:1.2.0'
 
     // QR Code generation
     implementation 'com.google.zxing:core:3.5.3'

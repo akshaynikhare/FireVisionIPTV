@@ -88,27 +88,58 @@
                 android:singleLine="true"
                 android:layout_marginBottom="21dp"/>
 
-            <!-- Save Button -->
-            <FrameLayout
-                android:id="@+id/save_button"
-                android:layout_width="wrap_content"
+            <!-- Buttons Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:background="@drawable/button_background"
-                android:paddingStart="34dp"
-                android:paddingEnd="34dp"
-                android:paddingTop="13dp"
-                android:paddingBottom="13dp">
+                android:orientation="horizontal"
+                android:gravity="start">
 
-                <TextView
+                <!-- Save Button -->
+                <FrameLayout
+                    android:id="@+id/save_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Save"
-                    android:textColor="@color/text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold"/>
-            </FrameLayout>
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:background="@drawable/button_background"
+                    android:paddingStart="34dp"
+                    android:paddingEnd="34dp"
+                    android:paddingTop="13dp"
+                    android:paddingBottom="13dp"
+                    android:layout_marginEnd="13dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Save"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"/>
+                </FrameLayout>
+
+                <!-- Pair Device Button -->
+                <FrameLayout
+                    android:id="@+id/pair_device_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:background="@drawable/button_background"
+                    android:paddingStart="34dp"
+                    android:paddingEnd="34dp"
+                    android:paddingTop="13dp"
+                    android:paddingBottom="13dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pair with PIN"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"/>
+                </FrameLayout>
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -143,7 +174,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="TV App Signup QR Code"
+                android:text="Registration QR Code"
                 android:textColor="@color/text_primary"
                 android:textSize="22sp"
                 android:textStyle="bold"
@@ -152,7 +183,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Scan this QR code with your mobile device to quickly pair with the TV app"
+                android:text="Scan this QR code to create a new account at tv.cadnative.com/user/register.html"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp"
                 android:gravity="center"

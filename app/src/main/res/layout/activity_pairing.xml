@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1a1a1a"
+    android:padding="40dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/header_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pair Your TV"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan QR code or enter PIN on dashboard"
+            android:textColor="#BBBBBB"
+            android:textSize="24sp"/>
+    </LinearLayout>
+
+    <!-- PIN Display and QR Code - Centered -->
+    <LinearLayout
+        android:id="@+id/pin_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_marginTop="-50dp">
+
+        <!-- Left side: PIN Display -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginRight="60dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter PIN"
+                android:textColor="#BBBBBB"
+                android:textSize="20sp"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/pin_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="------"
+                android:textColor="#4CAF50"
+                android:textSize="100sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"
+                android:fontFamily="monospace"
+                android:background="@drawable/pin_background"
+                android:padding="32dp"
+                android:elevation="8dp"/>
+
+            <!-- Status Message -->
+            <TextView
+                android:id="@+id/status_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Generating PIN..."
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:layout_marginTop="24dp"
+                android:gravity="center"/>
+
+            <!-- Countdown Timer -->
+            <TextView
+                android:id="@+id/countdown_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Expires in: 10:00"
+                android:textColor="#FFC107"
+                android:textSize="18sp"
+                android:layout_marginTop="12dp"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="400dp"
+            android:background="#444444"
+            android:layout_marginRight="60dp"/>
+
+        <!-- Right side: QR Code for Signup -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don't have an account?"
+                android:textColor="#BBBBBB"
+                android:textSize="20sp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scan to Create Account"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- QR Code for Registration -->
+            <ImageView
+                android:id="@+id/signup_qr_code"
+                android:layout_width="350dp"
+                android:layout_height="350dp"
+                android:background="@android:color/white"
+                android:padding="16dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="QR Code for Signup"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="tv.cadnative.com/user/register.html"
+                android:textColor="#2196F3"
+                android:textSize="16sp"
+                android:layout_marginTop="12dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Instructions at bottom -->
+    <LinearLayout
+        android:id="@+id/instructions_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Visit your dashboard to enter this PIN"
+            android:textColor="#BBBBBB"
+            android:textSize="20sp"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/server_url_display"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="https://tv.cadnative.com"
+            android:textColor="#2196F3"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginTop="8dp"/>
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="24dp">
+
+            <Button
+                android:id="@+id/retry_button"
+                android:layout_width="200dp"
+                android:layout_height="60dp"
+                android:text="Generate New PIN"
+                android:textSize="18sp"
+                android:visibility="gone"
+                android:layout_marginRight="16dp"/>
+
+            <Button
+                android:id="@+id/skip_button"
+                android:layout_width="200dp"
+                android:layout_height="60dp"
+                android:text="Enter Code Manually"
+                android:textSize="18sp"/>
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Loading Spinner (initially visible) -->
+    <ProgressBar
+        android:id="@+id/loading_spinner"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_centerInParent="true"
+        android:indeterminateTint="#4CAF50"
+        android:visibility="visible"/>
+
+</RelativeLayout>

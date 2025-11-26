@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -16,9 +17,6 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Settings Activity for server configuration
@@ -39,6 +37,7 @@ public class SettingsActivity extends FragmentActivity {
     private TextView autoloadChannelInfo;
     private ImageView qrCodeImageView;
     private View saveButton;
+    private View pairDeviceButton;
     private View clearAutoloadButton;
 
     @Override
@@ -52,6 +51,7 @@ public class SettingsActivity extends FragmentActivity {
         autoloadChannelInfo = findViewById(R.id.autoload_channel_info);
         qrCodeImageView = findViewById(R.id.qr_code_image);
         saveButton = findViewById(R.id.save_button);
+        pairDeviceButton = findViewById(R.id.pair_device_button);
         clearAutoloadButton = findViewById(R.id.clear_autoload_button);
 
         // Initialize defaults if not set
@@ -66,11 +66,17 @@ public class SettingsActivity extends FragmentActivity {
         // Load auto-load channel info
         loadAutoloadChannelInfo();
 
-        // Generate QR code
+        // Generate registration QR code
         generateQRCode();
 
         // Setup save button
         saveButton.setOnClickListener(v -> saveSettings());
+
+        // Setup pair device button
+        pairDeviceButton.setOnClickListener(v -> {
+            Intent intent = new Intent(SettingsActivity.this, PairingActivity.class);
+            startActivity(intent);
+        });
 
         // Setup clear auto-load button
         clearAutoloadButton.setOnClickListener(v -> clearAutoloadChannel());
@@ -172,21 +178,17 @@ public class SettingsActivity extends FragmentActivity {
     }
 
     /**
-     * Generate QR code for TV app signup
+     * Generate QR code for user registration
      */
     private void generateQRCode() {
         try {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             String serverUrl = prefs.getString(SERVER_URL_KEY, DEFAULT_SERVER_URL);
-            String tvCode = prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE);
 
-            // Create JSON object with signup information
-            JSONObject signupData = new JSONObject();
-            signupData.put("serverUrl", serverUrl);
-            signupData.put("tvCode", tvCode);
-            signupData.put("action", "tv_signup");
+            // Create registration URL for QR code
+            String registrationUrl = serverUrl + "/user/register.html";
 
-            String qrContent = signupData.toString();
+            String qrContent = registrationUrl;
 
             // Generate QR code bitmap
             QRCodeWriter writer = new QRCodeWriter();
@@ -204,7 +206,7 @@ public class SettingsActivity extends FragmentActivity {
             // Display QR code
             qrCodeImageView.setImageBitmap(bmp);
 
-        } catch (WriterException | JSONException e) {
+        } catch (WriterException e) {
             e.printStackTrace();
             Toast.makeText(this, "Error generating QR code", Toast.LENGTH_SHORT).show();
         }

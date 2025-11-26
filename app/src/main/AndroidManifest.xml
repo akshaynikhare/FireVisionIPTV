@@ -9,6 +9,8 @@
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <uses-feature
         android:name="android.hardware.touchscreen"
@@ -76,6 +78,12 @@
             android:exported="false"
             android:label="Settings" />
 
+        <activity
+            android:name=".PairingActivity"
+            android:exported="false"
+            android:label="Pair Device"
+            android:theme="@style/Theme.FireVisionIPTV" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -94,6 +102,41 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+
+        <!-- Fire TV TIF Integration Service -->
+        <service
+            android:name=".FireVisionTvInputService"
+            android:label="FireVision IPTV"
+            android:permission="android.permission.BIND_TV_INPUT"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.TvInputService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.media.tv.input"
+                android:resource="@xml/firevisiontvinputservice" />
+        </service>
+
+        <!-- TIF Setup Activity -->
+        <activity
+            android:name=".TvSetupActivity"
+            android:exported="false"
+            android:label="FireVision Channel Setup"
+            android:theme="@style/Theme.FireVisionIPTV">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
+        <!-- Channel Update Receiver -->
+        <receiver
+            android:name=".ChannelUpdateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.action.INITIALIZE_PROGRAMS" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

@@ -171,5 +171,32 @@ public class PlaybackVideoFragment extends VideoSupportFragment {
         window.setAttributes(params);
     }
 
+    // Additional helper methods for PlaybackActivity
+    public void togglePlayPause() {
+        if (mTransportControlGlue != null) {
+            if (mTransportControlGlue.isPlaying()) {
+                mTransportControlGlue.pause();
+            } else {
+                mTransportControlGlue.play();
+            }
+        }
+    }
 
+    public void play() {
+        if (mTransportControlGlue != null) {
+            mTransportControlGlue.play();
+        }
+    }
+
+    public void pause() {
+        if (mTransportControlGlue != null) {
+            mTransportControlGlue.pause();
+        }
+    }
+
+    public void showOverlay() {
+        if (mOverlayFragment != null) {
+            mOverlayFragment.show();
+        }
+    }
 }

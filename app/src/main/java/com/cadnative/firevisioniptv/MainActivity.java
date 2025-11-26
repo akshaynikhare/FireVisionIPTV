@@ -39,6 +39,14 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.activity_main);
         FirebaseApp.initializeApp(this);
 
+        // Check if TV code is configured, if not redirect to pairing
+        if (!isTvCodeConfigured()) {
+            Intent pairingIntent = new Intent(this, PairingActivity.class);
+            startActivity(pairingIntent);
+            finish();
+            return;
+        }
+
         // Handle deep link
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
@@ -195,6 +203,16 @@ public class MainActivity extends FragmentActivity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    /**
+     * Check if TV code is configured (not empty and not default)
+     * Used to determine if pairing is needed
+     */
+    private boolean isTvCodeConfigured() {
+        String tvCode = SettingsActivity.getTvCode(this);
+        // Consider configured if not empty and not the default demo code
+        return tvCode != null && !tvCode.isEmpty() && !tvCode.equals("5T6FEP");
     }
 
     @Override
