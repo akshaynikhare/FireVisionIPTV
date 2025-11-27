@@ -11,8 +11,8 @@ android {
         applicationId "com.cadnative.firevisioniptv"
         minSdk 28
         targetSdk 34
-        versionCode 1
-        versionName project.hasProperty('versionName') ? project.property('versionName') : '1.4'
+        versionCode 5
+        versionName project.hasProperty('versionName') ? project.property('versionName') : '1.5'
 
     }
 
