@@ -20,8 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.realm.Realm;
-
 /**
  * Manages channel synchronization with Fire TV's TIF database
  * Handles inserting, updating, and removing channels
@@ -45,8 +43,9 @@ public class ChannelManager {
     public void syncChannelsToTif() {
         Log.d(TAG, "Starting channel sync to TIF database");
 
-        // Get current channels from your database (Realm)
-        List<Channel> appChannels = getChannelsFromRealm();
+        // Get current channels from the app (currently empty - channels are managed server-side)
+        // TIF integration is available but not actively used
+        List<Channel> appChannels = new ArrayList<>();
 
         // Get existing TIF channels
         Map<String, Long> existingTifChannels = getExistingTifChannels();
@@ -70,32 +69,6 @@ public class ChannelManager {
     /**
      * Get channels from Realm database
      */
-    private List<Channel> getChannelsFromRealm() {
-        List<Channel> channels = new ArrayList<>();
-
-        try {
-            Realm realm = Realm.getDefaultInstance();
-            List<Channel> realmChannels = realm.where(Channel.class).findAll();
-
-            // Copy to regular list
-            for (Channel channel : realmChannels) {
-                Channel copy = new Channel();
-                copy.setChannelId(channel.getChannelId());
-                copy.setChannelName(channel.getChannelName());
-                copy.setChannelUrl(channel.getChannelUrl());
-                copy.setChannelImg(channel.getChannelImg());
-                copy.setChannelGroup(channel.getChannelGroup());
-                channels.add(copy);
-            }
-
-            realm.close();
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting channels from Realm", e);
-        }
-
-        return channels;
-    }
-
     /**
      * Get existing channels from TIF database
      */

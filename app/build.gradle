@@ -52,16 +52,13 @@ android {
 dependencies {
     implementation libs.androidx.leanback
     implementation libs.glide
-    implementation libs.realm.android.library
+    implementation libs.androidx.appcompat
 
+    // Firebase - using BoM for version management
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-database'
-    implementation 'com.google.firebase:firebase-firestore-ktx'
-    // Import the BoM for the Firebase platform
-    implementation("com.google.firebase:firebase-firestore")
-    implementation libs.androidx.appcompat
-    implementation libs.firebase.firestore
+    implementation 'com.google.firebase:firebase-firestore'
 
     // Modern UI components
     implementation 'androidx.cardview:cardview:1.0.0'

@@ -148,9 +148,9 @@ public class MainActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        // If we're on CustomSearchFragment or SearchFragment, go back to MainFragment
+        // If we're on CustomSearchFragment, go back to MainFragment
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.main_browse_fragment);
-        if (currentFragment instanceof CustomSearchFragment || currentFragment instanceof SearchFragment) {
+        if (currentFragment instanceof CustomSearchFragment) {
             sidebarManager.selectSidebarItem(SidebarManager.SidebarItem.HOME);
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.main_browse_fragment, new MainFragment())

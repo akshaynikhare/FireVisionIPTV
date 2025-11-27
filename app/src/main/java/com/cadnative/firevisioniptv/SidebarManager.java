@@ -54,8 +54,6 @@ public class SidebarManager {
         // Setup click listeners based on activity type
         if (activity instanceof MainActivity) {
             setupForMainActivity();
-        } else if (activity instanceof SearchActivity) {
-            setupForSearchActivity();
         } else if (activity instanceof SettingsActivity) {
             setupForSettingsActivity();
         }
@@ -113,42 +111,6 @@ public class SidebarManager {
         view.setOnClickListener(v -> action.run());
         
         // Handle D-pad center key press for TV
-        view.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
-                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || 
-                    keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
-                    action.run();
-                    return true;
-                }
-            }
-            return false;
-        });
-    }
-
-    /**
-     * Setup sidebar for SearchActivity
-     */
-    private void setupForSearchActivity() {
-        setupSearchActivityItem(sidebarHome, () -> activity.finish());
-        setupSearchActivityItem(sidebarSearch, () -> {
-            // Already on search
-        });
-        setupSearchActivityItem(sidebarCategories, () -> activity.finish());
-        setupSearchActivityItem(sidebarFavorites, () -> activity.finish());
-        setupSearchActivityItem(sidebarSettings, () -> {
-            Intent intent = new Intent(activity, SettingsActivity.class);
-            activity.startActivity(intent);
-        });
-    }
-
-    /**
-     * Setup a sidebar item for SearchActivity
-     */
-    private void setupSearchActivityItem(View view, Runnable action) {
-        if (view == null) return;
-        
-        view.setOnClickListener(v -> action.run());
-        
         view.setOnKeyListener((v, keyCode, event) -> {
             if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
                 if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || 

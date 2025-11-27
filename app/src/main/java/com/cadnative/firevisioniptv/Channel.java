@@ -3,9 +3,7 @@ package com.cadnative.firevisioniptv;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import io.realm.RealmObject;
-
-public class Channel extends RealmObject implements Parcelable {
+public class Channel implements Parcelable {
 
     private String channelName;
     private String channelId;
