@@ -84,6 +84,12 @@
             android:label="Pair Device"
             android:theme="@style/Theme.FireVisionIPTV" />
 
+        <activity
+            android:name=".CategoryChannelsActivity"
+            android:exported="false"
+            android:label="Browse Channels"
+            android:theme="@style/Theme.FireVisionIPTV" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

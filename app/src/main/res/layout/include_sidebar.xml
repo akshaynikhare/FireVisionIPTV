@@ -66,6 +66,24 @@
             android:contentDescription="@string/categories"/>
     </FrameLayout>
 
+    <!-- Languages -->
+    <FrameLayout
+        android:id="@+id/sidebar_languages"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sidebar_item_height"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:background="@drawable/sidebar_item_background"
+        android:layout_marginBottom="@dimen/spacing_xs">
+        <ImageView
+            android:layout_width="@dimen/sidebar_icon_size"
+            android:layout_height="@dimen/sidebar_icon_size"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_languages"
+            android:tint="@drawable/sidebar_icon_tint"
+            android:contentDescription="@string/languages"/>
+    </FrameLayout>
+
     <!-- Favorites -->
     <FrameLayout
         android:id="@+id/sidebar_favorites"

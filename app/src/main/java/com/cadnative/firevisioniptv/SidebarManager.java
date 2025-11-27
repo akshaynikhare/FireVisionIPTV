@@ -17,6 +17,7 @@ public class SidebarManager {
         HOME,
         SEARCH,
         CATEGORIES,
+        LANGUAGES,
         FAVORITES,
         SETTINGS
     }
@@ -25,6 +26,7 @@ public class SidebarManager {
     private final View sidebarHome;
     private final View sidebarSearch;
     private final View sidebarCategories;
+    private final View sidebarLanguages;
     private final View sidebarFavorites;
     private final View sidebarSettings;
     private SidebarItem currentItem;
@@ -40,6 +42,7 @@ public class SidebarManager {
         this.sidebarHome = activity.findViewById(R.id.sidebar_home);
         this.sidebarSearch = activity.findViewById(R.id.sidebar_search);
         this.sidebarCategories = activity.findViewById(R.id.sidebar_categories);
+        this.sidebarLanguages = activity.findViewById(R.id.sidebar_languages);
         this.sidebarFavorites = activity.findViewById(R.id.sidebar_favorites);
         this.sidebarSettings = activity.findViewById(R.id.sidebar_settings);
     }
@@ -90,6 +93,11 @@ public class SidebarManager {
             mainActivity.showCategoriesFragment();
         });
 
+        setupMainActivityItem(sidebarLanguages, SidebarItem.LANGUAGES, () -> {
+            selectSidebarItem(SidebarItem.LANGUAGES);
+            mainActivity.showLanguagesFragment();
+        });
+
         setupMainActivityItem(sidebarFavorites, SidebarItem.FAVORITES, () -> {
             selectSidebarItem(SidebarItem.FAVORITES);
             mainActivity.showFavoritesFragment();
@@ -137,6 +145,7 @@ public class SidebarManager {
         setupSettingsActivityItem(sidebarHome, goToMain);
         setupSettingsActivityItem(sidebarSearch, goToMain);
         setupSettingsActivityItem(sidebarCategories, goToMain);
+        setupSettingsActivityItem(sidebarLanguages, goToMain);
         setupSettingsActivityItem(sidebarFavorites, goToMain);
         setupSettingsActivityItem(sidebarSettings, () -> {
             // Already on settings
@@ -170,6 +179,7 @@ public class SidebarManager {
         setupFocusListener(sidebarHome, SidebarItem.HOME);
         setupFocusListener(sidebarSearch, SidebarItem.SEARCH);
         setupFocusListener(sidebarCategories, SidebarItem.CATEGORIES);
+        setupFocusListener(sidebarLanguages, SidebarItem.LANGUAGES);
         setupFocusListener(sidebarFavorites, SidebarItem.FAVORITES);
         setupFocusListener(sidebarSettings, SidebarItem.SETTINGS);
     }
@@ -196,6 +206,7 @@ public class SidebarManager {
         if (sidebarHome != null) sidebarHome.setSelected(false);
         if (sidebarSearch != null) sidebarSearch.setSelected(false);
         if (sidebarCategories != null) sidebarCategories.setSelected(false);
+        if (sidebarLanguages != null) sidebarLanguages.setSelected(false);
         if (sidebarFavorites != null) sidebarFavorites.setSelected(false);
         if (sidebarSettings != null) sidebarSettings.setSelected(false);
 
@@ -227,6 +238,8 @@ public class SidebarManager {
                 return sidebarSearch;
             case CATEGORIES:
                 return sidebarCategories;
+            case LANGUAGES:
+                return sidebarLanguages;
             case FAVORITES:
                 return sidebarFavorites;
             case SETTINGS:

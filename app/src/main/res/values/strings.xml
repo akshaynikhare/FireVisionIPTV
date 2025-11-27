@@ -21,8 +21,27 @@
     <string name="home">Home</string>
     <string name="search">Search</string>
     <string name="categories">Categories</string>
+    <string name="languages">Languages</string>
     <string name="favorites">Favorites</string>
     <string name="settings">Settings</string>
+
+    <!-- Categories -->
+    <string name="category_icon">Category Icon</string>
+    <string name="no_categories_found">No categories found</string>
+    <string name="no_languages_found">No languages found</string>
+    <string name="channel_count">%d channels</string>
+    <string name="browse_categories">Browse Categories</string>
+    <string name="browse_languages">Browse Languages</string>
+    
+    <!-- Category Names -->
+    <string name="category_sports">Sports</string>
+    <string name="category_news">News</string>
+    <string name="category_movies">Movies</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_music">Music</string>
+    <string name="category_kids">Kids</string>
+    <string name="category_documentary">Documentary</string>
+    <string name="category_general">General</string>
 
     <!-- Settings -->
     <string name="registration_qr_code">Registration QR Code</string>

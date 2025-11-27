@@ -186,6 +186,14 @@ public class ApiClient {
             channel.setChannelGroup(channelObj.optString("channelGroup", "Uncategorized"));
             channel.setChannelDrmKey(channelObj.optString("channelDrmKey", ""));
             channel.setChannelDrmType(channelObj.optString("channelDrmType", ""));
+            
+            // Extract language from metadata
+            if (channelObj.has("metadata")) {
+                JSONObject metadata = channelObj.getJSONObject("metadata");
+                channel.setChannelLanguage(metadata.optString("language", "Unknown"));
+            } else {
+                channel.setChannelLanguage("Unknown");
+            }
 
             channels.add(channel);
         }

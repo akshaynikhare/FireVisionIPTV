@@ -119,10 +119,21 @@ public class MainActivity extends FragmentActivity {
      * Show categories fragment (called by SidebarManager)
      */
     public void showCategoriesFragment() {
-        // Refresh MainFragment
-        MainFragment mainFragment = new MainFragment();
+        // Show category list
+        CategoryListFragment categoryFragment = new CategoryListFragment();
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_browse_fragment, mainFragment)
+                .replace(R.id.main_browse_fragment, categoryFragment)
+                .commit();
+    }
+
+    /**
+     * Show languages fragment (called by SidebarManager)
+     */
+    public void showLanguagesFragment() {
+        // Show language list
+        LanguageListFragment languageFragment = new LanguageListFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, languageFragment)
                 .commit();
     }
 

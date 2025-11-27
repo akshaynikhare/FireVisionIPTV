@@ -66,6 +66,8 @@ import android.content.pm.PackageManager;
 public class MainFragment extends BrowseSupportFragment {
     private static final String TAG = "MainFragment";
     private static final String ARG_FAVORITES_ONLY = "favorites_only";
+    private static final String ARG_FILTER_CATEGORY = "filter_category";
+    private static final String ARG_FILTER_TYPE = "filter_type";
 
     private static final int BACKGROUND_UPDATE_DELAY = 300;
     private static final int GRID_ITEM_WIDTH = 200;
@@ -86,6 +88,8 @@ public class MainFragment extends BrowseSupportFragment {
     private TextView errorTitle;
     private TextView errorMessage;
     private boolean showFavoritesOnly = false;
+    private String filterCategory = null;
+    private String filterType = null;
 
     /**
      * Create a new instance showing only favorites
@@ -94,6 +98,18 @@ public class MainFragment extends BrowseSupportFragment {
         MainFragment fragment = new MainFragment();
         Bundle args = new Bundle();
         args.putBoolean(ARG_FAVORITES_ONLY, true);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    /**
+     * Create a new instance filtered by category or language
+     */
+    public static MainFragment newInstanceForCategory(String categoryName, String categoryType) {
+        MainFragment fragment = new MainFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_FILTER_CATEGORY, categoryName);
+        args.putString(ARG_FILTER_TYPE, categoryType);
         fragment.setArguments(args);
         return fragment;
     }
@@ -107,6 +123,8 @@ public class MainFragment extends BrowseSupportFragment {
         // Check if we should show only favorites
         if (getArguments() != null) {
             showFavoritesOnly = getArguments().getBoolean(ARG_FAVORITES_ONLY, false);
+            filterCategory = getArguments().getString(ARG_FILTER_CATEGORY);
+            filterType = getArguments().getString(ARG_FILTER_TYPE);
         }
 
         super.onActivityCreated(savedInstanceState);
@@ -253,13 +271,40 @@ public class MainFragment extends BrowseSupportFragment {
             // Update title to show we're in favorites view
             setTitle("My Favorites");
         }
+        
+        // Filter by category or language if needed
+        if (filterCategory != null && filterType != null) {
+            List<Movie> filteredList = new ArrayList<>();
+            for (Movie movie : list) {
+                if ("category".equals(filterType)) {
+                    // Filter by category (channelGroup)
+                    if (filterCategory.equals(movie.getGroup())) {
+                        filteredList.add(movie);
+                    }
+                } else if ("language".equals(filterType)) {
+                    // Filter by language - check if the language field contains the selected language
+                    // Since languages can be comma-separated (e.g., "Urdu, Hindi, English"),
+                    // we check if the selected language is present in the string
+                    String movieLanguages = movie.getLanguage();
+                    if (movieLanguages != null && movieLanguages.contains(filterCategory)) {
+                        filteredList.add(movie);
+                    }
+                }
+            }
+            list = filteredList;
+            
+            // Update title to show current filter
+            setTitle(filterCategory);
+        }
 
         Map<String, List<Movie>> groupedMovies = new TreeMap<>();  // Using TreeMap for alphabetical sorting
 
         for (Movie movie : list) {
             String group = movie.getGroup();
             if (group == null || group.isEmpty()) {
-                group = "zzz_other";  // Prefix with 'zzz_' to ensure it's last alphabetically
+                group = "zzz_uncategorized";  // Prefix with 'zzz_' to ensure it's last alphabetically
+            } else if (group.equalsIgnoreCase("Uncategorized") || group.equalsIgnoreCase("General") || group.equalsIgnoreCase("Other")) {
+                group = "zzz_uncategorized";  // Move Uncategorized, General, and Other to the end
             }
             if (!groupedMovies.containsKey(group)) {
                 groupedMovies.put(group, new ArrayList<>());
@@ -267,8 +312,8 @@ public class MainFragment extends BrowseSupportFragment {
             groupedMovies.get(group).add(movie);
         }
 
-// Move "other" group to a separate variable and remove it from the TreeMap
-        List<Movie> otherMovies = groupedMovies.remove("zzz_other");
+// Move "uncategorized" group to a separate variable and remove it from the TreeMap
+        List<Movie> otherMovies = groupedMovies.remove("zzz_uncategorized");
 
         for (Map.Entry<String, List<Movie>> entry : groupedMovies.entrySet()) {
             String group = entry.getKey();
@@ -302,7 +347,7 @@ public class MainFragment extends BrowseSupportFragment {
             }
         }
 
-// Now handle the "other" group if it exists
+// Now handle the "uncategorized" group if it exists
         if (otherMovies != null && !otherMovies.isEmpty()) {
             int numRows = (otherMovies.size() + MAX_NUM_COLS - 1) / MAX_NUM_COLS;
 
@@ -314,7 +359,7 @@ public class MainFragment extends BrowseSupportFragment {
 
                 listRowAdapter.addAll(0, otherMovies.subList(startIndex, endIndex));
 
-                String headerText = "Other";
+                String headerText = "Uncategorized";
                 if (numRows > 1) {
                     int firstMovieIndex = startIndex + 1;
                     int lastMovieIndex = endIndex;
@@ -369,7 +414,7 @@ public class MainFragment extends BrowseSupportFragment {
         String appVersion = getAppVersion(requireContext());
         setTitle(getString(R.string.browse_title) + " (v" + appVersion + ")");
 
-        // Netflix-style: Hide headers for cleaner look
+        // Disable headers - we use custom sidebar navigation
         setHeadersState(HEADERS_DISABLED);
         setHeadersTransitionOnBackEnabled(false);
 
@@ -393,14 +438,47 @@ public class MainFragment extends BrowseSupportFragment {
                 if (gridView != null) {
                     // Set minimal spacing between rows
                     gridView.setItemSpacing(4); 
-                    // Remove any padding on the grid itself
-                    gridView.setPadding(0, 0, 0, 0);
+                    // Add top padding to account for title space
+                    gridView.setPadding(0, 80, 0, 0);
                     // Ensure it doesn't clip children for focus effects
                     gridView.setClipChildren(false);
                     gridView.setClipToPadding(false);
+                    
+                    // Add scroll listener to hide/show title
+                    setupTitleAutoHide(gridView);
                 }
             }
         }, 500);
+    }
+    
+    private void setupTitleAutoHide(VerticalGridView gridView) {
+        final View titleView = getView().findViewById(androidx.leanback.R.id.browse_title_group);
+        if (titleView == null) return;
+        
+        gridView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            private int scrollState = androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE;
+            private int totalScrollY = 0;
+            
+            @Override
+            public void onScrollStateChanged(@NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int newState) {
+                scrollState = newState;
+            }
+            
+            @Override
+            public void onScrolled(@NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
+                totalScrollY += dy;
+                
+                // Hide title when scrolling down, show when at top
+                if (totalScrollY > 50 && titleView.getVisibility() == View.VISIBLE) {
+                    titleView.animate().alpha(0f).setDuration(200).withEndAction(() -> 
+                        titleView.setVisibility(View.GONE)
+                    );
+                } else if (totalScrollY <= 50 && titleView.getVisibility() == View.GONE) {
+                    titleView.setVisibility(View.VISIBLE);
+                    titleView.animate().alpha(1f).setDuration(200);
+                }
+            }
+        });
     }
 
 

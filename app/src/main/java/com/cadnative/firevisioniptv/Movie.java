@@ -11,6 +11,7 @@ public class Movie implements Serializable {
     private String title;
     private String description;
     private String group;
+    private String language;
 
     private String bgImageUrl;
     private String cardImageUrl;
@@ -50,6 +51,14 @@ public class Movie implements Serializable {
 
     public void setGroup(String group) {
         this.group = group;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     public String getStudio() {

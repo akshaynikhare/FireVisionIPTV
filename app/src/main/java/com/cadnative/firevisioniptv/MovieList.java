@@ -67,6 +67,7 @@ public final class MovieList {
                                     channel.getChannelId(),
                                     channel.getChannelUrl(),
                                     channel.getChannelGroup(),
+                                    channel.getChannelLanguage(),
                                     cardImage,
                                     bgImageUrl[new Random().nextInt(bgImageUrl.length)]));
                 }
@@ -97,6 +98,7 @@ public final class MovieList {
             String studio,
             String videoUrl,
             String group,
+            String language,
             String cardImageUrl,
             String backgroundImageUrl) {
         Movie movie = new Movie();
@@ -104,6 +106,7 @@ public final class MovieList {
         movie.setTitle(title);
         movie.setDescription(description);
         movie.setGroup(group);
+        movie.setLanguage(language);
         movie.setStudio(studio);
         movie.setCardImageUrl(cardImageUrl);
         movie.setBackgroundImageUrl(backgroundImageUrl);

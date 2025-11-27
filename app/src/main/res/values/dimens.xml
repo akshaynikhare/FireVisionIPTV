@@ -34,6 +34,9 @@
     <dimen name="margin_xl">24dp</dimen>
     
     <!-- Card Dimensions -->
+    <dimen name="card_width">220dp</dimen>
+    <dimen name="card_height">180dp</dimen>
+    <dimen name="card_corner_radius">8dp</dimen>
     <dimen name="card_elevation">2dp</dimen>
     <dimen name="card_elevation_focused">6dp</dimen>
     
@@ -57,6 +60,11 @@
     <dimen name="button_height_small">48dp</dimen>
     
     <!-- Text Sizes -->
+    <dimen name="text_size_xlarge">32sp</dimen>
+    <dimen name="text_size_large">24sp</dimen>
+    <dimen name="text_size_medium">18sp</dimen>
+    <dimen name="text_size_small">14sp</dimen>
+    <dimen name="text_size_xsmall">12sp</dimen>
     <dimen name="text_size_title">42sp</dimen>
     <dimen name="text_size_heading">28sp</dimen>
     <dimen name="text_size_subheading">20sp</dimen>

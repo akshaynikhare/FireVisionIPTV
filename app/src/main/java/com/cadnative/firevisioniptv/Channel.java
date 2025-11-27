@@ -10,6 +10,7 @@ public class Channel implements Parcelable {
     private String channelUrl;
     private String channelImg;
     private String channelGroup;
+    private String channelLanguage;
     private String channelDrmKey;
     private String channelDrmType;
 
@@ -56,6 +57,14 @@ public class Channel implements Parcelable {
         this.channelGroup = channelGroup;
     }
 
+    public String getChannelLanguage() {
+        return channelLanguage;
+    }
+
+    public void setChannelLanguage(String channelLanguage) {
+        this.channelLanguage = channelLanguage;
+    }
+
     public String getChannelDrmKey() {
         return channelDrmKey;
     }
@@ -79,20 +88,22 @@ public class Channel implements Parcelable {
                 ", channelUrl='" + channelUrl + '\'' +
                 ", channelImg='" + channelImg + '\'' +
                 ", channelGroup='" + channelGroup + '\'' +
+                ", channelLanguage='" + channelLanguage + '\'' +
                 ", channelDrmKey='" + channelDrmKey + '\'' +
                 ", channelDrmType='" + channelDrmType + '\'' +
                 '}';
     }
 
     public Channel(Parcel in) {
-        String[] data = new String[6];
+        String[] data = new String[7];
         in.readStringArray(data);
         this.channelName = data[0];
         this.channelUrl = data[1];
         this.channelImg = data[2];
         this.channelGroup = data[3];
-        this.channelDrmKey = data[4];
-        this.channelDrmType = data[5];
+        this.channelLanguage = data[4];
+        this.channelDrmKey = data[5];
+        this.channelDrmType = data[6];
     }
 
     @Override
@@ -103,7 +114,7 @@ public class Channel implements Parcelable {
     @Override
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeStringArray(new String[]{this.channelName, this.channelUrl, this.channelImg,
-                this.channelGroup, this.channelDrmKey, this.channelDrmType});
+                this.channelGroup, this.channelLanguage, this.channelDrmKey, this.channelDrmType});
     }
 
     public static final Parcelable.Creator CREATOR = new Parcelable.Creator<Channel>() {

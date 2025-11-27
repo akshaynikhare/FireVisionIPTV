@@ -55,4 +55,8 @@
     <color name="focus_glow_outer">#602196F3</color>
     <color name="focus_glow_inner">#802196F3</color>
     <color name="focus_border_bright">#FF2196F3</color>
+    
+    <!-- Generic Background -->
+    <color name="background">#FF000000</color>
+    <color name="card_background">#FF181818</color>
 </resources>
