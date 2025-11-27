@@ -118,8 +118,6 @@ FireVisionIPTV/
 │   │   │   │   ├── MainFragment.java           # Browse UI
 │   │   │   │   ├── PlaybackActivity.java       # Video player
 │   │   │   │   └── MovieList.java              # Channel manager
-│   │   │   ├── assets/
-│   │   │   │   └── playlist.m3u                # Fallback channels
 │   │   │   └── res/                            # Resources
 │   │   └── AndroidManifest.xml
 │   └── build.gradle                            # Build configuration

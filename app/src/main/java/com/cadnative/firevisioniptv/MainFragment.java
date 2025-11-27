@@ -82,6 +82,8 @@ public class MainFragment extends BrowseSupportFragment {
     private AssetManager assetManager;
     private ProgressBar loadingSpinner;
     private View errorContainer;
+    private android.widget.ImageView errorIcon;
+    private TextView errorTitle;
     private TextView errorMessage;
     private boolean showFavoritesOnly = false;
 
@@ -112,6 +114,8 @@ public class MainFragment extends BrowseSupportFragment {
         // Initialize loading spinner and error container
         loadingSpinner = getActivity().findViewById(R.id.loading_spinner);
         errorContainer = getActivity().findViewById(R.id.error_container);
+        errorIcon = getActivity().findViewById(R.id.error_icon);
+        errorTitle = getActivity().findViewById(R.id.error_title);
         errorMessage = getActivity().findViewById(R.id.error_message);
 
         prepareBackgroundManager();
@@ -150,9 +154,36 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void showErrorMessage(String message) {
+        showErrorMessage(message, false);
+    }
+
+    private void showErrorMessage(String message, boolean isWarning) {
         if (errorContainer != null) {
             errorContainer.setVisibility(View.VISIBLE);
         }
+        
+        if (errorIcon != null) {
+            if (isWarning) {
+                // Warning style - orange triangle
+                errorIcon.setImageResource(R.drawable.ic_warning);
+                errorIcon.setColorFilter(null); // Remove tint to show original orange color
+            } else {
+                // Error style - red settings icon
+                errorIcon.setImageResource(R.drawable.ic_settings);
+                errorIcon.setColorFilter(0xFFE74C3C); // Red tint
+            }
+        }
+        
+        if (errorTitle != null) {
+            if (isWarning) {
+                errorTitle.setText("No Channels Available");
+                errorTitle.setTextColor(0xFFFFA500); // Orange
+            } else {
+                errorTitle.setText("Server Connection Failed");
+                errorTitle.setTextColor(0xFFE74C3C); // Red
+            }
+        }
+        
         if (errorMessage != null && message != null) {
             errorMessage.setText(message);
         }
@@ -186,7 +217,9 @@ public class MainFragment extends BrowseSupportFragment {
                         hideErrorMessage();
                         displayChannels(list);
                     } else {
-                        showErrorMessage("No channels available. Please check with your administrator.");
+                        // Server connected successfully but no channels available
+                        showErrorMessage("No channels in your list.\n\nPlease add channels to your account via the dashboard:\n" + 
+                                       SettingsActivity.getServerUrl(getContext()), true);
                     }
                 });
             }
@@ -195,7 +228,7 @@ public class MainFragment extends BrowseSupportFragment {
             public void onError(String error) {
                 getActivity().runOnUiThread(() -> {
                     hideLoadingSpinner();
-                    showErrorMessage("Failed to load channels from server.\nPlease check your connection and TV code.");
+                    showErrorMessage("Failed to connect to server.\n\nPlease check your internet connection and TV code in Settings.");
                     Log.e(TAG, "Channel load error: " + error);
                 });
             }
@@ -346,6 +379,28 @@ public class MainFragment extends BrowseSupportFragment {
         // Hide search icon - we use sidebar navigation instead
         getView().findViewById(androidx.leanback.R.id.title_orb).setVisibility(View.GONE);
 
+        // Tweak VerticalGridView for minimal spacing
+        setupVerticalGridView();
+    }
+
+    private void setupVerticalGridView() {
+        // Access the RowsSupportFragment to tweak the VerticalGridView
+        // We need to post this to ensure the fragment's view is created
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            androidx.leanback.app.RowsSupportFragment rowsFragment = getRowsSupportFragment();
+            if (rowsFragment != null) {
+                VerticalGridView gridView = rowsFragment.getVerticalGridView();
+                if (gridView != null) {
+                    // Set minimal spacing between rows
+                    gridView.setItemSpacing(4); 
+                    // Remove any padding on the grid itself
+                    gridView.setPadding(0, 0, 0, 0);
+                    // Ensure it doesn't clip children for focus effects
+                    gridView.setClipChildren(false);
+                    gridView.setClipToPadding(false);
+                }
+            }
+        }, 500);
     }
 
 

@@ -51,6 +51,7 @@ public class PairingActivity extends FragmentActivity {
     private ProgressBar loadingSpinner;
     private Button retryButton;
     private Button skipButton;
+    private Button skipButton2;
     
     private String currentPin;
     private long expiresAt;
@@ -72,6 +73,7 @@ public class PairingActivity extends FragmentActivity {
         loadingSpinner = findViewById(R.id.loading_spinner);
         retryButton = findViewById(R.id.retry_button);
         skipButton = findViewById(R.id.skip_button);
+        skipButton2 = findViewById(R.id.skip_button2);
         
         // Set server URL
         String serverUrl = SettingsActivity.getServerUrl(this);
@@ -87,6 +89,7 @@ public class PairingActivity extends FragmentActivity {
             startActivity(intent);
             finish();
         });
+        skipButton2.setOnClickListener(v -> useDefaultChannelList());
         
         // Start pairing process
         requestNewPairing();
@@ -346,6 +349,30 @@ public class PairingActivity extends FragmentActivity {
             }
         };
         countdownHandler.post(countdownRunnable);
+    }
+    
+    /**
+     * Use default channel list without pairing
+     */
+    private void useDefaultChannelList() {
+        isPairing = false;
+        if (pollHandler != null && pollRunnable != null) {
+            pollHandler.removeCallbacks(pollRunnable);
+        }
+        
+        // Save default channel list code to SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("FireVisionSettings", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("tv_code", "5T6FEP");
+        editor.apply();
+        
+        Toast.makeText(this, "Using default channel list", Toast.LENGTH_SHORT).show();
+        
+        // Launch MainActivity
+        Intent intent = new Intent(PairingActivity.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
     
     /**

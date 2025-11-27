@@ -26,7 +26,7 @@ import com.bumptech.glide.request.RequestOptions;
 public class CardPresenter extends Presenter {
     private static final String TAG = "CardPresenter";
 
-    private static final float SCALE_SELECTED = 1.10f;
+    private static final float SCALE_SELECTED = 1.15f;
     private static final float SCALE_DEFAULT = 1.0f;
     private static final int ANIMATION_DURATION = 200;
 

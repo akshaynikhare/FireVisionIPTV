@@ -1,40 +1,57 @@
 package com.cadnative.firevisioniptv;
 
+import android.view.View;
 import android.view.ViewGroup;
-import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.RowPresenter;
 
 /**
- * Custom ListRowPresenter with Netflix-style spacing
- * Uses Fibonacci numbers for spacing (21, 34, 55dp)
+ * Optimized ListRowPresenter for tight spacing
+ * Uses standard Android Leanback layouts with minimal configuration
  */
 public class NetflixListRowPresenter extends ListRowPresenter {
-    private static final int ROW_SPACING = 34; // Fibonacci number
 
     public NetflixListRowPresenter() {
         super();
-        // Set shadow enabled for depth
-        setShadowEnabled(false); // Netflix style doesn't use shadows
-        // Keep focus zoom disabled for subtle experience
+        // Remove headers to save vertical space
+        setHeaderPresenter(null);
+        // Disable shadows for cleaner look
+        setShadowEnabled(false);
+        // Disable selection effects that add padding
+        setSelectEffectEnabled(false);
+        // Set to 0 for minimal row height
+        setExpandedRowHeight(0);
+        // Don't keep child in foreground to reduce overhead
         setKeepChildForeground(false);
     }
 
     @Override
     protected void onBindRowViewHolder(RowPresenter.ViewHolder holder, Object item) {
         super.onBindRowViewHolder(holder, item);
-
-        // Apply Netflix-style spacing
+        
+        // Set minimal spacing between rows
         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) holder.view.getLayoutParams();
         if (lp != null) {
-            lp.bottomMargin = ROW_SPACING;
+            lp.topMargin = 3;
+            lp.bottomMargin = 3;
+            lp.leftMargin = 0;
+            lp.rightMargin = 0;
             holder.view.setLayoutParams(lp);
         }
-    }
-
-    @Override
-    protected void onRowViewSelected(RowPresenter.ViewHolder holder, boolean selected) {
-        super.onRowViewSelected(holder, selected);
-        // Subtle row selection without heavy animations
+        
+        // Remove padding from the row
+        holder.view.setPadding(0, 0, 0, 0);
+        
+        // Access the HorizontalGridView for further optimization
+        if (holder instanceof ListRowPresenter.ViewHolder) {
+            ListRowPresenter.ViewHolder listHolder = (ListRowPresenter.ViewHolder) holder;
+            androidx.leanback.widget.HorizontalGridView gridView = listHolder.getGridView();
+            if (gridView != null) {
+                // Minimal horizontal padding
+                gridView.setPadding(12, 0, 12, 0);
+                // Remove vertical spacing
+                gridView.setVerticalSpacing(0);
+            }
+        }
     }
 }

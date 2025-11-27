@@ -76,4 +76,20 @@
     <!-- QR Code -->
     <dimen name="qr_code_size">200dp</dimen>
     <dimen name="qr_code_padding">8dp</dimen>
+
+    <!-- Leanback Overrides for Compact Layout -->
+    <dimen name="lb_browse_padding_top">20dp</dimen>
+    <dimen name="lb_browse_padding_bottom">20dp</dimen>
+    <dimen name="lb_browse_rows_margin_top">0dp</dimen>
+    <dimen name="lb_browse_rows_margin_bottom">0dp</dimen>
+    <dimen name="lb_browse_item_vertical_spacing">4dp</dimen>
+    <dimen name="lb_browse_header_height">0dp</dimen>
+    <dimen name="lb_browse_headers_vertical_margin">0dp</dimen>
+    <dimen name="lb_browse_header_padding_end">0dp</dimen>
+    <dimen name="lb_browse_header_select_duration">0</dimen>
+    <dimen name="lb_browse_headers_z">0dp</dimen>
+    
+    <!-- Row Header Overrides -->
+    <dimen name="lb_browse_header_text_size">14sp</dimen>
+    <dimen name="lb_browse_header_fading_length">0dp</dimen>
 </resources>

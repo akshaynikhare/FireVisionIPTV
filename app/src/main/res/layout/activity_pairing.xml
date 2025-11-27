@@ -101,17 +101,35 @@
                     android:textColor="@color/accent_tertiary"
                     android:textSize="@dimen/text_size_body" />
 
-                <Button
-                    android:id="@+id/skip_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_small"
-                    android:paddingStart="@dimen/padding_xl"
-                    android:paddingEnd="@dimen/padding_xl"
-                    android:paddingTop="@dimen/padding_small"
-                    android:paddingBottom="@dimen/padding_small"
-                    android:text="Enter Code Manually"
-                    android:textSize="@dimen/text_size_body" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/skip_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_small"
+                        android:paddingStart="@dimen/padding_xl"
+                        android:paddingTop="@dimen/padding_small"
+                        android:paddingEnd="@dimen/padding_xl"
+                        android:paddingBottom="@dimen/padding_small"
+                        android:text="Pair Manually"
+                        android:textSize="@dimen/text_size_body" />
+
+                    <Button
+                        android:id="@+id/skip_button2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_small"
+                        android:paddingStart="@dimen/padding_xl"
+                        android:paddingTop="@dimen/padding_small"
+                        android:paddingEnd="@dimen/padding_xl"
+                        android:paddingBottom="@dimen/padding_small"
+                        android:text="Use Default"
+                        android:textSize="@dimen/text_size_body" />
+                </LinearLayout>
 
             </LinearLayout>
 

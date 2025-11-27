@@ -6,7 +6,8 @@
     android:orientation="horizontal"
     android:background="@color/default_background"
     tools:context=".MainActivity"
-    tools:deviceIds="tv">
+    tools:deviceIds="tv"
+    tools:showIn="@layout/activity_main">
 
     <!-- Netflix-style Sidebar - Reusable Component -->
     <include layout="@layout/include_sidebar"/>
@@ -41,19 +42,19 @@
             android:background="@color/default_background">
 
             <ImageView
+                android:id="@+id/error_icon"
                 android:layout_width="120dp"
                 android:layout_height="120dp"
-                android:src="@drawable/ic_settings"
-                android:tint="#E74C3C"
+                android:src="@drawable/ic_warning"
                 android:layout_marginBottom="24dp" />
 
             <TextView
                 android:id="@+id/error_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Server Connection Failed"
+                android:text="No Channels Available"
                 android:textSize="32sp"
-                android:textColor="#E74C3C"
+                android:textColor="#FFA500"
                 android:textStyle="bold"
                 android:layout_marginBottom="16dp" />
 
@@ -65,17 +66,7 @@
                 android:textSize="18sp"
                 android:textColor="#ECF0F1"
                 android:gravity="center"
-                android:layout_marginBottom="32dp"
                 android:lineSpacingExtra="4dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="• Check your internet connection\n• Verify your TV code in Settings\n• Ensure the server is running"
-                android:textSize="16sp"
-                android:textColor="#BDC3C7"
-                android:gravity="start"
-                android:lineSpacingExtra="8dp" />
 
         </LinearLayout>
 
