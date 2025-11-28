@@ -2,8 +2,11 @@ package com.cadnative.firevisioniptv;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -13,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.cadnative.firevisioniptv.update.UpdateManager;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -36,10 +40,13 @@ public class SettingsActivity extends FragmentActivity {
     private EditText tvCodeInput;
     private TextView currentServerInfo;
     private TextView autoloadChannelInfo;
+    private TextView appVersionInfo;
     private ImageView qrCodeImageView;
     private View saveButton;
     private View pairDeviceButton;
     private View clearAutoloadButton;
+    private View checkUpdatesButton;
+    private UpdateManager updateManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +61,15 @@ public class SettingsActivity extends FragmentActivity {
         tvCodeInput = findViewById(R.id.tv_code_input);
         currentServerInfo = findViewById(R.id.current_server_info);
         autoloadChannelInfo = findViewById(R.id.autoload_channel_info);
+        appVersionInfo = findViewById(R.id.app_version_info);
         qrCodeImageView = findViewById(R.id.qr_code_image);
         saveButton = findViewById(R.id.save_button);
         pairDeviceButton = findViewById(R.id.pair_device_button);
         clearAutoloadButton = findViewById(R.id.clear_autoload_button);
+        checkUpdatesButton = findViewById(R.id.check_updates_button);
+
+        // Initialize UpdateManager
+        updateManager = new UpdateManager(this);
 
         // Initialize defaults if not set
         initializeDefaults();
@@ -70,6 +82,9 @@ public class SettingsActivity extends FragmentActivity {
 
         // Load auto-load channel info
         loadAutoloadChannelInfo();
+
+        // Load app version info
+        loadAppVersionInfo();
 
         // Generate registration QR code
         generateQRCode();
@@ -85,6 +100,9 @@ public class SettingsActivity extends FragmentActivity {
 
         // Setup clear auto-load button
         clearAutoloadButton.setOnClickListener(v -> clearAutoloadChannel());
+
+        // Setup check for updates button
+        checkUpdatesButton.setOnClickListener(v -> checkForUpdates());
     }
 
     private void initializeDefaults() {
@@ -180,6 +198,43 @@ public class SettingsActivity extends FragmentActivity {
 
         autoloadChannelInfo.setText("No channel set");
         Toast.makeText(this, "Auto-load channel cleared", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Load and display app version information
+     */
+    private void loadAppVersionInfo() {
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            String versionName = packageInfo.versionName;
+            int versionCode;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionCode = (int) packageInfo.getLongVersionCode();
+            } else {
+                versionCode = packageInfo.versionCode;
+            }
+
+            appVersionInfo.setText("Version: " + versionName + " (Build " + versionCode + ")");
+        } catch (PackageManager.NameNotFoundException e) {
+            appVersionInfo.setText("Version: Unknown");
+        }
+    }
+
+    /**
+     * Check for updates manually
+     */
+    private void checkForUpdates() {
+        Toast.makeText(this, "Checking for updates...", Toast.LENGTH_SHORT).show();
+        updateManager.checkForUpdates(true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (updateManager != null) {
+            updateManager.cleanup();
+        }
     }
 
     /**

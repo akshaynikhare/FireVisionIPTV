@@ -223,6 +223,7 @@
                 android:orientation="vertical"
                 android:background="@drawable/settings_card_background"
                 android:padding="@dimen/spacing_medium"
+                android:layout_marginBottom="@dimen/spacing_small"
                 android:elevation="@dimen/card_elevation">
 
                 <!-- Section Title -->
@@ -270,6 +271,68 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Clear Auto-load"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_size_body"
+                        android:textStyle="bold"/>
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- App Information Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/settings_card_background"
+                android:padding="@dimen/spacing_medium"
+                android:elevation="@dimen/card_elevation">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="App Information"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/text_size_heading"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Version Info -->
+                <TextView
+                    android:id="@+id/app_version_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Version: Loading..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- GitHub Repository -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GitHub: github.com/akshaynikhare/FireVisionIPTV"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_size_caption"
+                    android:layout_marginBottom="@dimen/spacing_small"/>
+
+                <!-- Check for Updates Button -->
+                <FrameLayout
+                    android:id="@+id/check_updates_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_accent_background"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:paddingStart="@dimen/padding_xl"
+                    android:paddingTop="@dimen/padding_small"
+                    android:paddingEnd="@dimen/padding_xl"
+                    android:paddingBottom="@dimen/padding_small">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Check for Updates"
                         android:textColor="@color/text_primary"
                         android:textSize="@dimen/text_size_body"
                         android:textStyle="bold"/>
