@@ -9,7 +9,7 @@
     tools:deviceIds="tv"
     tools:showIn="@layout/activity_main">
 
-    <!-- Netflix-style Sidebar - Reusable Component -->
+    <!-- Slox-style Sidebar - Reusable Component -->
     <include layout="@layout/include_sidebar"/>
 
     <!-- Main Content Area -->

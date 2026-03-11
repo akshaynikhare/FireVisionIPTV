@@ -9,9 +9,9 @@ import androidx.leanback.widget.RowPresenter;
  * Optimized ListRowPresenter for tight spacing
  * Uses standard Android Leanback layouts with minimal configuration
  */
-public class NetflixListRowPresenter extends ListRowPresenter {
+public class SloxListRowPresenter extends ListRowPresenter {
 
-    public NetflixListRowPresenter() {
+    public SloxListRowPresenter() {
         super();
         // Remove headers to save vertical space
         setHeaderPresenter(null);

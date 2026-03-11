@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Netflix-style Sidebar - Reusable Component -->
+<!-- Slox-style Sidebar - Reusable Component -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/sidebar"
     android:layout_width="@dimen/sidebar_width"

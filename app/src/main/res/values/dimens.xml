@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Netflix-Style Design System - Fibonacci Sequence Based Spacing -->
+    <!-- Slox-Style Design System - Fibonacci Sequence Based Spacing -->
     
     <!-- Corner Radius - Consistent across all components -->
     <dimen name="corner_radius_small">8dp</dimen>
@@ -8,7 +8,7 @@
     <dimen name="corner_radius_large">16dp</dimen>
     <dimen name="corner_radius_chip">20dp</dimen>
     
-    <!-- Spacing - Tighter Netflix-Style (4, 8, 12, 16, 24, 40) -->
+    <!-- Spacing - Tighter Slox-Style (4, 8, 12, 16, 24, 40) -->
     <dimen name="spacing_xxs">4dp</dimen>
     <dimen name="spacing_xs">8dp</dimen>
     <dimen name="spacing_small">12dp</dimen>
@@ -17,7 +17,7 @@
     <dimen name="spacing_xl">40dp</dimen>
     <dimen name="spacing_xxl">89dp</dimen>
     
-    <!-- Padding - Compact Netflix-Style -->
+    <!-- Padding - Compact Slox-Style -->
     <dimen name="padding_xxs">4dp</dimen>
     <dimen name="padding_xs">8dp</dimen>
     <dimen name="padding_small">12dp</dimen>
@@ -25,7 +25,7 @@
     <dimen name="padding_large">20dp</dimen>
     <dimen name="padding_xl">24dp</dimen>
     
-    <!-- Margin - Minimal Netflix-Style -->
+    <!-- Margin - Minimal Slox-Style -->
     <dimen name="margin_xxs">4dp</dimen>
     <dimen name="margin_xs">6dp</dimen>
     <dimen name="margin_small">8dp</dimen>

@@ -36,6 +36,7 @@ import androidx.leanback.widget.RowPresenter;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.widget.VerticalGridView;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -72,7 +73,6 @@ public class MainFragment extends BrowseSupportFragment {
     private static final int BACKGROUND_UPDATE_DELAY = 300;
     private static final int GRID_ITEM_WIDTH = 200;
     private static final int GRID_ITEM_HEIGHT = 200;
-    private static final int MAX_NUM_COLS = 6; // Increased for modern widescreen layout
 
     private final Handler mHandler = new Handler(Looper.myLooper());
     private Drawable mDefaultBackground;
@@ -81,6 +81,7 @@ public class MainFragment extends BrowseSupportFragment {
     private String mBackgroundUri;
     private BackgroundManager mBackgroundManager;
 
+    private ChannelViewModel channelViewModel;
     private AssetManager assetManager;
     private ProgressBar loadingSpinner;
     private View errorContainer;
@@ -140,7 +141,9 @@ public class MainFragment extends BrowseSupportFragment {
 
         setupUIElements();
 
-        loadRows();
+        channelViewModel = new ViewModelProvider(requireActivity()).get(ChannelViewModel.class);
+        observeViewModel();
+        channelViewModel.loadChannels(assetManager);
 
         setupEventListeners();
 
@@ -221,40 +224,28 @@ public class MainFragment extends BrowseSupportFragment {
         }
     }
 
-    private void loadRows() {
-        showLoadingSpinner();
-        hideErrorMessage();
-
-        // Load channels from server
-        MovieList.loadMoviesFromServer(getContext(), assetManager, new MovieList.MovieListCallback() {
-            @Override
-            public void onSuccess(List<Movie> list) {
-                getActivity().runOnUiThread(() -> {
+    private void observeViewModel() {
+        channelViewModel.uiState.observe(getViewLifecycleOwner(), state -> {
+            switch (state.status) {
+                case LOADING:
+                    showLoadingSpinner();
+                    hideErrorMessage();
+                    break;
+                case SUCCESS:
                     hideLoadingSpinner();
-                    if (list != null && !list.isEmpty()) {
-                        hideErrorMessage();
-                        displayChannels(list);
-                    } else {
-                        // Server connected successfully but no channels available
-                        showErrorMessage("No channels in your list.\n\nPlease add channels to your account via the dashboard:\n" + 
-                                       SettingsActivity.getServerUrl(getContext()), true);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                getActivity().runOnUiThread(() -> {
+                    hideErrorMessage();
+                    displayChannels(state.channels);
+                    break;
+                case ERROR:
                     hideLoadingSpinner();
-                    showErrorMessage("Failed to connect to server.\n\nPlease check your internet connection and TV code in Settings.");
-                    Log.e(TAG, "Channel load error: " + error);
-                });
+                    showErrorMessage(state.errorMessage, state.isWarning);
+                    break;
             }
         });
     }
 
     private void displayChannels(List<Movie> list) {
-        ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new NetflixListRowPresenter());
+        ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new SloxListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
         // Filter for favorites if needed
@@ -316,61 +307,19 @@ public class MainFragment extends BrowseSupportFragment {
         List<Movie> otherMovies = groupedMovies.remove("zzz_uncategorized");
 
         for (Map.Entry<String, List<Movie>> entry : groupedMovies.entrySet()) {
-            String group = entry.getKey();
-            List<Movie> moviesInGroup = entry.getValue();
-
-            // Calculate the number of rows needed for this group
-            int numRows = (moviesInGroup.size() + MAX_NUM_COLS - 1) / MAX_NUM_COLS;
-
-            for (int i = 0; i < numRows; i++) {
-                ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-
-                // Calculate start and end indices for this row
-                int startIndex = i * MAX_NUM_COLS;
-                int endIndex = Math.min((i + 1) * MAX_NUM_COLS, moviesInGroup.size());
-
-                // Add movies to this row
-                listRowAdapter.addAll(0, moviesInGroup.subList(startIndex, endIndex));
-
-                // Create header for this row
-                String headerText = group;
-                if (numRows > 1) {
-                    int firstMovieIndex = startIndex + 1;  // Adding 1 to convert from 0-based to 1-based indexing
-                    int lastMovieIndex = endIndex;
-                    headerText += " (" + firstMovieIndex + "-" + lastMovieIndex + ")";
-                } else {
-                    headerText += " (" + moviesInGroup.size() + ")";
-                }
-
-                HeaderItem header = new HeaderItem(0, headerText);
-                rowsAdapter.add(new ListRow(header, listRowAdapter));
-            }
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+            listRowAdapter.addAll(0, entry.getValue());
+            String headerText = entry.getKey() + " (" + entry.getValue().size() + ")";
+            HeaderItem header = new HeaderItem(0, headerText);
+            rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
 // Now handle the "uncategorized" group if it exists
         if (otherMovies != null && !otherMovies.isEmpty()) {
-            int numRows = (otherMovies.size() + MAX_NUM_COLS - 1) / MAX_NUM_COLS;
-
-            for (int i = 0; i < numRows; i++) {
-                ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-
-                int startIndex = i * MAX_NUM_COLS;
-                int endIndex = Math.min((i + 1) * MAX_NUM_COLS, otherMovies.size());
-
-                listRowAdapter.addAll(0, otherMovies.subList(startIndex, endIndex));
-
-                String headerText = "Uncategorized";
-                if (numRows > 1) {
-                    int firstMovieIndex = startIndex + 1;
-                    int lastMovieIndex = endIndex;
-                    headerText += " (" + firstMovieIndex + "-" + lastMovieIndex + ")";
-                } else {
-                    headerText += " (" + otherMovies.size() + ")";
-                }
-
-                HeaderItem header = new HeaderItem(0, headerText);
-                rowsAdapter.add(new ListRow(header, listRowAdapter));
-            }
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+            listRowAdapter.addAll(0, otherMovies);
+            HeaderItem header = new HeaderItem(0, "Uncategorized (" + otherMovies.size() + ")");
+            rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
 //        HeaderItem gridHeader = new HeaderItem(i, "PREFERENCES");
@@ -418,7 +367,7 @@ public class MainFragment extends BrowseSupportFragment {
         setHeadersState(HEADERS_DISABLED);
         setHeadersTransitionOnBackEnabled(false);
 
-        // Set pure black background for Netflix aesthetic
+        // Set pure black background for Slox aesthetic
         setBrandColor(ContextCompat.getColor(getContext(), R.color.fastlane_background));
 
         // Hide search icon - we use sidebar navigation instead

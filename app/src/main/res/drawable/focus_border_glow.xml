@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Outer glow - Netflix Red -->
+    <!-- Outer glow - Slox Red -->
     <item>
         <shape android:shape="rectangle">
             <stroke
@@ -18,7 +18,7 @@
             <corners android:radius="8dp" />
         </shape>
     </item>
-    <!-- Inner border - Bright Netflix Red -->
+    <!-- Inner border - Bright Slox Red -->
     <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
         <shape android:shape="rectangle">
             <stroke

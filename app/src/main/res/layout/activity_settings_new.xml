@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Netflix-style Settings Activity with Sidebar -->
+<!-- Slox-style Settings Activity with Sidebar -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -9,7 +9,7 @@
     tools:context=".SettingsActivity"
     tools:deviceIds="tv">
 
-    <!-- Netflix-style Sidebar - Reusable Component -->
+    <!-- Slox-style Sidebar - Reusable Component -->
     <include layout="@layout/include_sidebar"/>
 
     <!-- Main Settings Content -->

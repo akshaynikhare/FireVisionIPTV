@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
 /**
- * Helper class to manage Netflix-style sidebar navigation across all activities
+ * Helper class to manage Slox-style sidebar navigation across all activities
  * Reduces code duplication and ensures consistent navigation behavior
  */
 public class SidebarManager {

@@ -21,7 +21,7 @@ import com.cadnative.firevisioniptv.update.UpdateManager;
 
 
 /*
- * Main Activity class that loads {@link MainFragment} with Netflix-style sidebar.
+ * Main Activity class that loads {@link MainFragment} with Slox-style sidebar.
  */
 public class MainActivity extends FragmentActivity {
     private static final String TAG = "MainActivity";
