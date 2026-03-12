@@ -11,14 +11,16 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
+        @Suppress("DEPRECATION")
         jcenter() // For com.google.android.libraries.tv:companionlibrary
     }
 }
 
 rootProject.name = "FireVisionIPTV"
-include ':app'
+include(":app")

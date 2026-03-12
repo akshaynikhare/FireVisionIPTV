@@ -27,7 +27,9 @@ public class PlaybackVideoFragment extends VideoSupportFragment {
         final Movie movie = (Movie) getActivity().getIntent().getSerializableExtra(DetailsActivity.MOVIE);
 
         // Get the list of channels (movies) and find the current one
-        mChannels = MovieList.list;
+        // TODO: Migrate to new architecture - replace MovieList.list with repository/ViewModel
+        // Temporarily stubbed to allow compilation during Phase 2 modernization
+        mChannels = new java.util.ArrayList<>(); // MovieList.list;
         mCurrentChannelIndex = mChannels.indexOf(movie);
 
         VideoSupportFragmentGlueHost glueHost = new VideoSupportFragmentGlueHost(PlaybackVideoFragment.this);

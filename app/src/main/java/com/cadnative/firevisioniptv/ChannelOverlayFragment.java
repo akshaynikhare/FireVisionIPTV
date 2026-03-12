@@ -63,7 +63,9 @@ public class ChannelOverlayFragment extends Fragment {
         if (getArguments() != null) {
             mCurrentChannelIndex = getArguments().getInt("current_index", 0);
         }
-        mChannels = MovieList.list;
+        // TODO: Migrate to new architecture - replace MovieList.list with repository/ViewModel
+        // Temporarily stubbed to allow compilation during Phase 2 modernization
+        mChannels = new java.util.ArrayList<>(); // MovieList.list;
         mAutoHideHandler = new Handler(Looper.getMainLooper());
     }
 
