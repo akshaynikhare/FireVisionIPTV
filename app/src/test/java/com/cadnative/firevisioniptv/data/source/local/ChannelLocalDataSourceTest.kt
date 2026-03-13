@@ -8,7 +8,8 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -18,30 +19,29 @@ import org.junit.Test
 /**
  * Unit tests for ChannelLocalDataSource.
  * 
- * Tests the wrapper functionality around ChannelDao to ensure
- * proper delegation and Flow-based query exposure.
+ * Tests the wrapping of ChannelDao operations and proper dispatcher usage.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ChannelLocalDataSourceTest {
     
     private lateinit var channelDao: ChannelDao
     private lateinit var channelLocalDataSource: ChannelLocalDataSource
-    private val testDispatcher = StandardTestDispatcher()
     
     @Before
     fun setup() {
         channelDao = mockk()
-        channelLocalDataSource = ChannelLocalDataSource(channelDao, testDispatcher)
+        channelLocalDataSource = ChannelLocalDataSource(channelDao, Dispatchers.Unconfined)
     }
     
     @Test
-    fun `getAllChannels returns flow from dao`() = runTest(testDispatcher) {
+    fun `getAllChannels returns flow from dao`() = runTest {
         // Given
         val channels = listOf(
             ChannelEntity(
                 id = "1",
                 name = "Channel 1",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = "cat1",
                 language = "en",
                 country = "US",
@@ -58,17 +58,18 @@ class ChannelLocalDataSourceTest {
         
         // Then
         assertEquals(channels, result)
+        coVerify { channelDao.getAllChannels() }
     }
     
     @Test
-    fun `getChannelById returns flow from dao`() = runTest(testDispatcher) {
+    fun `getChannelById returns flow from dao`() = runTest {
         // Given
         val channelId = "1"
         val channel = ChannelEntity(
             id = channelId,
             name = "Channel 1",
             streamUrl = "http://example.com/1",
-            logoUrl = "http://example.com/logo1.png",
+            logoUrl = null,
             categoryId = "cat1",
             language = "en",
             country = "US",
@@ -84,12 +85,13 @@ class ChannelLocalDataSourceTest {
         
         // Then
         assertEquals(channel, result)
+        coVerify { channelDao.getChannelById(channelId) }
     }
     
     @Test
-    fun `getChannelById returns null when channel not found`() = runTest(testDispatcher) {
+    fun `getChannelById returns null when not found`() = runTest {
         // Given
-        val channelId = "nonexistent"
+        val channelId = "999"
         every { channelDao.getChannelById(channelId) } returns flowOf(null)
         
         // When
@@ -97,10 +99,11 @@ class ChannelLocalDataSourceTest {
         
         // Then
         assertNull(result)
+        coVerify { channelDao.getChannelById(channelId) }
     }
     
     @Test
-    fun `getChannelsByCategory returns flow from dao`() = runTest(testDispatcher) {
+    fun `getChannelsByCategory returns flow from dao`() = runTest {
         // Given
         val categoryId = "cat1"
         val channels = listOf(
@@ -108,7 +111,7 @@ class ChannelLocalDataSourceTest {
                 id = "1",
                 name = "Channel 1",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = categoryId,
                 language = "en",
                 country = "US",
@@ -125,10 +128,11 @@ class ChannelLocalDataSourceTest {
         
         // Then
         assertEquals(channels, result)
+        coVerify { channelDao.getChannelsByCategory(categoryId) }
     }
     
     @Test
-    fun `searchChannels returns flow from dao`() = runTest(testDispatcher) {
+    fun `searchChannels returns flow from dao`() = runTest {
         // Given
         val query = "test"
         val channels = listOf(
@@ -136,7 +140,7 @@ class ChannelLocalDataSourceTest {
                 id = "1",
                 name = "Test Channel",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = "cat1",
                 language = "en",
                 country = "US",
@@ -153,17 +157,18 @@ class ChannelLocalDataSourceTest {
         
         // Then
         assertEquals(channels, result)
+        coVerify { channelDao.searchChannels(query) }
     }
     
     @Test
-    fun `insertChannels delegates to dao`() = runTest(testDispatcher) {
+    fun `insertChannels calls dao`() = runTest {
         // Given
         val channels = listOf(
             ChannelEntity(
                 id = "1",
                 name = "Channel 1",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = "cat1",
                 language = "en",
                 country = "US",
@@ -183,7 +188,7 @@ class ChannelLocalDataSourceTest {
     }
     
     @Test
-    fun `deleteAllChannels delegates to dao`() = runTest(testDispatcher) {
+    fun `deleteAllChannels calls dao`() = runTest {
         // Given
         coEvery { channelDao.deleteAllChannels() } returns Unit
         
@@ -195,14 +200,14 @@ class ChannelLocalDataSourceTest {
     }
     
     @Test
-    fun `replaceAllChannels delegates to dao`() = runTest(testDispatcher) {
+    fun `replaceAllChannels calls dao`() = runTest {
         // Given
         val channels = listOf(
             ChannelEntity(
                 id = "1",
                 name = "Channel 1",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = "cat1",
                 language = "en",
                 country = "US",

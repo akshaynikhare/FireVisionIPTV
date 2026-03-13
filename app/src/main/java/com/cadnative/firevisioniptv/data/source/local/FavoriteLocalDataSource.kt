@@ -14,10 +14,10 @@ import javax.inject.Singleton
  * Local data source for favorite-related database operations.
  * 
  * This class wraps the FavoriteDao and provides a clean interface for
- * accessing favorite data from the local Room database. All operations
- * are executed on the IO dispatcher for optimal performance.
+ * the repository layer to interact with the local database. All database
+ * operations are executed on the IO dispatcher for optimal performance.
  * 
- * Requirements: TR-006 (Offline-first architecture with local database)
+ * Requirements: TR-006 (Network Performance - Offline-first architecture)
  */
 @Singleton
 class FavoriteLocalDataSource @Inject constructor(
@@ -26,10 +26,7 @@ class FavoriteLocalDataSource @Inject constructor(
 ) {
     
     /**
-     * Get all favorite channels with full channel information as a Flow.
-     * 
-     * Performs a join between favorites and channels tables, returning
-     * channels ordered by display order and then by date added.
+     * Get all favorite channels with full channel information.
      * 
      * @return Flow emitting list of favorite channels
      */
@@ -38,22 +35,13 @@ class FavoriteLocalDataSource @Inject constructor(
     }
     
     /**
-     * Check if a channel is marked as favorite as a Flow.
+     * Check if a channel is marked as favorite.
      * 
      * @param channelId The channel identifier to check
      * @return Flow emitting true if the channel is a favorite, false otherwise
      */
     fun isFavorite(channelId: String): Flow<Boolean> {
         return favoriteDao.isFavorite(channelId)
-    }
-    
-    /**
-     * Get all favorite entities (without channel details) as a Flow.
-     * 
-     * @return Flow emitting list of favorite entities
-     */
-    fun getAllFavorites(): Flow<List<FavoriteEntity>> {
-        return favoriteDao.getAllFavorites()
     }
     
     /**
@@ -77,13 +65,20 @@ class FavoriteLocalDataSource @Inject constructor(
     /**
      * Update the display order of a favorite channel.
      * 
-     * Used for reordering favorites in the UI.
-     * 
      * @param channelId The channel identifier
      * @param order The new display order
      */
     suspend fun updateFavoriteOrder(channelId: String, order: Int) = withContext(dispatcher) {
         favoriteDao.updateFavoriteOrder(channelId, order)
+    }
+    
+    /**
+     * Get all favorite entities (without channel details).
+     * 
+     * @return Flow emitting list of favorite entities
+     */
+    fun getAllFavorites(): Flow<List<FavoriteEntity>> {
+        return favoriteDao.getAllFavorites()
     }
     
     /**

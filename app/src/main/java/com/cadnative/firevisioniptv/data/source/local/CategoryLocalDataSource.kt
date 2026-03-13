@@ -13,10 +13,10 @@ import javax.inject.Singleton
  * Local data source for category-related database operations.
  * 
  * This class wraps the CategoryDao and provides a clean interface for
- * accessing category data from the local Room database. All operations
- * are executed on the IO dispatcher for optimal performance.
+ * the repository layer to interact with the local database. All database
+ * operations are executed on the IO dispatcher for optimal performance.
  * 
- * Requirements: TR-006 (Offline-first architecture with local database)
+ * Requirements: TR-006 (Network Performance - Offline-first architecture)
  */
 @Singleton
 class CategoryLocalDataSource @Inject constructor(
@@ -25,16 +25,16 @@ class CategoryLocalDataSource @Inject constructor(
 ) {
     
     /**
-     * Get all categories as a Flow.
+     * Get all categories ordered by display order.
      * 
-     * @return Flow emitting list of all categories ordered by display order
+     * @return Flow emitting list of all categories
      */
     fun getAllCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getAllCategories()
     }
     
     /**
-     * Get a specific category by ID as a Flow.
+     * Get a specific category by ID.
      * 
      * @param categoryId The unique identifier of the category
      * @return Flow emitting the category or null if not found

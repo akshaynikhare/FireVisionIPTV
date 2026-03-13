@@ -9,7 +9,8 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,30 +21,29 @@ import org.junit.Test
 /**
  * Unit tests for FavoriteLocalDataSource.
  * 
- * Tests the wrapper functionality around FavoriteDao to ensure
- * proper delegation and Flow-based query exposure.
+ * Tests the wrapping of FavoriteDao operations and proper dispatcher usage.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class FavoriteLocalDataSourceTest {
     
     private lateinit var favoriteDao: FavoriteDao
     private lateinit var favoriteLocalDataSource: FavoriteLocalDataSource
-    private val testDispatcher = StandardTestDispatcher()
     
     @Before
     fun setup() {
         favoriteDao = mockk()
-        favoriteLocalDataSource = FavoriteLocalDataSource(favoriteDao, testDispatcher)
+        favoriteLocalDataSource = FavoriteLocalDataSource(favoriteDao, Dispatchers.Unconfined)
     }
     
     @Test
-    fun `getFavoriteChannels returns flow from dao`() = runTest(testDispatcher) {
+    fun `getFavoriteChannels returns flow from dao`() = runTest {
         // Given
-        val favoriteChannels = listOf(
+        val channels = listOf(
             ChannelEntity(
                 id = "1",
-                name = "Favorite Channel 1",
+                name = "Favorite Channel",
                 streamUrl = "http://example.com/1",
-                logoUrl = "http://example.com/logo1.png",
+                logoUrl = null,
                 categoryId = "cat1",
                 language = "en",
                 country = "US",
@@ -51,32 +51,20 @@ class FavoriteLocalDataSourceTest {
                 tvgId = "tvg1",
                 tvgName = "TVG 1",
                 isActive = true
-            ),
-            ChannelEntity(
-                id = "2",
-                name = "Favorite Channel 2",
-                streamUrl = "http://example.com/2",
-                logoUrl = "http://example.com/logo2.png",
-                categoryId = "cat2",
-                language = "es",
-                country = "ES",
-                groupTitle = "Group 2",
-                tvgId = "tvg2",
-                tvgName = "TVG 2",
-                isActive = true
             )
         )
-        every { favoriteDao.getFavoriteChannels() } returns flowOf(favoriteChannels)
+        every { favoriteDao.getFavoriteChannels() } returns flowOf(channels)
         
         // When
         val result = favoriteLocalDataSource.getFavoriteChannels().first()
         
         // Then
-        assertEquals(favoriteChannels, result)
+        assertEquals(channels, result)
+        coVerify { favoriteDao.getFavoriteChannels() }
     }
     
     @Test
-    fun `isFavorite returns true when channel is favorite`() = runTest(testDispatcher) {
+    fun `isFavorite returns true when channel is favorite`() = runTest {
         // Given
         val channelId = "1"
         every { favoriteDao.isFavorite(channelId) } returns flowOf(true)
@@ -86,12 +74,13 @@ class FavoriteLocalDataSourceTest {
         
         // Then
         assertTrue(result)
+        coVerify { favoriteDao.isFavorite(channelId) }
     }
     
     @Test
-    fun `isFavorite returns false when channel is not favorite`() = runTest(testDispatcher) {
+    fun `isFavorite returns false when channel is not favorite`() = runTest {
         // Given
-        val channelId = "1"
+        val channelId = "999"
         every { favoriteDao.isFavorite(channelId) } returns flowOf(false)
         
         // When
@@ -99,43 +88,13 @@ class FavoriteLocalDataSourceTest {
         
         // Then
         assertFalse(result)
+        coVerify { favoriteDao.isFavorite(channelId) }
     }
     
     @Test
-    fun `getAllFavorites returns flow from dao`() = runTest(testDispatcher) {
+    fun `addFavorite calls dao`() = runTest {
         // Given
-        val favorites = listOf(
-            FavoriteEntity(
-                id = 1,
-                channelId = "1",
-                addedAt = System.currentTimeMillis(),
-                displayOrder = 0
-            ),
-            FavoriteEntity(
-                id = 2,
-                channelId = "2",
-                addedAt = System.currentTimeMillis(),
-                displayOrder = 1
-            )
-        )
-        every { favoriteDao.getAllFavorites() } returns flowOf(favorites)
-        
-        // When
-        val result = favoriteLocalDataSource.getAllFavorites().first()
-        
-        // Then
-        assertEquals(favorites, result)
-    }
-    
-    @Test
-    fun `addFavorite delegates to dao`() = runTest(testDispatcher) {
-        // Given
-        val favorite = FavoriteEntity(
-            id = 1,
-            channelId = "1",
-            addedAt = System.currentTimeMillis(),
-            displayOrder = 0
-        )
+        val favorite = FavoriteEntity(channelId = "1", addedAt = System.currentTimeMillis(), displayOrder = 0)
         coEvery { favoriteDao.addFavorite(favorite) } returns Unit
         
         // When
@@ -146,7 +105,7 @@ class FavoriteLocalDataSourceTest {
     }
     
     @Test
-    fun `removeFavorite delegates to dao`() = runTest(testDispatcher) {
+    fun `removeFavorite calls dao`() = runTest {
         // Given
         val channelId = "1"
         coEvery { favoriteDao.removeFavorite(channelId) } returns Unit
@@ -159,7 +118,7 @@ class FavoriteLocalDataSourceTest {
     }
     
     @Test
-    fun `updateFavoriteOrder delegates to dao`() = runTest(testDispatcher) {
+    fun `updateFavoriteOrder calls dao`() = runTest {
         // Given
         val channelId = "1"
         val order = 5
@@ -173,7 +132,23 @@ class FavoriteLocalDataSourceTest {
     }
     
     @Test
-    fun `deleteAllFavorites delegates to dao`() = runTest(testDispatcher) {
+    fun `getAllFavorites returns flow from dao`() = runTest {
+        // Given
+        val favorites = listOf(
+            FavoriteEntity(id = 1, channelId = "1", addedAt = System.currentTimeMillis(), displayOrder = 0)
+        )
+        every { favoriteDao.getAllFavorites() } returns flowOf(favorites)
+        
+        // When
+        val result = favoriteLocalDataSource.getAllFavorites().first()
+        
+        // Then
+        assertEquals(favorites, result)
+        coVerify { favoriteDao.getAllFavorites() }
+    }
+    
+    @Test
+    fun `deleteAllFavorites calls dao`() = runTest {
         // Given
         coEvery { favoriteDao.deleteAllFavorites() } returns Unit
         

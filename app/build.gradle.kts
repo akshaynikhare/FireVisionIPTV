@@ -43,6 +43,7 @@ android {
 
     // Room schema export configuration
     kapt {
+        correctErrorTypes = true
         arguments {
             arg("room.schemaLocation", "$projectDir/schemas")
         }

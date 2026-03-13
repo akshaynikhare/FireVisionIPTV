@@ -8,7 +8,8 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -18,37 +19,25 @@ import org.junit.Test
 /**
  * Unit tests for CategoryLocalDataSource.
  * 
- * Tests the wrapper functionality around CategoryDao to ensure
- * proper delegation and Flow-based query exposure.
+ * Tests the wrapping of CategoryDao operations and proper dispatcher usage.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class CategoryLocalDataSourceTest {
     
     private lateinit var categoryDao: CategoryDao
     private lateinit var categoryLocalDataSource: CategoryLocalDataSource
-    private val testDispatcher = StandardTestDispatcher()
     
     @Before
     fun setup() {
         categoryDao = mockk()
-        categoryLocalDataSource = CategoryLocalDataSource(categoryDao, testDispatcher)
+        categoryLocalDataSource = CategoryLocalDataSource(categoryDao, Dispatchers.Unconfined)
     }
     
     @Test
-    fun `getAllCategories returns flow from dao`() = runTest(testDispatcher) {
+    fun `getAllCategories returns flow from dao`() = runTest {
         // Given
         val categories = listOf(
-            CategoryEntity(
-                id = "cat1",
-                name = "Category 1",
-                displayOrder = 0,
-                channelCount = 10
-            ),
-            CategoryEntity(
-                id = "cat2",
-                name = "Category 2",
-                displayOrder = 1,
-                channelCount = 5
-            )
+            CategoryEntity(id = "1", name = "Category 1", displayOrder = 0, channelCount = 10)
         )
         every { categoryDao.getAllCategories() } returns flowOf(categories)
         
@@ -57,18 +46,14 @@ class CategoryLocalDataSourceTest {
         
         // Then
         assertEquals(categories, result)
+        coVerify { categoryDao.getAllCategories() }
     }
     
     @Test
-    fun `getCategoryById returns flow from dao`() = runTest(testDispatcher) {
+    fun `getCategoryById returns flow from dao`() = runTest {
         // Given
-        val categoryId = "cat1"
-        val category = CategoryEntity(
-            id = categoryId,
-            name = "Category 1",
-            displayOrder = 0,
-            channelCount = 10
-        )
+        val categoryId = "1"
+        val category = CategoryEntity(id = categoryId, name = "Category 1", displayOrder = 0, channelCount = 10)
         every { categoryDao.getCategoryById(categoryId) } returns flowOf(category)
         
         // When
@@ -76,12 +61,13 @@ class CategoryLocalDataSourceTest {
         
         // Then
         assertEquals(category, result)
+        coVerify { categoryDao.getCategoryById(categoryId) }
     }
     
     @Test
-    fun `getCategoryById returns null when category not found`() = runTest(testDispatcher) {
+    fun `getCategoryById returns null when not found`() = runTest {
         // Given
-        val categoryId = "nonexistent"
+        val categoryId = "999"
         every { categoryDao.getCategoryById(categoryId) } returns flowOf(null)
         
         // When
@@ -89,17 +75,13 @@ class CategoryLocalDataSourceTest {
         
         // Then
         assertNull(result)
+        coVerify { categoryDao.getCategoryById(categoryId) }
     }
     
     @Test
-    fun `insertCategory delegates to dao`() = runTest(testDispatcher) {
+    fun `insertCategory calls dao`() = runTest {
         // Given
-        val category = CategoryEntity(
-            id = "cat1",
-            name = "Category 1",
-            displayOrder = 0,
-            channelCount = 10
-        )
+        val category = CategoryEntity(id = "1", name = "Category 1", displayOrder = 0, channelCount = 10)
         coEvery { categoryDao.insertCategory(category) } returns Unit
         
         // When
@@ -110,21 +92,10 @@ class CategoryLocalDataSourceTest {
     }
     
     @Test
-    fun `insertCategories delegates to dao`() = runTest(testDispatcher) {
+    fun `insertCategories calls dao`() = runTest {
         // Given
         val categories = listOf(
-            CategoryEntity(
-                id = "cat1",
-                name = "Category 1",
-                displayOrder = 0,
-                channelCount = 10
-            ),
-            CategoryEntity(
-                id = "cat2",
-                name = "Category 2",
-                displayOrder = 1,
-                channelCount = 5
-            )
+            CategoryEntity(id = "1", name = "Category 1", displayOrder = 0, channelCount = 10)
         )
         coEvery { categoryDao.insertCategories(categories) } returns Unit
         
@@ -136,14 +107,9 @@ class CategoryLocalDataSourceTest {
     }
     
     @Test
-    fun `updateCategory delegates to dao`() = runTest(testDispatcher) {
+    fun `updateCategory calls dao`() = runTest {
         // Given
-        val category = CategoryEntity(
-            id = "cat1",
-            name = "Updated Category",
-            displayOrder = 0,
-            channelCount = 15
-        )
+        val category = CategoryEntity(id = "1", name = "Updated Category", displayOrder = 1, channelCount = 15)
         coEvery { categoryDao.updateCategory(category) } returns Unit
         
         // When
@@ -154,14 +120,9 @@ class CategoryLocalDataSourceTest {
     }
     
     @Test
-    fun `deleteCategory delegates to dao`() = runTest(testDispatcher) {
+    fun `deleteCategory calls dao`() = runTest {
         // Given
-        val category = CategoryEntity(
-            id = "cat1",
-            name = "Category 1",
-            displayOrder = 0,
-            channelCount = 10
-        )
+        val category = CategoryEntity(id = "1", name = "Category 1", displayOrder = 0, channelCount = 10)
         coEvery { categoryDao.deleteCategory(category) } returns Unit
         
         // When
@@ -172,7 +133,7 @@ class CategoryLocalDataSourceTest {
     }
     
     @Test
-    fun `deleteAllCategories delegates to dao`() = runTest(testDispatcher) {
+    fun `deleteAllCategories calls dao`() = runTest {
         // Given
         coEvery { categoryDao.deleteAllCategories() } returns Unit
         

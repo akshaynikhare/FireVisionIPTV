@@ -13,10 +13,10 @@ import javax.inject.Singleton
  * Local data source for channel-related database operations.
  * 
  * This class wraps the ChannelDao and provides a clean interface for
- * accessing channel data from the local Room database. All operations
- * are executed on the IO dispatcher for optimal performance.
+ * the repository layer to interact with the local database. All database
+ * operations are executed on the IO dispatcher for optimal performance.
  * 
- * Requirements: TR-006 (Offline-first architecture with local database)
+ * Requirements: TR-006 (Network Performance - Offline-first architecture)
  */
 @Singleton
 class ChannelLocalDataSource @Inject constructor(
@@ -25,16 +25,16 @@ class ChannelLocalDataSource @Inject constructor(
 ) {
     
     /**
-     * Get all active channels as a Flow.
+     * Get all active channels ordered by name.
      * 
-     * @return Flow emitting list of all active channels ordered by name
+     * @return Flow emitting list of all active channels
      */
     fun getAllChannels(): Flow<List<ChannelEntity>> {
         return channelDao.getAllChannels()
     }
     
     /**
-     * Get a specific channel by ID as a Flow.
+     * Get a specific channel by ID.
      * 
      * @param channelId The unique identifier of the channel
      * @return Flow emitting the channel or null if not found
@@ -44,7 +44,7 @@ class ChannelLocalDataSource @Inject constructor(
     }
     
     /**
-     * Get all channels in a specific category as a Flow.
+     * Get all channels in a specific category.
      * 
      * @param categoryId The category identifier
      * @return Flow emitting list of channels in the category
@@ -54,7 +54,7 @@ class ChannelLocalDataSource @Inject constructor(
     }
     
     /**
-     * Search channels by name or group title as a Flow.
+     * Search channels by name or group title.
      * 
      * @param query The search query
      * @return Flow emitting list of matching channels
