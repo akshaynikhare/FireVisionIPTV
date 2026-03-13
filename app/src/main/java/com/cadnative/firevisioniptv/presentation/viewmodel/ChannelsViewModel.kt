@@ -9,6 +9,7 @@ import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.ChannelsUiState
+import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,8 @@ class ChannelsViewModel @Inject constructor(
     
     init {
         loadChannels()
+        // Trigger initial remote fetch to populate local DB
+        refresh()
     }
     
     /**
@@ -59,6 +62,7 @@ class ChannelsViewModel @Inject constructor(
             flow.collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        Log.d("ChannelsVM", "Got ${result.data.size} channels from flow")
                         _uiState.update {
                             it.copy(
                                 channels = result.data.map { channel ->
@@ -70,6 +74,7 @@ class ChannelsViewModel @Inject constructor(
                         }
                     }
                     is Result.Error -> {
+                        Log.e("ChannelsVM", "Error loading channels: ${result.exception.message}")
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -136,13 +141,15 @@ class ChannelsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             
             val result = refreshChannelsUseCase(Unit)
-            
+            Log.d("ChannelsVM", "Refresh result: $result")
+
             when (result) {
                 is Result.Success -> {
-                    // Channels will be updated automatically via Flow
+                    Log.d("ChannelsVM", "Refresh success - channels should update via Flow")
                     _uiState.update { it.copy(isLoading = false) }
                 }
                 is Result.Error -> {
+                    Log.e("ChannelsVM", "Refresh error: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
                             isLoading = false,

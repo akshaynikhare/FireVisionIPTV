@@ -22,6 +22,7 @@ class ChannelUiMapper @Inject constructor() {
             id = channel.id,
             name = channel.name,
             logoUrl = channel.logoUrl,
+            streamUrl = channel.streamUrl,
             category = channel.category,
             isFavorite = channel.isFavorite
         )
@@ -37,7 +38,7 @@ class ChannelUiMapper @Inject constructor() {
         return Channel(
             id = uiModel.id,
             name = uiModel.name,
-            streamUrl = "", // Not available in UI model
+            streamUrl = uiModel.streamUrl ?: "",
             logoUrl = uiModel.logoUrl,
             category = uiModel.category,
             language = null,

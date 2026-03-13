@@ -10,6 +10,7 @@ data class ChannelUiModel(
     val id: String,
     val name: String,
     val logoUrl: String?,
+    val streamUrl: String? = null,
     val category: String,
     val isFavorite: Boolean
 )

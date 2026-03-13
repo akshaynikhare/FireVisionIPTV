@@ -26,7 +26,7 @@ interface FireVisionApiService {
      * 
      * @return Response containing ChannelsResponse with list of channels and metadata
      */
-    @GET("api/channels")
+    @GET("api/v1/channels")
     suspend fun getChannels(): Response<ChannelsResponse>
     
     /**
@@ -35,7 +35,7 @@ interface FireVisionApiService {
      * @param id The unique identifier of the channel
      * @return Response containing the ChannelDto for the requested channel
      */
-    @GET("api/channels/{id}")
+    @GET("api/v1/channels/{id}")
     suspend fun getChannelById(@Path("id") id: String): Response<ChannelDto>
     
     /**
@@ -43,7 +43,7 @@ interface FireVisionApiService {
      * 
      * @return Response containing CategoriesResponse with list of categories and metadata
      */
-    @GET("api/categories")
+    @GET("api/v1/categories")
     suspend fun getCategories(): Response<CategoriesResponse>
     
     /**
@@ -55,7 +55,7 @@ interface FireVisionApiService {
      * @param favorites FavoritesRequest containing channel IDs and device information
      * @return Response with Unit on success
      */
-    @POST("api/favorites")
+    @POST("api/v1/favorites")
     suspend fun syncFavorites(@Body favorites: FavoritesRequest): Response<Unit>
     
     /**
@@ -66,6 +66,6 @@ interface FireVisionApiService {
      * 
      * @return Response containing ResponseBody with the M3U playlist content
      */
-    @GET("api/playlist.m3u")
+    @GET("api/v1/playlist.m3u")
     suspend fun getPlaylist(): Response<ResponseBody>
 }

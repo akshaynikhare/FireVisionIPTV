@@ -1,10 +1,13 @@
 package com.cadnative.firevisioniptv.di
 
+import android.content.Context
 import com.cadnative.firevisioniptv.BuildConfig
+import com.cadnative.firevisioniptv.SettingsActivity
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -44,7 +47,8 @@ object NetworkModule {
      */
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
+        val tvCode = SettingsActivity.getTvCode(context)
         return OkHttpClient.Builder()
             // Timeout configurations
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -67,6 +71,7 @@ object NetworkModule {
                 val request = chain.request().newBuilder()
                     .addHeader("Accept", "application/json")
                     .addHeader("Content-Type", "application/json")
+                    .addHeader("X-TV-Code", tvCode)
                     .build()
                 chain.proceed(request)
             }

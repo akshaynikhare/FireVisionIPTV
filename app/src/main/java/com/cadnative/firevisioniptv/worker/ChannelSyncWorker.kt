@@ -7,7 +7,6 @@ import androidx.work.WorkerParameters
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.flow.first
 
 /**
  * WorkManager worker for periodic channel synchronization.
@@ -22,9 +21,18 @@ class ChannelSyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         return try {
             // Refresh channels from server
-            channelRepository.refreshChannels().first()
-            
-            Result.success()
+            val result = channelRepository.refreshChannels()
+
+            when (result) {
+                is com.cadnative.firevisioniptv.data.model.Result.Success -> Result.success()
+                is com.cadnative.firevisioniptv.data.model.Result.Error -> {
+                    if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
+                        Result.retry()
+                    } else {
+                        Result.failure()
+                    }
+                }
+            }
         } catch (e: Exception) {
             // Retry with exponential backoff
             if (runAttemptCount < MAX_RETRY_ATTEMPTS) {

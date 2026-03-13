@@ -5,11 +5,13 @@ import com.cadnative.firevisioniptv.data.repository.ChannelRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.FavoriteRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.PlaybackRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.SearchHistoryRepositoryImpl
+import com.cadnative.firevisioniptv.data.repository.UserPreferencesRepositoryImpl
 import com.cadnative.firevisioniptv.domain.repository.CategoryRepository
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
 import com.cadnative.firevisioniptv.domain.repository.FavoriteRepository
 import com.cadnative.firevisioniptv.domain.repository.PlaybackRepository
 import com.cadnative.firevisioniptv.domain.repository.SearchHistoryRepository
+import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -88,4 +90,10 @@ abstract class RepositoryModule {
     abstract fun bindPlaybackRepository(
         impl: PlaybackRepositoryImpl
     ): PlaybackRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserPreferencesRepository(
+        impl: UserPreferencesRepositoryImpl
+    ): UserPreferencesRepository
 }

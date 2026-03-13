@@ -28,9 +28,7 @@ fun FavoritesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadFavorites()
-    }
+    // Favorites are loaded in ViewModel init
 
     Scaffold(
         topBar = {
@@ -67,7 +65,7 @@ fun FavoritesScreen(
                 uiState.error != null && uiState.favorites.isEmpty() -> {
                     ErrorState(
                         message = uiState.error ?: "Failed to load favorites",
-                        onRetry = { viewModel.loadFavorites() }
+                        onRetry = { viewModel.clearError() }
                     )
                 }
                 uiState.favorites.isEmpty() -> {
@@ -78,7 +76,7 @@ fun FavoritesScreen(
                         favorites = uiState.favorites,
                         onChannelClick = onChannelClick,
                         onRemoveFavorite = { channelId ->
-                            viewModel.toggleFavorite(channelId)
+                            viewModel.removeFavorite(channelId)
                         }
                     )
                 }

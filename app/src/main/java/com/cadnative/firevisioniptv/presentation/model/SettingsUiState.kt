@@ -12,6 +12,7 @@ data class SettingsUiState(
     val fontSize: Float = 1.0f,
     val animationSpeed: Float = 1.0f,
     val layoutDensity: String = "comfortable",
+    val autoPlay: Boolean = true,
     val isLoading: Boolean = false,
     val error: String? = null
 )

@@ -3,6 +3,8 @@ package com.cadnative.firevisioniptv.presentation.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,7 +75,7 @@ fun ChannelCard(
             // Favorite indicator
             if (channel.isFavorite) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Star,
+                    imageVector = Icons.Default.Star,
                     contentDescription = "Favorite",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier

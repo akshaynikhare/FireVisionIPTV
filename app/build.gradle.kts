@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
+    id("kotlin-parcelize")
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
 }
@@ -22,7 +23,7 @@ android {
         }
         
         // API Base URL configuration
-        buildConfigField("String", "API_BASE_URL", "\"https://api.firevision.tv/\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
     }
 
     signingConfigs {
@@ -124,6 +125,15 @@ dependencies {
     // Hilt Dependency Injection
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+    implementation(libs.hilt.work)
+    kapt(libs.hilt.work.compiler)
+    implementation(libs.hilt.navigation.compose)
+
+    // Security
+    implementation(libs.security.crypto)
+
+    // Material Icons Extended
+    implementation(libs.compose.material.icons.extended)
 
     // Room Database
     implementation(libs.androidx.room.runtime)

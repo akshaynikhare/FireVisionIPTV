@@ -66,7 +66,7 @@ fun SettingsScreen(
                     SettingsItem(
                         title = "Font Size",
                         subtitle = "Adjust text size",
-                        value = uiState.fontSize
+                        value = "${uiState.fontSize}x"
                     )
                 }
             }

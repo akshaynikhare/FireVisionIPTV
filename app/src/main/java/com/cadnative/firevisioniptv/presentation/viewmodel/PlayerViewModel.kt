@@ -46,12 +46,14 @@ class PlayerViewModel @Inject constructor(
      */
     fun loadChannel(channelId: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
             getChannelByIdUseCase(channelId).collect { result ->
                 when (result) {
                     is Result.Success -> {
                         _uiState.update {
                             it.copy(
                                 channel = channelUiMapper.toUiModel(result.data),
+                                isLoading = false,
                                 error = null
                             )
                         }
@@ -62,6 +64,7 @@ class PlayerViewModel @Inject constructor(
                     is Result.Error -> {
                         _uiState.update {
                             it.copy(
+                                isLoading = false,
                                 error = result.exception.message ?: "Failed to load channel"
                             )
                         }

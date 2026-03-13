@@ -52,12 +52,12 @@ class ChannelMapper @Inject constructor() {
             streamUrl = dto.url,
             logoUrl = dto.tvgLogo,
             categoryId = dto.groupTitle ?: "uncategorized",
-            language = dto.tvgLanguage,
+            language = dto.metadata?.language ?: dto.tvgLanguage,
             country = dto.tvgCountry,
             groupTitle = dto.groupTitle,
             tvgId = dto.tvgId,
             tvgName = dto.tvgName,
-            isActive = dto.isActive,
+            isActive = true, // API channels are always active; Gson ignores Kotlin defaults
             lastUpdated = System.currentTimeMillis()
         )
     }

@@ -35,7 +35,7 @@ class ChannelRemoteDataSource @Inject constructor(
     suspend fun fetchChannels(): Result<List<ChannelDto>> = withContext(dispatcher) {
         try {
             val response = apiService.getChannels()
-            handleResponse(response) { it.channels }
+            handleResponse(response) { it.data }
         } catch (e: IOException) {
             Result.Error(
                 NetworkException("Network error: ${e.message}", e)

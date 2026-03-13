@@ -4,38 +4,40 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Data Transfer Object for Channel API responses.
- * 
- * This DTO matches the API response structure and is used for network communication.
- * It will be mapped to ChannelEntity for local storage.
+ *
+ * Matches the actual server response fields from /api/v1/channels.
  */
 data class ChannelDto(
-    @SerializedName("id")
+    @SerializedName("channelId")
     val id: String,
-    
-    @SerializedName("name")
+
+    @SerializedName("channelName")
     val name: String,
-    
-    @SerializedName("url")
+
+    @SerializedName("channelUrl")
     val url: String,
-    
-    @SerializedName("tvg_logo")
+
+    @SerializedName("channelImg")
     val tvgLogo: String?,
-    
-    @SerializedName("group_title")
+
+    @SerializedName("channelGroup")
     val groupTitle: String?,
-    
-    @SerializedName("tvg_language")
-    val tvgLanguage: String?,
-    
-    @SerializedName("tvg_country")
-    val tvgCountry: String?,
-    
-    @SerializedName("tvg_id")
-    val tvgId: String?,
-    
-    @SerializedName("tvg_name")
-    val tvgName: String?,
-    
-    @SerializedName("is_active")
-    val isActive: Boolean = true
+
+    @SerializedName("channelDrmKey")
+    val drmKey: String? = null,
+
+    @SerializedName("channelDrmType")
+    val drmType: String? = null,
+
+    val tvgLanguage: String? = null,
+    val tvgCountry: String? = null,
+    val tvgId: String? = null,
+    val tvgName: String? = null,
+    val isActive: Boolean = true,
+    val metadata: ChannelMetadataDto? = null
+)
+
+data class ChannelMetadataDto(
+    @SerializedName("language")
+    val language: String? = null
 )

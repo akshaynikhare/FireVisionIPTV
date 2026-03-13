@@ -9,6 +9,7 @@ import com.cadnative.firevisioniptv.data.source.remote.ChannelRemoteDataSource
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
+import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -52,19 +53,24 @@ class ChannelRepositoryImpl @Inject constructor(
      */
     override fun getChannels(): Flow<Result<List<Channel>>> = flow {
         // Combine channels with their favorite status
-        localDataSource.getAllChannels()
-            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                val favoriteIds = favorites.map { it.channelId }.toSet()
-                channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+        Log.d("ChannelRepo", "getChannels() flow started collecting from Room")
+        try {
+            localDataSource.getAllChannels()
+                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                    Log.d("ChannelRepo", "Room emitted ${channels.size} channels, ${favorites.size} favorites")
+                    val favoriteIds = favorites.map { it.channelId }.toSet()
+                    channels.map { entity ->
+                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    }
                 }
-            }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { channels ->
-                emit(Result.Success(channels))
-            }
+                .collect { channels ->
+                    Log.d("ChannelRepo", "Emitting ${channels.size} channels to ViewModel")
+                    emit(Result.Success(channels))
+                }
+        } catch (e: Exception) {
+            Log.e("ChannelRepo", "Error in getChannels flow", e)
+            emit(Result.Error(e))
+        }
     }.flowOn(dispatcher)
     
     /**
@@ -91,38 +97,40 @@ class ChannelRepositoryImpl @Inject constructor(
      * Get channels by category with offline-first strategy.
      */
     override fun getChannelsByCategory(category: String): Flow<Result<List<Channel>>> = flow {
-        localDataSource.getChannelsByCategory(category)
-            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                val favoriteIds = favorites.map { it.channelId }.toSet()
-                channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+        try {
+            localDataSource.getChannelsByCategory(category)
+                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                    val favoriteIds = favorites.map { it.channelId }.toSet()
+                    channels.map { entity ->
+                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    }
                 }
-            }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { channels ->
-                emit(Result.Success(channels))
-            }
+                .collect { channels ->
+                    emit(Result.Success(channels))
+                }
+        } catch (e: Exception) {
+            emit(Result.Error(e))
+        }
     }.flowOn(dispatcher)
     
     /**
      * Search channels with offline-first strategy.
      */
     override fun searchChannels(query: String): Flow<Result<List<Channel>>> = flow {
-        localDataSource.searchChannels(query)
-            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                val favoriteIds = favorites.map { it.channelId }.toSet()
-                channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+        try {
+            localDataSource.searchChannels(query)
+                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                    val favoriteIds = favorites.map { it.channelId }.toSet()
+                    channels.map { entity ->
+                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    }
                 }
-            }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { channels ->
-                emit(Result.Success(channels))
-            }
+                .collect { channels ->
+                    emit(Result.Success(channels))
+                }
+        } catch (e: Exception) {
+            emit(Result.Error(e))
+        }
     }.flowOn(dispatcher)
     
     /**
@@ -138,17 +146,21 @@ class ChannelRepositoryImpl @Inject constructor(
             
             when (result) {
                 is Result.Success -> {
+                    Log.d("ChannelRepo", "Fetched ${result.data.size} channels from API")
                     // Map DTOs to entities
                     val entities = result.data.map { dto ->
                         channelMapper.toEntity(dto)
                     }
-                    
+                    Log.d("ChannelRepo", "Mapped ${entities.size} entities, inserting into Room...")
+
                     // Update local cache
                     localDataSource.replaceAllChannels(entities)
-                    
+                    Log.d("ChannelRepo", "Inserted ${entities.size} channels into Room DB")
+
                     Result.Success(Unit)
                 }
                 is Result.Error -> {
+                    Log.e("ChannelRepo", "API fetch error: ${result.exception.message}")
                     Result.Error(result.exception)
                 }
             }

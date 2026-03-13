@@ -37,7 +37,7 @@ fun SearchScreen(
                         value = searchQuery,
                         onValueChange = {
                             searchQuery = it
-                            viewModel.search(it)
+                            viewModel.onQueryChange(it)
                         },
                         placeholder = { Text("Search channels...") },
                         modifier = Modifier.fillMaxWidth(),
@@ -46,7 +46,7 @@ fun SearchScreen(
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = {
                                     searchQuery = ""
-                                    viewModel.search("")
+                                    viewModel.onQueryChange("")
                                 }) {
                                     Icon(
                                         imageVector = Icons.Default.Clear,
@@ -80,7 +80,7 @@ fun SearchScreen(
                 uiState.error != null -> {
                     ErrorState(
                         message = uiState.error ?: "Search failed",
-                        onRetry = { viewModel.search(searchQuery) }
+                        onRetry = { viewModel.onQueryChange(searchQuery) }
                     )
                 }
                 searchQuery.isEmpty() -> {
@@ -88,7 +88,7 @@ fun SearchScreen(
                         searches = uiState.recentSearches,
                         onSearchClick = { query ->
                             searchQuery = query
-                            viewModel.search(query)
+                            viewModel.onQueryChange(query)
                         }
                     )
                 }
