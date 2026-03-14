@@ -15,9 +15,6 @@ import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
-/**
- * Home screen with hero banner, category rows, and continue watching carousel.
- */
 @Composable
 fun HomeScreen(
     onNavigateToChannels: () -> Unit,
@@ -51,33 +48,33 @@ fun HomeScreen(
             else -> {
                 HomeContent(
                     channels = uiState.channels,
+                    categories = uiState.categories,
                     onChannelClick = onChannelClick,
-                    onNavigateToChannels = onNavigateToChannels,
-                    onNavigateToSearch = onNavigateToSearch,
-                    onNavigateToFavorites = onNavigateToFavorites,
-                    onNavigateToSettings = onNavigateToSettings
+                    onNavigateToChannels = onNavigateToChannels
                 )
             }
         }
     }
 }
 
-
 @Composable
 private fun HomeContent(
     channels: List<ChannelUiModel>,
+    categories: List<String>,
     onChannelClick: (String) -> Unit,
     onNavigateToChannels: () -> Unit,
-    onNavigateToSearch: () -> Unit,
-    onNavigateToFavorites: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Group channels by category
+    val channelsByCategory = remember(channels) {
+        channels.groupBy { it.category.ifBlank { "Other" } }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 24.dp)
     ) {
-        // Hero banner section
+        // Hero banner with first few channels
         item {
             HeroBanner(
                 channels = channels.take(5),
@@ -86,36 +83,17 @@ private fun HomeContent(
             )
         }
 
-        // Featured channels row
-        item {
-            ChannelRow(
-                title = "Featured Channels",
-                channels = channels.take(10),
-                onChannelClick = onChannelClick,
-                onSeeAllClick = onNavigateToChannels,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-        }
-
-        // Continue watching carousel (placeholder for now)
-        item {
-            ChannelRow(
-                title = "Continue Watching",
-                channels = channels.take(8),
-                onChannelClick = onChannelClick,
-                onSeeAllClick = onNavigateToChannels,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-        }
-
-        // Popular channels row
-        item {
-            ChannelRow(
-                title = "Popular Channels",
-                channels = channels.drop(10).take(10),
-                onChannelClick = onChannelClick,
-                onSeeAllClick = onNavigateToChannels
-            )
+        // One row per category
+        channelsByCategory.forEach { (category, categoryChannels) ->
+            item(key = "category_$category") {
+                ChannelRow(
+                    title = category,
+                    channels = categoryChannels,
+                    onChannelClick = onChannelClick,
+                    onSeeAllClick = onNavigateToChannels,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+            }
         }
     }
 }
@@ -142,7 +120,7 @@ private fun HeroBanner(
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
-                    onFavoriteClick = { /* Handle favorite */ },
+                    onFavoriteClick = { },
                     modifier = Modifier
                         .width(300.dp)
                         .height(180.dp)
@@ -186,7 +164,7 @@ private fun ChannelRow(
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
-                    onFavoriteClick = { /* Handle favorite */ }
+                    onFavoriteClick = { }
                 )
             }
         }

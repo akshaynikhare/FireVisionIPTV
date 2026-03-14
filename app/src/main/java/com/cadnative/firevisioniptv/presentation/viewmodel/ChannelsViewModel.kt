@@ -63,11 +63,18 @@ class ChannelsViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         Log.d("ChannelsVM", "Got ${result.data.size} channels from flow")
+                        val uiChannels = result.data.map { channel ->
+                            channelUiMapper.toUiModel(channel)
+                        }
+                        val allCategories = uiChannels
+                            .map { it.category }
+                            .filter { it.isNotBlank() }
+                            .distinct()
+                            .sorted()
                         _uiState.update {
                             it.copy(
-                                channels = result.data.map { channel ->
-                                    channelUiMapper.toUiModel(channel)
-                                },
+                                channels = uiChannels,
+                                categories = allCategories,
                                 isLoading = false,
                                 selectedCategory = category
                             )

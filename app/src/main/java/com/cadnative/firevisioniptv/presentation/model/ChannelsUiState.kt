@@ -8,6 +8,7 @@ package com.cadnative.firevisioniptv.presentation.model
  */
 data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
+    val categories: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedCategory: String? = null

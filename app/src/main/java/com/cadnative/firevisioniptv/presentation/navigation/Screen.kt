@@ -4,6 +4,7 @@ package com.cadnative.firevisioniptv.presentation.navigation
  * Sealed class representing all navigation destinations in the app.
  */
 sealed class Screen(val route: String) {
+    object Pairing : Screen("pairing")
     object Home : Screen("home")
     object Channels : Screen("channels")
     object Search : Screen("search")
@@ -14,5 +15,10 @@ sealed class Screen(val route: String) {
     }
     object ChannelsByCategory : Screen("channels/category/{categoryId}") {
         fun createRoute(categoryId: String) = "channels/category/$categoryId"
+    }
+
+    companion object {
+        /** Route strings for top-level screens that show the sidebar navigation rail. */
+        val sidebarRoutes = setOf("home", "channels", "search", "favorites", "settings")
     }
 }

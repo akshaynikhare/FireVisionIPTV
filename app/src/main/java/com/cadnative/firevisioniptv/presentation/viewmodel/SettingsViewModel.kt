@@ -1,45 +1,54 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.SettingsActivity
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/**
- * ViewModel for the settings screen.
- * 
- * Manages user preferences including theme, layout, and accessibility options.
- * 
- * Requirements: US-011 (Customization Options)
- */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val application: Application
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
-    
+
+    companion object {
+        private const val PREFS_NAME = "FireVisionSettings"
+        private const val DEFAULT_TV_CODE = "5T6FEP"
+        private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
+    }
+
     init {
         loadPreferences()
+        loadServerConfig()
     }
-    
-    /**
-     * Load all user preferences.
-     */
+
     private fun loadPreferences() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             combine(
                 userPreferencesRepository.getTheme(),
                 userPreferencesRepository.getGridSize(),
@@ -56,84 +65,170 @@ class SettingsViewModel @Inject constructor(
                     isLoading = false
                 )
             }.collect { state ->
-                _uiState.value = state
+                // Merge with existing server config fields
+                _uiState.update { current ->
+                    state.copy(
+                        serverUrl = current.serverUrl,
+                        tvCode = current.tvCode,
+                        autoloadChannelName = current.autoloadChannelName,
+                        appVersion = current.appVersion,
+                        qrCodeBitmap = current.qrCodeBitmap,
+                        isPaired = current.isPaired,
+                        settingsSaved = current.settingsSaved
+                    )
+                }
             }
         }
     }
-    
-    /**
-     * Set the theme.
-     * 
-     * @param theme The theme name (e.g., "dark", "amoled", "custom")
-     */
+
+    private fun loadServerConfig() {
+        val ctx = application.applicationContext
+        val serverUrl = SettingsActivity.getServerUrl(ctx)
+        val tvCode = SettingsActivity.getTvCode(ctx)
+        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val autoloadName = prefs.getString(AUTOLOAD_CHANNEL_NAME_KEY, "") ?: ""
+        val isPaired = tvCode.isNotEmpty() && tvCode != DEFAULT_TV_CODE
+
+        _uiState.update {
+            it.copy(
+                serverUrl = serverUrl,
+                tvCode = tvCode,
+                autoloadChannelName = autoloadName,
+                isPaired = isPaired,
+                appVersion = getAppVersion()
+            )
+        }
+
+        generateQRCode(serverUrl)
+    }
+
+    fun onServerUrlChange(url: String) {
+        _uiState.update { it.copy(serverUrl = url, settingsSaved = false) }
+    }
+
+    fun onTvCodeChange(code: String) {
+        _uiState.update { it.copy(tvCode = code, settingsSaved = false) }
+    }
+
+    fun saveServerSettings(): Boolean {
+        val url = _uiState.value.serverUrl.trim()
+        val code = _uiState.value.tvCode.trim()
+
+        if (url.isEmpty() || code.isEmpty()) return false
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return false
+
+        val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("server_url", url)
+            .putString("tv_code", code)
+            .apply()
+
+        val isPaired = code.isNotEmpty() && code != DEFAULT_TV_CODE
+        _uiState.update {
+            it.copy(
+                serverUrl = url,
+                tvCode = code,
+                isPaired = isPaired,
+                settingsSaved = true
+            )
+        }
+
+        generateQRCode(url)
+        return true
+    }
+
+    fun clearAutoloadChannel() {
+        val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .remove("autoload_channel_id")
+            .remove(AUTOLOAD_CHANNEL_NAME_KEY)
+            .apply()
+
+        _uiState.update { it.copy(autoloadChannelName = "") }
+    }
+
+    private fun generateQRCode(serverUrl: String) {
+        viewModelScope.launch {
+            val bitmap = withContext(Dispatchers.IO) {
+                try {
+                    val registrationUrl = "$serverUrl/user/register.html"
+                    val writer = QRCodeWriter()
+                    val bitMatrix = writer.encode(registrationUrl, BarcodeFormat.QR_CODE, 512, 512)
+                    val w = bitMatrix.width
+                    val h = bitMatrix.height
+                    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565)
+                    for (x in 0 until w) {
+                        for (y in 0 until h) {
+                            bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                        }
+                    }
+                    bmp
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            _uiState.update { it.copy(qrCodeBitmap = bitmap) }
+        }
+    }
+
+    private fun getAppVersion(): String {
+        return try {
+            val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
+            val versionName = packageInfo.versionName
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode
+            }
+            "$versionName (Build $versionCode)"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "Unknown"
+        }
+    }
+
     fun setTheme(theme: String) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setTheme(theme)
             handleResult(result, "Failed to update theme")
         }
     }
-    
-    /**
-     * Set the grid size.
-     * 
-     * @param size The number of columns (2, 3, or 4)
-     */
+
     fun setGridSize(size: Int) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setGridSize(size)
             handleResult(result, "Failed to update grid size")
         }
     }
-    
-    /**
-     * Set the font size.
-     * 
-     * @param scale The font size scale factor (e.g., 1.0, 1.2, 1.5)
-     */
+
     fun setFontSize(scale: Float) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setFontSize(scale)
             handleResult(result, "Failed to update font size")
         }
     }
-    
-    /**
-     * Set the animation speed.
-     * 
-     * @param speed The animation speed multiplier (e.g., 0.5, 1.0, 1.5)
-     */
+
     fun setAnimationSpeed(speed: Float) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setAnimationSpeed(speed)
             handleResult(result, "Failed to update animation speed")
         }
     }
-    
-    /**
-     * Set the layout density.
-     * 
-     * @param density The layout density (e.g., "comfortable", "compact", "spacious")
-     */
+
     fun setLayoutDensity(density: String) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setLayoutDensity(density)
             handleResult(result, "Failed to update layout density")
         }
     }
-    
-    /**
-     * Clear all cached data.
-     */
+
     fun clearCache() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
             val result = userPreferencesRepository.clearCache()
-            
             when (result) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    // Show success message (could add a success field to state)
                 }
                 is Result.Error -> {
                     _uiState.update {
@@ -146,10 +241,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
-    /**
-     * Reset all settings to defaults.
-     */
+
     fun resetToDefaults() {
         viewModelScope.launch {
             setTheme("dark")
@@ -159,15 +251,10 @@ class SettingsViewModel @Inject constructor(
             setLayoutDensity("comfortable")
         }
     }
-    
-    /**
-     * Handle the result of a preference update.
-     */
+
     private fun handleResult(result: Result<Unit>, errorMessage: String) {
         when (result) {
-            is Result.Success -> {
-                // Success - state will be updated via Flow
-            }
+            is Result.Success -> { }
             is Result.Error -> {
                 _uiState.update {
                     it.copy(error = result.exception.message ?: errorMessage)
@@ -175,10 +262,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
-    /**
-     * Clear any error message.
-     */
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

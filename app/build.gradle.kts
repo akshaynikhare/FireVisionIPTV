@@ -111,6 +111,7 @@ dependencies {
 
     // Media3 ExoPlayer (updated)
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
 
     // Jetpack Compose for TV

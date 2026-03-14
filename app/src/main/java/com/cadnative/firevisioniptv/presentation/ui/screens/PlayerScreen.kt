@@ -13,8 +13,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
@@ -51,8 +51,10 @@ fun PlayerScreen(
     // Set up media item when channel loads
     LaunchedEffect(uiState.channel) {
         uiState.channel?.let { channel ->
+            val url = channel.streamUrl
+            if (url.isNullOrEmpty()) return@let
             val mediaItem = MediaItem.Builder()
-                .setUri(channel.streamUrl)
+                .setUri(url)
                 .build()
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
@@ -103,6 +105,8 @@ private fun VideoPlayer(
             PlayerView(context).apply {
                 player = exoPlayer
                 useController = true
+                setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT)
+                keepScreenOn = true
                 layoutParams = FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT

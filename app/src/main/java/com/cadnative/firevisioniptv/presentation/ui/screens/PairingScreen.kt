@@ -32,8 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
-
 /**
  * Compose replacement for the XML-based PairingActivity layout.
  *
@@ -286,7 +284,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "tv.cadnative.com/user/register.html",
+                        text = "$serverUrl/user/register.html",
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center

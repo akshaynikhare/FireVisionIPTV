@@ -1,23 +1,26 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.theme.FireOrange
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
-/**
- * Channels screen with grid layout and category filtering.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChannelsScreen(
@@ -38,12 +41,18 @@ fun ChannelsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "All Channels",
+                        text = uiState.selectedCategory ?: "All Channels",
                         style = MaterialTheme.typography.headlineMedium
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        if (uiState.selectedCategory != null) {
+                            viewModel.loadChannels(null)
+                        } else {
+                            onNavigateBack()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -56,34 +65,103 @@ fun ChannelsScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                uiState.isLoading && uiState.channels.isEmpty() -> {
-                    LoadingIndicator(message = "Loading channels...")
-                }
-                uiState.error != null && uiState.channels.isEmpty() -> {
-                    ErrorState(
-                        message = uiState.error ?: "Unknown error",
-                        onRetry = { viewModel.refresh() }
-                    )
-                }
-                uiState.channels.isEmpty() -> {
-                    EmptyState(message = "No channels available")
-                }
-                else -> {
-                    ChannelsGrid(
-                        channels = uiState.channels,
-                        onChannelClick = onChannelClick,
-                        onToggleFavorite = { channelId ->
-                            viewModel.toggleFavorite(channelId)
-                        }
-                    )
+            // Category filter chips
+            if (uiState.categories.isNotEmpty()) {
+                CategoryChips(
+                    categories = uiState.categories,
+                    selectedCategory = uiState.selectedCategory,
+                    onCategorySelected = { category ->
+                        viewModel.loadChannels(category)
+                    },
+                    onAllSelected = {
+                        viewModel.loadChannels(null)
+                    }
+                )
+            }
+
+            // Channel grid
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading && uiState.channels.isEmpty() -> {
+                        LoadingIndicator(message = "Loading channels...")
+                    }
+                    uiState.error != null && uiState.channels.isEmpty() -> {
+                        ErrorState(
+                            message = uiState.error ?: "Unknown error",
+                            onRetry = { viewModel.refresh() }
+                        )
+                    }
+                    uiState.channels.isEmpty() -> {
+                        EmptyState(message = "No channels available")
+                    }
+                    else -> {
+                        ChannelsGrid(
+                            channels = uiState.channels,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = { channelId ->
+                                viewModel.toggleFavorite(channelId)
+                            }
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategoryChips(
+    categories: List<String>,
+    selectedCategory: String?,
+    onCategorySelected: (String) -> Unit,
+    onAllSelected: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = onAllSelected,
+                label = {
+                    Text(
+                        text = "All",
+                        fontWeight = if (selectedCategory == null) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = FireOrange,
+                    selectedLabelColor = Color.White
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
+        items(categories) { category ->
+            FilterChip(
+                selected = selectedCategory == category,
+                onClick = { onCategorySelected(category) },
+                label = {
+                    Text(
+                        text = category,
+                        fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = FireOrange,
+                    selectedLabelColor = Color.White
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
         }
     }
 }
