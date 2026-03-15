@@ -5,6 +5,8 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
+    id("com.google.firebase.firebase-perf")
 }
 
 android {
@@ -96,6 +98,8 @@ dependencies {
     // Firebase - using BoM for version management
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-perf")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-firestore")
 

@@ -2,6 +2,8 @@ package com.cadnative.firevisioniptv.di
 
 import android.app.Application
 import android.content.Context
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,4 +40,14 @@ object AppModule {
     @Provides
     @MainDispatcher
     fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAnalytics(context: Context): FirebaseAnalytics =
+        FirebaseAnalytics.getInstance(context)
+
+    @Provides
+    @Singleton
+    fun provideFirebaseCrashlytics(): FirebaseCrashlytics =
+        FirebaseCrashlytics.getInstance()
 }
