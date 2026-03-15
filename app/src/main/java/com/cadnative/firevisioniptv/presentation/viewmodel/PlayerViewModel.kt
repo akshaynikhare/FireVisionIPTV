@@ -53,6 +53,7 @@ class PlayerViewModel @Inject constructor(
 
     private var savePositionJob: Job? = null
     private var loadJob: Job? = null
+    private var playbackPositionJob: Job? = null
     private var channelListJob: Job? = null
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
@@ -97,7 +98,8 @@ class PlayerViewModel @Inject constructor(
      * Load the saved playback position for the current channel.
      */
     private fun loadPlaybackPosition(channelId: String) {
-        viewModelScope.launch {
+        playbackPositionJob?.cancel()
+        playbackPositionJob = viewModelScope.launch {
             getPlaybackPositionUseCase(channelId).collect { result ->
                 when (result) {
                     is Result.Success -> {
@@ -342,9 +344,8 @@ class PlayerViewModel @Inject constructor(
                         }
                     )
                 }
-            }
-            // Also update current channel if same
-            if (channelId == _uiState.value.channel?.id) {
+            } else if (channelId == _uiState.value.channel?.id) {
+                // Also update current channel if same (only on success)
                 _uiState.update { state ->
                     state.channel?.let { ch ->
                         state.copy(channel = ch.copy(isFavorite = !ch.isFavorite))
@@ -443,21 +444,29 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopPeriodicPositionSaving()
+        playbackPositionJob?.cancel()
         channelListJob?.cancel()
         autoHideJob?.cancel()
         countdownJob?.cancel()
         // viewModelScope is already cancelled at this point, so use a dedicated scope
-        // for the final position save to ensure it actually executes.
+        // for the final position save. Use withTimeout to prevent leaking.
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            savePlaybackPositionUseCase(
-                SavePlaybackPositionUseCase.Params(
-                    channelId = channelId,
-                    position = state.position,
-                    duration = state.duration
-                )
-            )
+        val job = SupervisorJob()
+        CoroutineScope(Dispatchers.IO + job).launch {
+            try {
+                kotlinx.coroutines.withTimeout(3000L) {
+                    savePlaybackPositionUseCase(
+                        SavePlaybackPositionUseCase.Params(
+                            channelId = channelId,
+                            position = state.position,
+                            duration = state.duration
+                        )
+                    )
+                }
+            } finally {
+                job.cancel()
+            }
         }
     }
 }

@@ -98,9 +98,8 @@ class CategoryRepositoryImpl @Inject constructor(
                         categoryMapper.toEntity(dto)
                     }
                     
-                    // Update local cache
-                    localDataSource.deleteAllCategories()
-                    localDataSource.insertCategories(entities)
+                    // Atomically update local cache
+                    localDataSource.replaceAllCategories(entities)
                     
                     Result.Success(Unit)
                 }

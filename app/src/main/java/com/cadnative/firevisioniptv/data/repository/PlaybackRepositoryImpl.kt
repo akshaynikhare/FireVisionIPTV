@@ -78,7 +78,8 @@ class PlaybackRepositoryImpl @Inject constructor(
                 )
             }
             
-            if (position > duration) {
+            // Only validate position vs duration for non-live streams (duration > 0)
+            if (duration > 0 && position > duration) {
                 return@withContext Result.Error(
                     IllegalArgumentException("Position cannot exceed duration")
                 )

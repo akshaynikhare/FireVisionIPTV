@@ -13,12 +13,15 @@ import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.domain.repository.FavoriteRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +48,8 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val application: Application,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : FavoriteRepository {
+
+    private val syncScope = CoroutineScope(SupervisorJob() + dispatcher)
 
     companion object {
         private const val TAG = "FavoriteRepo"
@@ -228,11 +233,13 @@ class FavoriteRepositoryImpl @Inject constructor(
      * favorites in the background. Failures are logged but don't
      * affect the user experience.
      */
-    private suspend fun syncFavoritesInBackground() {
-        try {
-            syncFavorites()
-        } catch (e: Exception) {
-            Log.w(TAG, "Background favorites sync failed: ${e.message}")
+    private fun syncFavoritesInBackground() {
+        syncScope.launch {
+            try {
+                syncFavorites()
+            } catch (e: Exception) {
+                Log.w(TAG, "Background favorites sync failed: ${e.message}")
+            }
         }
     }
     

@@ -27,6 +27,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -92,6 +93,8 @@ class PairingViewModel @Inject constructor(
                 val url = URL("$baseUrl/api/v1/tv/pairing/request")
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
+                    connectTimeout = 15000
+                    readTimeout = 15000
                     setRequestProperty("Content-Type", "application/json")
                     doOutput = true
                 }
@@ -172,6 +175,8 @@ class PairingViewModel @Inject constructor(
                     val url = URL("$baseUrl/api/v1/tv/pairing/status/$pin")
                     connection = (url.openConnection() as HttpURLConnection).apply {
                         requestMethod = "GET"
+                        connectTimeout = 10000
+                        readTimeout = 10000
                         setRequestProperty("Accept", "application/json")
                     }
 
@@ -281,8 +286,6 @@ class PairingViewModel @Inject constructor(
                     }
                 }
 
-                // Recycle previous bitmap to prevent memory leak
-                _uiState.value.qrCodeBitmap?.recycle()
                 _uiState.update { it.copy(qrCodeBitmap = bmp) }
             } catch (_: WriterException) {
                 // QR generation failed silently
@@ -294,7 +297,7 @@ class PairingViewModel @Inject constructor(
     private fun parseISO8601(dateStr: String): Long {
         return try {
             val cleaned = dateStr.replace("Z", "+00:00")
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
             sdf.parse(cleaned)?.time ?: fallbackExpiry()
         } catch (_: Exception) {
             fallbackExpiry()
@@ -307,7 +310,6 @@ class PairingViewModel @Inject constructor(
         super.onCleared()
         pollingJob?.cancel()
         countdownJob?.cancel()
-        _uiState.value.qrCodeBitmap?.recycle()
     }
 
     companion object {

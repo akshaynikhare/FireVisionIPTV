@@ -130,10 +130,14 @@ class ChannelHealthScanner @Inject constructor(
     }
 
     fun stopScan() {
-        scanJob?.cancel()
-        scanJob = null
-        _scanProgress.value = _scanProgress.value.copy(isScanning = false)
-        Log.d(TAG, "Scan stopped")
+        scope.launch {
+            scanMutex.withLock {
+                scanJob?.cancel()
+                scanJob = null
+                _scanProgress.value = _scanProgress.value.copy(isScanning = false)
+                Log.d(TAG, "Scan stopped")
+            }
+        }
     }
 
     fun destroy() {

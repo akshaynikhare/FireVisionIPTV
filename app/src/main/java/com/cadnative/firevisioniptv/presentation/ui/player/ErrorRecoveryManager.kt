@@ -25,6 +25,7 @@ class ErrorRecoveryManager(
 ) {
     private var reconnectJob: Job? = null
     private var reconnectAttempts = 0
+    private var isRecoveringState = false
     private val maxReconnectAttempts = 5
     private val reconnectDelayMs = 2000L
 
@@ -34,8 +35,9 @@ class ErrorRecoveryManager(
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_READY) {
+            if (playbackState == Player.STATE_READY && isRecoveringState) {
                 reconnectAttempts = 0
+                isRecoveringState = false
                 reconnectJob?.cancel()
                 onRecovered()
             }
@@ -75,11 +77,13 @@ class ErrorRecoveryManager(
 
     private fun isNetworkError(error: PlaybackException): Boolean {
         return error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
-                error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
+                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
     }
 
     private fun attemptReconnect() {
         reconnectJob?.cancel()
+        isRecoveringState = true
         reconnectJob = scope.launch {
             reconnectAttempts++
             val delayTime = reconnectDelayMs * reconnectAttempts
@@ -97,11 +101,13 @@ class ErrorRecoveryManager(
      */
     fun reset() {
         reconnectAttempts = 0
+        isRecoveringState = false
         reconnectJob?.cancel()
     }
 
     fun retry() {
         reconnectAttempts = 0
+        isRecoveringState = true
         player.prepare()
         player.play()
     }

@@ -10,17 +10,36 @@ import androidx.security.crypto.MasterKey
  */
 class SecurePreferences(context: Context) {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-
-    private val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val sharedPreferences: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (_: Exception) {
+        // Keystore corrupted — clear and recreate
+        context.deleteSharedPreferences("secure_prefs")
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                "secure_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (_: Exception) {
+            // Last resort fallback to unencrypted prefs
+            context.getSharedPreferences("secure_prefs_fallback", Context.MODE_PRIVATE)
+        }
+    }
 
     fun putString(key: String, value: String) {
         sharedPreferences.edit().putString(key, value).apply()

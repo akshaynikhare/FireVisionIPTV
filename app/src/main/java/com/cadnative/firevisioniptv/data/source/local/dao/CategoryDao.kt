@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import kotlinx.coroutines.flow.Flow
@@ -71,4 +72,13 @@ interface CategoryDao {
      */
     @Query("DELETE FROM categories")
     suspend fun deleteAllCategories()
+
+    /**
+     * Atomically replace all categories: delete then insert in a single transaction.
+     */
+    @Transaction
+    suspend fun replaceAllCategories(categories: List<CategoryEntity>) {
+        deleteAllCategories()
+        insertCategories(categories)
+    }
 }

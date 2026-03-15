@@ -76,18 +76,22 @@ interface ChannelDao {
     
     /**
      * Replace all channels in the database with a new list.
-     * 
-     * This is a transactional operation that deletes all existing channels
-     * and inserts the new ones atomically.
-     * 
+     *
+     * Uses upsert + selective delete to preserve foreign key relationships
+     * (favorites, channel_health) for channels that still exist.
+     *
      * @param channels List of channels to replace with
      */
     @Transaction
     suspend fun replaceAllChannels(channels: List<ChannelEntity>) {
-        deleteAllChannels()
+        val newIds = channels.map { it.id }.toSet()
+        deleteChannelsNotIn(newIds.toList())
         insertChannels(channels)
     }
 
     @Query("SELECT * FROM channels WHERE id = :channelId")
     suspend fun getChannelByIdSync(channelId: String): ChannelEntity?
+
+    @Query("DELETE FROM channels WHERE id NOT IN (:ids)")
+    suspend fun deleteChannelsNotIn(ids: List<String>)
 }

@@ -19,18 +19,21 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.ln
 import kotlin.math.pow
 
-class UpdateManager(private val activity: Activity) {
+class UpdateManager(activity: Activity) {
 
     companion object {
         private const val TAG = "UpdateManager"
         private const val TIMEOUT = 30000
+        private const val APK_FILENAME = "FireVisionIPTV.apk"
     }
 
+    private val activityRef = WeakReference(activity)
     private var downloadId: Long = -1
     private var downloadReceiver: BroadcastReceiver? = null
 
@@ -44,7 +47,8 @@ class UpdateManager(private val activity: Activity) {
     )
 
     fun checkForUpdates(showNoUpdateDialog: Boolean) {
-        val currentVersionCode = getCurrentVersionCode()
+        val activity = activityRef.get() ?: return
+        val currentVersionCode = getCurrentVersionCode(activity)
         val baseUrl = AppPreferences.getServerUrl(activity)
         val tvCode = AppPreferences.getTvCode(activity)
 
@@ -75,11 +79,13 @@ class UpdateManager(private val activity: Activity) {
                             releaseNotes = latest?.optString("releaseNotes", "") ?: ""
                         )
 
-                        activity.runOnUiThread {
+                        activityRef.get()?.runOnUiThread {
                             if (versionInfo.updateAvailable) {
                                 showUpdateDialog(versionInfo)
                             } else if (showNoUpdateDialog) {
-                                Toast.makeText(activity, "You are using the latest version", Toast.LENGTH_SHORT).show()
+                                activityRef.get()?.let {
+                                    Toast.makeText(it, "You are using the latest version", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
@@ -87,8 +93,10 @@ class UpdateManager(private val activity: Activity) {
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) Log.e(TAG, "Update check failed", e)
                 if (showNoUpdateDialog) {
-                    activity.runOnUiThread {
-                        Toast.makeText(activity, "Failed to check for updates", Toast.LENGTH_SHORT).show()
+                    activityRef.get()?.runOnUiThread {
+                        activityRef.get()?.let {
+                            Toast.makeText(it, "Failed to check for updates", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             } finally {
@@ -98,6 +106,7 @@ class UpdateManager(private val activity: Activity) {
     }
 
     private fun showUpdateDialog(versionInfo: AppVersionInfo) {
+        val activity = activityRef.get() ?: return
         var message = "A new version ${versionInfo.versionName} is available!\n\n"
 
         if (versionInfo.releaseNotes.isNotEmpty()) {
@@ -125,8 +134,8 @@ class UpdateManager(private val activity: Activity) {
     }
 
     private fun downloadAndInstallUpdate(downloadUrl: String) {
+        val activity = activityRef.get() ?: return
         try {
-            // Unregister previous receiver if exists
             downloadReceiver?.let { receiver ->
                 try {
                     activity.unregisterReceiver(receiver)
@@ -135,23 +144,28 @@ class UpdateManager(private val activity: Activity) {
                 }
             }
 
-            // Setup download request
+            // Delete old APK if exists
+            val oldFile = File(
+                activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                APK_FILENAME
+            )
+            if (oldFile.exists()) oldFile.delete()
+
+            // Download to app-private directory instead of public Downloads
             val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
                 setTitle("FireVision IPTV Update")
                 setDescription("Downloading update...")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "FireVisionIPTV.apk")
+                setDestinationInExternalFilesDir(activity, Environment.DIRECTORY_DOWNLOADS, APK_FILENAME)
                 setAllowedOverMetered(true)
                 setAllowedOverRoaming(true)
             }
 
-            // Start download
             val downloadManager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             downloadId = downloadManager.enqueue(request)
 
             Toast.makeText(activity, "Downloading update...", Toast.LENGTH_SHORT).show()
 
-            // Register download complete receiver
             downloadReceiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
                     val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
@@ -165,9 +179,11 @@ class UpdateManager(private val activity: Activity) {
                             val status = cursor.getInt(columnIndex)
 
                             if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                                installUpdate(downloadManager, downloadId)
+                                activityRef.get()?.let { installUpdate(it) }
                             } else {
-                                Toast.makeText(activity, "Download failed", Toast.LENGTH_SHORT).show()
+                                activityRef.get()?.let {
+                                    Toast.makeText(it, "Download failed", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                         cursor.close()
@@ -175,42 +191,48 @@ class UpdateManager(private val activity: Activity) {
                 }
             }
 
-            activity.registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                activity.registerReceiver(
+                    downloadReceiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                    Context.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                activity.registerReceiver(
+                    downloadReceiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+                )
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading update", e)
-            Toast.makeText(activity, "Failed to download update", Toast.LENGTH_SHORT).show()
+            activityRef.get()?.let {
+                Toast.makeText(it, "Failed to download update", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    private fun installUpdate(downloadManager: DownloadManager, downloadId: Long) {
+    private fun installUpdate(activity: Activity) {
         try {
-            val downloadUri = downloadManager.getUriForDownloadedFile(downloadId)
+            val file = File(
+                activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                APK_FILENAME
+            )
 
-            if (downloadUri == null) {
+            if (!file.exists()) {
                 Toast.makeText(activity, "Failed to get download file", Toast.LENGTH_SHORT).show()
                 return
             }
 
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            val apkUri = FileProvider.getUriForFile(
+                activity,
+                "${activity.packageName}.provider",
+                file
+            )
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    // For Android 7.0 and above, use FileProvider
-                    val file = File(
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                        "FireVisionIPTV.apk"
-                    )
-                    val apkUri = FileProvider.getUriForFile(
-                        activity,
-                        "${activity.packageName}.provider",
-                        file
-                    )
-                    setDataAndType(apkUri, "application/vnd.android.package-archive")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                } else {
-                    setDataAndType(downloadUri, "application/vnd.android.package-archive")
-                }
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
             activity.startActivity(installIntent)
@@ -222,7 +244,7 @@ class UpdateManager(private val activity: Activity) {
     }
 
     @Suppress("DEPRECATION")
-    private fun getCurrentVersionCode(): Int {
+    private fun getCurrentVersionCode(activity: Activity): Int {
         return try {
             val packageInfo = activity.packageManager.getPackageInfo(activity.packageName, 0)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -244,6 +266,7 @@ class UpdateManager(private val activity: Activity) {
     }
 
     fun cleanup() {
+        val activity = activityRef.get() ?: return
         downloadReceiver?.let { receiver ->
             try {
                 activity.unregisterReceiver(receiver)
@@ -251,5 +274,6 @@ class UpdateManager(private val activity: Activity) {
                 Log.e(TAG, "Error unregistering receiver", e)
             }
         }
+        downloadReceiver = null
     }
 }

@@ -43,7 +43,7 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
         PlaybackPositionEntity::class,
         ChannelHealthEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -73,6 +73,19 @@ abstract class FireVisionDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `channel_health` ADD COLUMN `thumbnailPath` TEXT DEFAULT NULL")
+            }
+        }
+
+        /** v3→v4: Add unique index on favorites.channelId, add unique index on search_history.query */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Remove duplicate favorites keeping the earliest entry per channelId
+                db.execSQL("DELETE FROM favorites WHERE id NOT IN (SELECT MIN(id) FROM favorites GROUP BY channelId)")
+                db.execSQL("DROP INDEX IF EXISTS `index_favorites_channelId`")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_favorites_channelId` ON `favorites` (`channelId`)")
+                // Remove duplicate search history keeping the latest entry per query
+                db.execSQL("DELETE FROM search_history WHERE id NOT IN (SELECT MAX(id) FROM search_history GROUP BY `query`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_search_history_query` ON `search_history` (`query`)")
             }
         }
     }

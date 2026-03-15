@@ -85,4 +85,11 @@ class CategoryLocalDataSource @Inject constructor(
     suspend fun deleteAllCategories() = withContext(dispatcher) {
         categoryDao.deleteAllCategories()
     }
+
+    /**
+     * Atomically replace all categories in a single transaction.
+     */
+    suspend fun replaceAllCategories(categories: List<CategoryEntity>) = withContext(dispatcher) {
+        categoryDao.replaceAllCategories(categories)
+    }
 }

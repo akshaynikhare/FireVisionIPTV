@@ -177,15 +177,12 @@ class SettingsViewModel @Inject constructor(
                     null
                 }
             }
-            // Recycle previous bitmap to prevent memory leak
-            _uiState.value.qrCodeBitmap?.recycle()
             _uiState.update { it.copy(qrCodeBitmap = bitmap) }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        _uiState.value.qrCodeBitmap?.recycle()
     }
 
     private fun getAppVersion(): String {

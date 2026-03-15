@@ -21,7 +21,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["channelId"])]
+    indices = [Index(value = ["channelId"], unique = true)]
 )
 data class FavoriteEntity(
     @PrimaryKey(autoGenerate = true)

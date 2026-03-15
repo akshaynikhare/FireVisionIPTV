@@ -48,34 +48,33 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        val tvCode = AppPreferences.getTvCode(context)
         return OkHttpClient.Builder()
-            // Timeout configurations
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-            
-            // Logging interceptor (debug only for security)
+
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
                     level = if (BuildConfig.DEBUG) {
-                        HttpLoggingInterceptor.Level.BODY
+                        HttpLoggingInterceptor.Level.HEADERS
                     } else {
                         HttpLoggingInterceptor.Level.NONE
                     }
                 }
             )
-            
-            // Custom headers interceptor
+
             .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
+                val tvCode = AppPreferences.getTvCode(context)
+                val original = chain.request()
+                val builder = original.newBuilder()
                     .addHeader("Accept", "application/json")
-                    .addHeader("Content-Type", "application/json")
                     .addHeader("X-TV-Code", tvCode)
-                    .build()
-                chain.proceed(request)
+                if (original.body != null) {
+                    builder.addHeader("Content-Type", "application/json")
+                }
+                chain.proceed(builder.build())
             }
-            
+
             .build()
     }
 

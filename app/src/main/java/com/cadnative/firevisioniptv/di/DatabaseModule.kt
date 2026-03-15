@@ -30,15 +30,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    /**
-     * Provides the Room database instance.
-     * 
-     * Configured with:
-     * - fallbackToDestructiveMigration: Allows database recreation on schema changes during development
-     * 
-     * @param context Application context
-     * @return Singleton instance of FireVisionDatabase
-     */
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): FireVisionDatabase {
@@ -49,9 +40,9 @@ object DatabaseModule {
         )
             .addMigrations(
                 FireVisionDatabase.MIGRATION_1_2,
-                FireVisionDatabase.MIGRATION_2_3
+                FireVisionDatabase.MIGRATION_2_3,
+                FireVisionDatabase.MIGRATION_3_4
             )
-            .fallbackToDestructiveMigration()
             .build()
     }
 

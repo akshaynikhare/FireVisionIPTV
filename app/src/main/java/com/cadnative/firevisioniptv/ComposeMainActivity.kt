@@ -52,8 +52,8 @@ class ComposeMainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
 
-        val needsPairing = isFirstLaunch() && !isTvCodeConfigured()
-        if (needsPairing) {
+        val needsPairing = !isTvCodeConfigured()
+        if (isFirstLaunch()) {
             markFirstLaunchComplete()
         }
 

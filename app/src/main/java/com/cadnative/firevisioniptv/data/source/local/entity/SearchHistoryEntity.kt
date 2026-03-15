@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "search_history",
-    indices = [Index(value = ["timestamp"])]
+    indices = [Index(value = ["timestamp"]), Index(value = ["query"], unique = true)]
 )
 data class SearchHistoryEntity(
     @PrimaryKey(autoGenerate = true)
