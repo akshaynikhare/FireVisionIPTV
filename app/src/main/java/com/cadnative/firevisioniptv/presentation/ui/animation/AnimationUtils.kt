@@ -29,6 +29,8 @@ const val DURATION_NORMAL = 250      // State changes (hover, selection)
 const val DURATION_ENTRANCE = 350    // Screen / content entrance
 const val DURATION_EXIT = 200        // Exit (faster than entrance)
 const val STAGGER_DELAY_MS = 50L     // Between staggered items
+const val DURATION_OVERLAY = 300     // Overlay slide in/out
+const val AUTO_HIDE_DELAY_MS = 7000L // Channel overlay auto-hide timeout
 
 // ── Splash Animation ─────────────────────────────────────────────
 const val SPLASH_LOGO_FADE_DURATION = 400       // Phase 1: logo fades in

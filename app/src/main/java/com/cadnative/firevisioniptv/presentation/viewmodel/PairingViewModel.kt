@@ -3,11 +3,10 @@ package com.cadnative.firevisioniptv.presentation.viewmodel
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cadnative.firevisioniptv.SettingsActivity
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
@@ -64,7 +63,7 @@ class PairingViewModel @Inject constructor(
     private var expiresAt: Long = 0
 
     init {
-        val serverUrl = SettingsActivity.getServerUrl(context)
+        val serverUrl = AppPreferences.getServerUrl(context)
         _uiState.update { it.copy(serverUrl = serverUrl) }
         generateQrCode(serverUrl)
         requestNewPairing()
@@ -89,7 +88,7 @@ class PairingViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
-                val baseUrl = SettingsActivity.getServerUrl(context)
+                val baseUrl = AppPreferences.getServerUrl(context)
                 val url = URL("$baseUrl/api/v1/tv/pairing/request")
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
@@ -139,7 +138,6 @@ class PairingViewModel @Inject constructor(
                     showError("Server error: $responseCode")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error requesting pairing", e)
                 showError("Connection error: ${e.message}")
             } finally {
                 connection?.disconnect()
@@ -164,14 +162,13 @@ class PairingViewModel @Inject constructor(
 
     private fun startPolling(pin: String) {
         pollingJob = viewModelScope.launch(Dispatchers.IO) {
-            var attempts = 0
-            while (isActive && attempts < MAX_POLL_ATTEMPTS) {
+            // Use time-based termination instead of fixed attempt count
+            while (isActive && System.currentTimeMillis() < expiresAt) {
                 delay(POLL_INTERVAL_MS)
-                attempts++
 
                 var connection: HttpURLConnection? = null
                 try {
-                    val baseUrl = SettingsActivity.getServerUrl(context)
+                    val baseUrl = AppPreferences.getServerUrl(context)
                     val url = URL("$baseUrl/api/v1/tv/pairing/status/$pin")
                     connection = (url.openConnection() as HttpURLConnection).apply {
                         requestMethod = "GET"
@@ -196,14 +193,14 @@ class PairingViewModel @Inject constructor(
                             return@launch
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error checking pairing status", e)
+                } catch (_: Exception) {
+                    // Silently retry on next poll interval
                 } finally {
                     connection?.disconnect()
                 }
             }
 
-            if (attempts >= MAX_POLL_ATTEMPTS) {
+            if (System.currentTimeMillis() >= expiresAt) {
                 showError("Pairing timeout. Please try again.")
             }
         }
@@ -284,9 +281,11 @@ class PairingViewModel @Inject constructor(
                     }
                 }
 
+                // Recycle previous bitmap to prevent memory leak
+                _uiState.value.qrCodeBitmap?.recycle()
                 _uiState.update { it.copy(qrCodeBitmap = bmp) }
-            } catch (e: WriterException) {
-                Log.e(TAG, "Error generating signup QR code", e)
+            } catch (_: WriterException) {
+                // QR generation failed silently
             }
         }
     }
@@ -297,8 +296,7 @@ class PairingViewModel @Inject constructor(
             val cleaned = dateStr.replace("Z", "+00:00")
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
             sdf.parse(cleaned)?.time ?: fallbackExpiry()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing date", e)
+        } catch (_: Exception) {
             fallbackExpiry()
         }
     }
@@ -309,13 +307,12 @@ class PairingViewModel @Inject constructor(
         super.onCleared()
         pollingJob?.cancel()
         countdownJob?.cancel()
+        _uiState.value.qrCodeBitmap?.recycle()
     }
 
     companion object {
-        private const val TAG = "PairingViewModel"
-        private const val PREFS_NAME = "FireVisionSettings"
-        private const val DEFAULT_TV_CODE = "5T6FEP"
+        private const val PREFS_NAME = AppPreferences.PREFS_NAME
+        private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val POLL_INTERVAL_MS = 3000L
-        private const val MAX_POLL_ATTEMPTS = 200
     }
 }

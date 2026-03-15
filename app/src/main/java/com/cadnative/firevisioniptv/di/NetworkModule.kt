@@ -2,7 +2,7 @@ package com.cadnative.firevisioniptv.di
 
 import android.content.Context
 import com.cadnative.firevisioniptv.BuildConfig
-import com.cadnative.firevisioniptv.SettingsActivity
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
 import dagger.Module
 import dagger.Provides
@@ -48,7 +48,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        val tvCode = SettingsActivity.getTvCode(context)
+        val tvCode = AppPreferences.getTvCode(context)
         return OkHttpClient.Builder()
             // Timeout configurations
             .connectTimeout(30, TimeUnit.SECONDS)

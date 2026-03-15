@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.update
 
+import com.cadnative.firevisioniptv.BuildConfig
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.DownloadManager
@@ -13,8 +14,13 @@ import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.cadnative.firevisioniptv.api.ApiClient
+import com.cadnative.firevisioniptv.data.AppPreferences
+import org.json.JSONObject
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.math.ln
 import kotlin.math.pow
 
@@ -22,40 +28,79 @@ class UpdateManager(private val activity: Activity) {
 
     companion object {
         private const val TAG = "UpdateManager"
+        private const val TIMEOUT = 30000
     }
 
     private var downloadId: Long = -1
     private var downloadReceiver: BroadcastReceiver? = null
 
+    data class AppVersionInfo(
+        val updateAvailable: Boolean,
+        val isMandatory: Boolean,
+        val versionName: String,
+        val downloadUrl: String,
+        val fileSize: Long,
+        val releaseNotes: String
+    )
+
     fun checkForUpdates(showNoUpdateDialog: Boolean) {
         val currentVersionCode = getCurrentVersionCode()
+        val baseUrl = AppPreferences.getServerUrl(activity)
+        val tvCode = AppPreferences.getTvCode(activity)
 
-        ApiClient.checkForUpdates(activity, currentVersionCode, object : ApiClient.AppVersionCallback {
-            override fun onSuccess(versionInfo: ApiClient.AppVersionInfo) {
-                activity.runOnUiThread {
-                    if (versionInfo.updateAvailable) {
-                        showUpdateDialog(versionInfo)
-                    } else if (showNoUpdateDialog) {
-                        Toast.makeText(activity, "You are using the latest version", Toast.LENGTH_SHORT).show()
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val url = URL("$baseUrl/api/v1/app/version?currentVersion=$currentVersionCode")
+                connection = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = TIMEOUT
+                    readTimeout = TIMEOUT
+                    setRequestProperty("Accept", "application/json")
+                    setRequestProperty("X-TV-Code", tvCode)
+                }
+
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val response = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+                    val json = JSONObject(response)
+
+                    if (json.optBoolean("success", false)) {
+                        val latest = json.optJSONObject("latestVersion")
+                        val versionInfo = AppVersionInfo(
+                            updateAvailable = json.optBoolean("updateAvailable", false),
+                            isMandatory = json.optBoolean("isMandatory", false),
+                            versionName = latest?.optString("versionName", "") ?: "",
+                            downloadUrl = latest?.optString("downloadUrl", "") ?: "",
+                            fileSize = latest?.optLong("apkFileSize", 0) ?: 0,
+                            releaseNotes = latest?.optString("releaseNotes", "") ?: ""
+                        )
+
+                        activity.runOnUiThread {
+                            if (versionInfo.updateAvailable) {
+                                showUpdateDialog(versionInfo)
+                            } else if (showNoUpdateDialog) {
+                                Toast.makeText(activity, "You are using the latest version", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 }
-            }
-
-            override fun onError(error: String) {
-                activity.runOnUiThread {
-                    Log.e(TAG, "Update check failed: $error")
-                    if (showNoUpdateDialog) {
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) Log.e(TAG, "Update check failed", e)
+                if (showNoUpdateDialog) {
+                    activity.runOnUiThread {
                         Toast.makeText(activity, "Failed to check for updates", Toast.LENGTH_SHORT).show()
                     }
                 }
+            } finally {
+                connection?.disconnect()
             }
-        })
+        }.start()
     }
 
-    private fun showUpdateDialog(versionInfo: ApiClient.AppVersionInfo) {
+    private fun showUpdateDialog(versionInfo: AppVersionInfo) {
         var message = "A new version ${versionInfo.versionName} is available!\n\n"
 
-        if (!versionInfo.releaseNotes.isNullOrEmpty()) {
+        if (versionInfo.releaseNotes.isNotEmpty()) {
             message += "${versionInfo.releaseNotes}\n\n"
         }
 

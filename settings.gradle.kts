@@ -17,8 +17,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        @Suppress("DEPRECATION")
-        jcenter() // For com.google.android.libraries.tv:companionlibrary
     }
 }
 

@@ -3,11 +3,14 @@ package com.cadnative.firevisioniptv.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +19,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class UserPreferencesRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : UserPreferencesRepository {
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -31,7 +35,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun setTheme(theme: String): Result<Unit> {
         return try {
-            prefs.edit().putString(KEY_THEME, theme).apply()
+            withContext(ioDispatcher) {
+                prefs.edit().putString(KEY_THEME, theme).apply()
+            }
             _theme.value = theme
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -43,7 +49,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun setGridSize(size: Int): Result<Unit> {
         return try {
-            prefs.edit().putInt(KEY_GRID_SIZE, size).apply()
+            withContext(ioDispatcher) {
+                prefs.edit().putInt(KEY_GRID_SIZE, size).apply()
+            }
             _gridSize.value = size
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -55,7 +63,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun setFontSize(scale: Float): Result<Unit> {
         return try {
-            prefs.edit().putFloat(KEY_FONT_SIZE, scale).apply()
+            withContext(ioDispatcher) {
+                prefs.edit().putFloat(KEY_FONT_SIZE, scale).apply()
+            }
             _fontSize.value = scale
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -67,7 +77,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun setAnimationSpeed(speed: Float): Result<Unit> {
         return try {
-            prefs.edit().putFloat(KEY_ANIMATION_SPEED, speed).apply()
+            withContext(ioDispatcher) {
+                prefs.edit().putFloat(KEY_ANIMATION_SPEED, speed).apply()
+            }
             _animationSpeed.value = speed
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -79,7 +91,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun setLayoutDensity(density: String): Result<Unit> {
         return try {
-            prefs.edit().putString(KEY_LAYOUT_DENSITY, density).apply()
+            withContext(ioDispatcher) {
+                prefs.edit().putString(KEY_LAYOUT_DENSITY, density).apply()
+            }
             _layoutDensity.value = density
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -89,7 +103,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun clearCache(): Result<Unit> {
         return try {
-            context.cacheDir.deleteRecursively()
+            withContext(ioDispatcher) {
+                context.cacheDir.deleteRecursively()
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

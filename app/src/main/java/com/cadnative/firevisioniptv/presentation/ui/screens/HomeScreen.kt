@@ -36,9 +36,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadChannels()
-    }
+    // ViewModel init{} already calls loadChannels() + refresh(), no need to duplicate here
 
     Box(modifier = modifier.fillMaxSize()) {
         val contentState = when {

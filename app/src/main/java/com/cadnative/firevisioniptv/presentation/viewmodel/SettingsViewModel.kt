@@ -8,7 +8,7 @@ import android.graphics.Color
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cadnative.firevisioniptv.SettingsActivity
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
@@ -40,8 +40,8 @@ class SettingsViewModel @Inject constructor(
     val scanProgress: StateFlow<ScanProgress> = channelHealthScanner.scanProgress
 
     companion object {
-        private const val PREFS_NAME = "FireVisionSettings"
-        private const val DEFAULT_TV_CODE = "5T6FEP"
+        private const val PREFS_NAME = AppPreferences.PREFS_NAME
+        private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
     }
 
@@ -88,8 +88,8 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadServerConfig() {
         val ctx = application.applicationContext
-        val serverUrl = SettingsActivity.getServerUrl(ctx)
-        val tvCode = SettingsActivity.getTvCode(ctx)
+        val serverUrl = AppPreferences.getServerUrl(ctx)
+        val tvCode = AppPreferences.getTvCode(ctx)
         val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val autoloadName = prefs.getString(AUTOLOAD_CHANNEL_NAME_KEY, "") ?: ""
         val isPaired = tvCode.isNotEmpty() && tvCode != DEFAULT_TV_CODE
@@ -177,8 +177,15 @@ class SettingsViewModel @Inject constructor(
                     null
                 }
             }
+            // Recycle previous bitmap to prevent memory leak
+            _uiState.value.qrCodeBitmap?.recycle()
             _uiState.update { it.copy(qrCodeBitmap = bitmap) }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        _uiState.value.qrCodeBitmap?.recycle()
     }
 
     private fun getAppVersion(): String {

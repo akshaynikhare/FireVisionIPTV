@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
@@ -44,9 +45,7 @@ class ComposeMainActivity : ComponentActivity() {
     lateinit var channelHealthScanner: ChannelHealthScanner
 
     companion object {
-        private const val PREFS_NAME = "FireVisionSettings"
-        /** Must match SettingsActivity.DEFAULT_TV_CODE */
-        private const val DEFAULT_TV_CODE = "5T6FEP"
+        private const val PREFS_NAME = AppPreferences.PREFS_NAME
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +70,7 @@ class ComposeMainActivity : ComponentActivity() {
         }
 
         // Check for autoload channel
-        val autoloadChannelId = SettingsActivity.getAutoloadChannelId(this)
+        val autoloadChannelId = AppPreferences.getAutoloadChannelId(this)
             .takeIf { it.isNotEmpty() }
 
         val targetChannelId = deepLinkChannelId ?: autoloadChannelId
@@ -109,8 +108,8 @@ class ComposeMainActivity : ComponentActivity() {
     }
 
     private fun isTvCodeConfigured(): Boolean {
-        val tvCode = SettingsActivity.getTvCode(this)
-        return !tvCode.isNullOrEmpty() && tvCode != DEFAULT_TV_CODE
+        val tvCode = AppPreferences.getTvCode(this)
+        return tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
     }
 
     private fun isFirstLaunch(): Boolean {

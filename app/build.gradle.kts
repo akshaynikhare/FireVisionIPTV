@@ -89,9 +89,6 @@ dependencies {
     implementation(libs.androidx.leanback)
     implementation(libs.androidx.appcompat)
 
-    // Glide (updated - will migrate to Coil later)
-    implementation(libs.glide)
-
     // Coil for modern image loading
     implementation(libs.coil)
     implementation(libs.coil.compose)
@@ -101,10 +98,6 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-firestore")
-
-    // Modern UI components
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // TV Provider support
     implementation("androidx.tvprovider:tvprovider:1.1.0")
@@ -154,14 +147,11 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
-    // Navigation Component
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
+    // Navigation Component (Compose only)
     implementation(libs.androidx.navigation.compose)
 
     // Lifecycle (updated)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 

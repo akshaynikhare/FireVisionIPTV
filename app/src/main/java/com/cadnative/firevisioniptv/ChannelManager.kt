@@ -176,6 +176,16 @@ class ChannelManager(private val context: Context) {
         Log.d(TAG, "Triggered channel update broadcast")
     }
 
+    /**
+     * Lightweight model for TIF channel synchronization.
+     */
+    private data class Channel(
+        val channelId: String,
+        val channelName: String?,
+        val channelUrl: String?,
+        val channelImg: String?
+    )
+
     companion object {
         private const val TAG = "ChannelManager"
     }

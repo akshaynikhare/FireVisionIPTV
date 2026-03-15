@@ -205,7 +205,7 @@ private fun ChannelsGrid(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        itemsIndexed(channels) { index, channel ->
+        itemsIndexed(channels, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },

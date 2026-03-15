@@ -10,13 +10,18 @@ import kotlinx.coroutines.launch
 
 /**
  * Manages error recovery for playback with automatic reconnection.
+ *
+ * When a network error occurs, retries up to [maxReconnectAttempts] times
+ * with exponential backoff. Non-recoverable errors (bad manifest, server
+ * error) immediately signal the stream as dead.
  */
 class ErrorRecoveryManager(
     private val player: ExoPlayer,
     private val scope: CoroutineScope,
     private val onError: (String) -> Unit,
-    private val onRecovering: () -> Unit,
-    private val onRecovered: () -> Unit
+    private val onRecovering: (attempt: Int) -> Unit,
+    private val onRecovered: () -> Unit,
+    private val onStreamDead: (errorMessage: String) -> Unit
 ) {
     private var reconnectJob: Job? = null
     private var reconnectAttempts = 0
@@ -29,16 +34,10 @@ class ErrorRecoveryManager(
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            when (playbackState) {
-                Player.STATE_READY -> {
-                    // Playback recovered
-                    reconnectAttempts = 0
-                    reconnectJob?.cancel()
-                    onRecovered()
-                }
-                Player.STATE_BUFFERING -> {
-                    // Show buffering indicator
-                }
+            if (playbackState == Player.STATE_READY) {
+                reconnectAttempts = 0
+                reconnectJob?.cancel()
+                onRecovered()
             }
         }
     }
@@ -47,9 +46,6 @@ class ErrorRecoveryManager(
         player.addListener(playerListener)
     }
 
-    /**
-     * Handle playback errors with automatic recovery.
-     */
     private fun handleError(error: PlaybackException) {
         val errorMessage = when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
@@ -68,52 +64,48 @@ class ErrorRecoveryManager(
             }
         }
 
-        onError(errorMessage)
-
-        // Attempt automatic reconnection for network errors
         if (isNetworkError(error) && reconnectAttempts < maxReconnectAttempts) {
+            onError(errorMessage)
             attemptReconnect()
+        } else {
+            // Non-recoverable or retries exhausted
+            onStreamDead(errorMessage)
         }
     }
 
-    /**
-     * Check if error is network-related.
-     */
     private fun isNetworkError(error: PlaybackException): Boolean {
         return error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                 error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
     }
 
-    /**
-     * Attempt to reconnect with exponential backoff.
-     */
     private fun attemptReconnect() {
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
             reconnectAttempts++
             val delayTime = reconnectDelayMs * reconnectAttempts
-            
-            onRecovering()
+
+            onRecovering(reconnectAttempts)
             delay(delayTime)
 
-            // Retry playback
             player.prepare()
             player.play()
         }
     }
 
     /**
-     * Manually retry playback.
+     * Reset reconnection state. Call when switching to a new channel.
      */
+    fun reset() {
+        reconnectAttempts = 0
+        reconnectJob?.cancel()
+    }
+
     fun retry() {
         reconnectAttempts = 0
         player.prepare()
         player.play()
     }
 
-    /**
-     * Release resources.
-     */
     fun release() {
         reconnectJob?.cancel()
         player.removeListener(playerListener)

@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Text
+import androidx.compose.material3.Text
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_GLOW_EXPAND_DURATION
 import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_HOLD_DURATION_MS

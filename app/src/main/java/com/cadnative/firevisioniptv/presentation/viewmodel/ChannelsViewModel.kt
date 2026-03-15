@@ -10,7 +10,6 @@ import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.ChannelsUiState
-import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +56,6 @@ class ChannelsViewModel @Inject constructor(
             }.collect { (result, healthList) ->
                 when (result) {
                     is Result.Success -> {
-                        Log.d("ChannelsVM", "Got ${result.data.size} channels from flow")
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
                         val allCategories = uiChannels
                             .map { it.category }
@@ -74,7 +72,6 @@ class ChannelsViewModel @Inject constructor(
                         }
                     }
                     is Result.Error -> {
-                        Log.e("ChannelsVM", "Error loading channels: ${result.exception.message}")
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -125,15 +122,12 @@ class ChannelsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             val result = refreshChannelsUseCase(Unit)
-            Log.d("ChannelsVM", "Refresh result: $result")
 
             when (result) {
                 is Result.Success -> {
-                    Log.d("ChannelsVM", "Refresh success - channels should update via Flow")
                     _uiState.update { it.copy(isLoading = false) }
                 }
                 is Result.Error -> {
-                    Log.e("ChannelsVM", "Refresh error: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
