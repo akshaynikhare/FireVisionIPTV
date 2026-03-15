@@ -41,7 +41,7 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
         PlaybackPositionEntity::class,
         ChannelHealthEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {

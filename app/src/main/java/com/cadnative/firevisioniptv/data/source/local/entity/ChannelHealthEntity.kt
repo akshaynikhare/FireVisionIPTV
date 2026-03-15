@@ -27,5 +27,6 @@ data class ChannelHealthEntity(
     val status: String,
     val lastCheckedAt: Long = 0L,
     val responseTimeMs: Long? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val thumbnailPath: String? = null
 )

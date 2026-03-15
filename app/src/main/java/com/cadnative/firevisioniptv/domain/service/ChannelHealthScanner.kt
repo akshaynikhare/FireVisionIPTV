@@ -36,6 +36,7 @@ data class ScanProgress(
 class ChannelHealthScanner @Inject constructor(
     private val channelHealthDao: ChannelHealthDao,
     private val channelDao: ChannelDao,
+    private val thumbnailExtractor: ChannelThumbnailExtractor,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
     companion object {
@@ -43,7 +44,8 @@ class ChannelHealthScanner @Inject constructor(
         private const val BATCH_SIZE = 4
         private const val CONNECT_TIMEOUT_SECONDS = 6L
         private const val READ_TIMEOUT_SECONDS = 6L
-        private const val COOLDOWN_MS = 30L * 60L * 1000L // 30 minutes
+        private const val THUMBNAIL_DELAY_MS = 5L * 60L * 1000L  // 5 minutes
+        private const val COOLDOWN_MS = 30L * 60L * 1000L         // 30 minutes
     }
 
     private val scanClient: OkHttpClient by lazy {
@@ -61,13 +63,28 @@ class ChannelHealthScanner @Inject constructor(
     private var scanJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
+    /**
+     * Loop: health scan → 5 min → thumbnail extraction (ONLINE only) → 30 min → repeat
+     */
     fun startAutoScan() {
         if (scanJob?.isActive == true) return
         scanJob = scope.launch {
             Log.d(TAG, "Auto scan started")
             while (isActive) {
+                // Phase 1: Health scan
                 runFullScan()
-                Log.d(TAG, "Scan cycle complete, cooldown ${COOLDOWN_MS / 1000}s")
+
+                // Phase 2: 5 min cooldown before thumbnail extraction
+                Log.d(TAG, "Health scan done, waiting 5min before thumbnail extraction")
+                delay(THUMBNAIL_DELAY_MS)
+
+                // Phase 3: Extract thumbnails for ONLINE channels
+                if (isActive) {
+                    val count = thumbnailExtractor.extractThumbnails()
+                    Log.d(TAG, "Extracted $count thumbnails, cooldown ${COOLDOWN_MS / 60000}min")
+                }
+
+                // Phase 4: Main cooldown before next health scan cycle
                 delay(COOLDOWN_MS)
             }
         }
@@ -78,11 +95,22 @@ class ChannelHealthScanner @Inject constructor(
         scanJob = scope.launch {
             Log.d(TAG, "Manual scan triggered — clearing old results")
             channelHealthDao.deleteAll()
+            thumbnailExtractor.clearThumbnails()
+
             runFullScan()
-            // Resume auto-scanning after manual scan
+
+            // Resume auto cycle
             while (isActive) {
-                Log.d(TAG, "Resuming auto-scan cycle after manual, cooldown ${COOLDOWN_MS / 1000}s")
+                Log.d(TAG, "Waiting 5min for thumbnail extraction")
+                delay(THUMBNAIL_DELAY_MS)
+
+                if (isActive) {
+                    thumbnailExtractor.extractThumbnails()
+                }
+
+                Log.d(TAG, "Cooldown ${COOLDOWN_MS / 60000}min before next health scan")
                 delay(COOLDOWN_MS)
+
                 runFullScan()
             }
         }
@@ -111,15 +139,16 @@ class ChannelHealthScanner @Inject constructor(
         for (batch in batches) {
             if (scanJob?.isActive != true) break
 
-            // Mark batch as CHECKING
-            val checkingEntities = batch.map { id ->
-                ChannelHealthEntity(
+            // Mark batch as CHECKING (preserves existing thumbnailPath)
+            for (id in batch) {
+                channelHealthDao.upsertPreservingThumbnail(
                     channelId = id,
                     status = ChannelHealthStatus.CHECKING.name,
-                    lastCheckedAt = System.currentTimeMillis()
+                    lastCheckedAt = System.currentTimeMillis(),
+                    responseTimeMs = null,
+                    errorMessage = null
                 )
             }
-            channelHealthDao.upsertAll(checkingEntities)
 
             // Get stream URLs for this batch
             val channelUrls = withContext(dispatcher) {
@@ -136,8 +165,17 @@ class ChannelHealthScanner @Inject constructor(
                 }.awaitAll()
             }
 
-            // Save results
-            channelHealthDao.upsertAll(healthResults)
+            // Save results (preserving existing thumbnailPaths)
+            for (result in healthResults) {
+                channelHealthDao.upsertPreservingThumbnail(
+                    channelId = result.channelId,
+                    status = result.status,
+                    lastCheckedAt = result.lastCheckedAt,
+                    responseTimeMs = result.responseTimeMs,
+                    errorMessage = result.errorMessage
+                )
+            }
+
             scannedCount += batch.size
             _scanProgress.value = ScanProgress(
                 scanned = scannedCount.coerceAtMost(total),

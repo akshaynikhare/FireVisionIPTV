@@ -22,6 +22,26 @@ interface ChannelHealthDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(health: List<ChannelHealthEntity>)
 
+    /**
+     * Upsert health fields while preserving the existing thumbnailPath.
+     * Uses a subquery to carry forward the thumbnail before REPLACE deletes the row.
+     */
+    @Query("""
+        INSERT OR REPLACE INTO channel_health
+            (channelId, status, lastCheckedAt, responseTimeMs, errorMessage, thumbnailPath)
+        VALUES (
+            :channelId, :status, :lastCheckedAt, :responseTimeMs, :errorMessage,
+            (SELECT thumbnailPath FROM channel_health WHERE channelId = :channelId)
+        )
+    """)
+    suspend fun upsertPreservingThumbnail(
+        channelId: String,
+        status: String,
+        lastCheckedAt: Long,
+        responseTimeMs: Long?,
+        errorMessage: String?
+    )
+
     @Query("""
         SELECT c.id FROM channels c
         LEFT JOIN channel_health h ON c.id = h.channelId
@@ -38,6 +58,15 @@ interface ChannelHealthDao {
         ORDER BY COALESCE(h.lastCheckedAt, 0) ASC
     """)
     suspend fun getAllChannelIdsByPriority(): List<String>
+
+    @Query("SELECT channelId FROM channel_health WHERE status = 'ONLINE' AND thumbnailPath IS NULL")
+    suspend fun getOnlineChannelIdsWithoutThumbnail(): List<String>
+
+    @Query("UPDATE channel_health SET thumbnailPath = :path WHERE channelId = :channelId")
+    suspend fun updateThumbnailPath(channelId: String, path: String)
+
+    @Query("UPDATE channel_health SET thumbnailPath = NULL")
+    suspend fun clearAllThumbnailPaths()
 
     @Query("SELECT COUNT(*) FROM channels WHERE isActive = 1")
     suspend fun getTotalActiveChannelCount(): Int

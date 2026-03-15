@@ -1,331 +1,229 @@
-# FireVision IPTV Android App - Architecture
+# Architecture
+
+FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation**, **Domain**, and **Data**. The architecture enforces unidirectional dependency flow — outer layers depend on inner layers, never the reverse.
 
 ## Overview
 
-This document describes the architecture of the FireVision IPTV Android application for Fire TV devices.
-
-## Client Layer Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         CLIENT LAYER                                 │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │             Android App (Fire TV Device)                      │  │
-│  │                                                                │  │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │  │
-│  │  │ MainActivity│  │ MainFragment │  │ PlaybackActivity  │   │  │
-│  │  │             │  │              │  │                   │   │  │
-│  │  │ - Init      │  │ - Browse UI  │  │ - Video Player    │   │  │
-│  │  │ - Update    │  │ - Load       │  │ - Channel         │   │  │
-│  │  │   Check     │  │   Channels   │  │   Navigation      │   │  │
-│  │  └──────┬──────┘  └──────┬───────┘  └───────────────────┘   │  │
-│  │         │                │                                    │  │
-│  │         └────────┬───────┘                                    │  │
-│  │                  │                                            │  │
-│  │         ┌────────▼────────┐                                  │  │
-│  │         │   MovieList     │                                  │  │
-│  │         │                 │                                  │  │
-│  │         │ - Channel Mgmt  │                                  │  │
-│  │         │ - Server Sync   │                                  │  │
-│  │         └────────┬────────┘                                  │  │
-│  │                  │                                            │  │
-│  │         ┌────────▼────────┐     ┌─────────────────────┐     │  │
-│  │         │   ApiClient     │     │  UpdateManager      │     │  │
-│  │         │                 │     │                     │     │  │
-│  │         │ - HTTP Client   │     │ - Update Check      │     │  │
-│  │         │ - Channel Fetch │     │ - APK Download      │     │  │
-│  │         │ - Version Check │     │ - Install Prompt    │     │  │
-│  │         └────────┬────────┘     └──────────┬──────────┘     │  │
-│  │                  │                         │                 │  │
-│  └──────────────────┼─────────────────────────┼────────────────┘  │
-│                     │                         │                    │
-└─────────────────────┼─────────────────────────┼────────────────────┘
-                      │                         │
-                      │    HTTPS/TLS            │
-                      │                         │
-                      ▼                         ▼
-               Server API Endpoints
+```text
+┌───────────────────────────────────────────────────────────────┐
+│                     Presentation Layer                         │
+│                                                               │
+│  ┌─────────┐    ┌────────────┐    ┌──────────┐    ┌────────┐ │
+│  │ Screens  │◄───│ ViewModels │◄───│ UiMapper │◄───│UiState │ │
+│  │(Compose) │    │  (Hilt)    │    │          │    │UiModel │ │
+│  └─────────┘    └─────┬──────┘    └──────────┘    └────────┘ │
+│                       │ invokes                               │
+├───────────────────────┼───────────────────────────────────────┤
+│                  Domain Layer                                  │
+│                       │                                        │
+│  ┌──────────────┐    ┌▼──────────┐    ┌────────────────────┐  │
+│  │  Repository   │◄───│ Use Cases │    │   Domain Models    │  │
+│  │  Interfaces   │    │           │    │ (Channel, Category │  │
+│  └──────┬───────┘    └───────────┘    │  PlaybackState...) │  │
+│         │                              └────────────────────┘  │
+├─────────┼─────────────────────────────────────────────────────┤
+│         │            Data Layer                                │
+│         ▼                                                      │
+│  ┌──────────────┐    ┌────────────────┐    ┌───────────────┐  │
+│  │  Repository   │───►│ Local Sources   │───►│  Room DAOs    │  │
+│  │  Impls        │    │                │    │  (SQLite)     │  │
+│  │               │───►│ Remote Sources  │───►│  Retrofit API │  │
+│  └──────────────┘    └────────────────┘    └───────────────┘  │
+│                                                                │
+│  ┌──────────┐    ┌──────────┐    ┌───────────────────────┐    │
+│  │ Entities │    │   DTOs   │    │  Mappers (DTO↔Entity  │    │
+│  │ (Room)   │    │  (Gson)  │    │   ↔ Domain)           │    │
+│  └──────────┘    └──────────┘    └───────────────────────┘    │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-## Technology Stack
+## Layer Details
 
-### Client (Android)
-- **Language**: Java
-- **Framework**: AndroidX, Leanback (TV UI)
-- **Video Player**: ExoPlayer (via VideoSupportFragment)
-- **Image Loading**: Glide
-- **Database**: Realm (optional, unused currently)
-- **Backend**: Firebase (Firestore, Realtime DB)
+### Presentation Layer
 
-## App Structure
+**Responsibility:** Renders UI, handles user interaction, manages screen-level state.
 
+**Key components:**
+
+| Component | Role |
+|-----------|------|
+| `ComposeMainActivity` | Entry point. Initializes Firebase, checks pairing, starts health scanner, sets up navigation shell with side rail. |
+| `FireVisionNavGraph` | Defines all navigation routes using Jetpack Navigation Compose. 9 destinations including Player with `channelId` argument. |
+| `Screen` (sealed class) | Type-safe route definitions: Home, Channels, Categories, Search, Favorites, Settings, Player, Pairing, ChannelsByCategory. |
+| `SideNavRail` | Persistent sidebar for TV navigation across main routes. |
+| ViewModels (6) | `ChannelsViewModel`, `FavoritesViewModel`, `SearchViewModel`, `PlayerViewModel`, `SettingsViewModel`, `PairingViewModel` — all `@HiltViewModel`. |
+| UI Mappers | `ChannelUiMapper`, `CategoryUiMapper` — convert domain models to UI models, enriching with health status and thumbnails. |
+| UI State classes | Immutable data classes (`ChannelsUiState`, `PlayerUiState`, etc.) exposed as `StateFlow` from ViewModels. |
+
+**Dependencies:** Domain layer (use cases, models).
+
+### Domain Layer
+
+**Responsibility:** Contains business logic in use cases, defines repository contracts, and holds domain models. This layer is pure Kotlin with no Android framework dependencies (except Hilt annotations).
+
+**Key components:**
+
+| Component | Role |
+|-----------|------|
+| Domain Models (5) | `Channel`, `Category`, `ChannelHealthStatus`, `PlaybackState`, `SearchFilter` |
+| Repository Interfaces (7) | `ChannelRepository`, `CategoryRepository`, `FavoriteRepository`, `PlaybackRepository`, `PlaylistRepository`, `SearchHistoryRepository`, `UserPreferencesRepository` |
+| Use Cases (12) | Single-responsibility classes for each operation. Two base classes: `UseCase<P, R>` (suspend, one-shot) and `FlowUseCase<P, R>` (reactive streams). |
+| Services (2) | `ChannelHealthScanner` (batch HTTP health checks), `ChannelThumbnailExtractor` (MediaMetadataRetriever frame extraction). |
+
+**Dependencies:** None (pure Kotlin + coroutines).
+
+### Data Layer
+
+**Responsibility:** Implements repository interfaces, manages local persistence (Room), remote API calls (Retrofit), and data mapping between layers.
+
+**Key components:**
+
+| Component | Role |
+|-----------|------|
+| Room Database | `FireVisionDatabase` (v3) with 6 entities: `ChannelEntity`, `CategoryEntity`, `FavoriteEntity`, `SearchHistoryEntity`, `PlaybackPositionEntity`, `ChannelHealthEntity` |
+| DAOs (6) | Type-safe SQL queries with `Flow` return types for reactive updates |
+| Local Data Sources (5) | Thin wrappers around DAOs that run operations on `IoDispatcher` |
+| Remote Data Sources (2) | `ChannelRemoteDataSource`, `CategoryRemoteDataSource` — wrap Retrofit calls with error mapping |
+| Repository Impls (6) | Implement domain interfaces. Offline-first: local DB is source of truth, remote data refreshes the cache. |
+| Mappers (2) | `ChannelMapper`, `CategoryMapper` — bidirectional DTO ↔ Entity ↔ Domain conversions |
+| `FireVisionApiService` | Retrofit interface with 5 endpoints |
+| `Result<T>` | Sealed class (`Success<T>` / `Error`) for type-safe error handling |
+
+**Dependencies:** Domain layer (repository interfaces, models).
+
+## Dependency Injection
+
+Hilt provides all DI with 5 modules installed in `SingletonComponent`:
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    Hilt Modules                          │
+├─────────────────────────────────────────────────────────┤
+│ AppModule          → Context, @IoDispatcher,            │
+│                      @MainDispatcher                     │
+│ NetworkModule      → OkHttpClient, Retrofit,            │
+│                      FireVisionApiService                │
+│ DatabaseModule     → FireVisionDatabase, all 6 DAOs     │
+│ RepositoryModule   → Binds 6 repo interfaces to impls   │
+│ ImageLoadingModule → Coil ImageLoader (25% mem cache,   │
+│                      50MB disk cache, 300ms crossfade)   │
+└─────────────────────────────────────────────────────────┘
 ```
-FireVisionIPTV/app/src/main/java/com/cadnative/firevisioniptv/
-├── api/
-│   └── ApiClient.java              # Server communication
-├── update/
-│   └── UpdateManager.java          # Auto-update logic
-├── models/
-│   ├── Channel.java                # Channel model
-│   ├── Movie.java                  # Display model
-│   └── PairingRequest.java         # Pairing model
-├── MainActivity.java               # Entry point
-├── MainFragment.java               # Browse UI
-├── PlaybackActivity.java           # Video player
-└── MovieList.java                  # Channel list manager
-```
+
+Custom qualifiers `@IoDispatcher` and `@MainDispatcher` differentiate coroutine dispatchers.
 
 ## Data Flow
 
-### 1. Channel Loading Flow
+### Typical read flow: User opens Channels screen
 
-```
-┌──────────────┐
-│  App Starts  │
-└──────┬───────┘
-       │
-       ▼
-┌─────────────────────┐
-│ MainActivity.onCreate│
-│ - Init Firebase      │
-│ - Init UpdateManager │
-└─────────┬────────────┘
-          │
-          ▼
-┌──────────────────────┐
-│ Check for Updates    │
-│ (Silent)             │
-└──────────────────────┘
-          │
-          ▼
-┌──────────────────────┐
-│ Load MainFragment    │
-└─────────┬────────────┘
-          │
-          ▼
-┌──────────────────────────┐
-│ MovieList.loadFromServer │
-└─────────┬────────────────┘
-          │
-          ▼
-┌─────────────────────────┐
-│ ApiClient.fetchChannels │
-└─────────┬───────────────┘
-          │
-          ├─── Success ──┐
-          │              │
-          │              ▼
-          │         ┌──────────────────┐
-          │         │ Parse JSON       │
-          │         │ Create Movie List│
-          │         │ Display in UI    │
-          │         └──────────────────┘
-          │
-          └─── Error ────┐
-                         │
-                         ▼
-                    ┌──────────────────┐
-                    │ Fallback to      │
-                    │ local playlist.m3u│
-                    │ Display in UI    │
-                    └──────────────────┘
+```text
+ChannelsScreen
+    │ collects StateFlow
+    ▼
+ChannelsViewModel
+    │ invokes
+    ▼
+GetChannelsUseCase (FlowUseCase)
+    │ calls
+    ▼
+ChannelRepository.getChannels() : Flow<Result<List<Channel>>>
+    │ implemented by
+    ▼
+ChannelRepositoryImpl
+    │ combines two flows:
+    ├──► ChannelLocalDataSource.getAllChannels() → ChannelDao (Room, returns Flow)
+    └──► FavoriteLocalDataSource.getAllFavorites() → FavoriteDao (Room, returns Flow)
+    │ maps entities to domain models via ChannelMapper
+    ▼
+Flow<Result<List<Channel>>>
+    │ mapped by ChannelUiMapper (enriched with ChannelHealthDao data)
+    ▼
+StateFlow<ChannelsUiState> → Compose recomposes
 ```
 
-### 2. Auto-Update Flow
+### Typical write flow: User toggles favorite
 
-```
-┌──────────────┐
-│  App Launch  │
-└──────┬───────┘
-       │
-       ▼
-┌────────────────────────┐
-│ UpdateManager.check()  │
-│ currentVersion = 1     │
-└──────┬─────────────────┘
-       │
-       ▼
-┌────────────────────────────┐
-│ GET /api/v1/app/version    │
-│ ?currentVersion=1          │
-└──────┬─────────────────────┘
-       │
-       ▼
-┌────────────────────────────┐
-│ Server Response:           │
-│ {                          │
-│   updateAvailable: true,   │
-│   latestVersion: {         │
-│     versionCode: 2,        │
-│     downloadUrl: "...",    │
-│     isMandatory: false     │
-│   }                        │
-│ }                          │
-└──────┬─────────────────────┘
-       │
-       ├─── Update Available ───┐
-       │                        │
-       │                        ▼
-       │               ┌──────────────────┐
-       │               │ Show Dialog      │
-       │               │ "Update Available"│
-       │               └──────┬───────────┘
-       │                      │
-       │                      ▼
-       │               ┌──────────────────┐
-       │               │ User Clicks      │
-       │               │ "Update Now"     │
-       │               └──────┬───────────┘
-       │                      │
-       │                      ▼
-       │               ┌──────────────────┐
-       │               │ DownloadManager  │
-       │               │ Downloads APK    │
-       │               └──────┬───────────┘
-       │                      │
-       │                      ▼
-       │               ┌──────────────────┐
-       │               │ Download Complete│
-       │               │ Show Install     │
-       │               │ Prompt           │
-       │               └──────────────────┘
-       │
-       └─── No Update ──────┐
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │ Continue Normally│
-                   │ (Silent)         │
-                   └──────────────────┘
+```text
+ChannelsScreen (user clicks favorite icon)
+    │
+    ▼
+ChannelsViewModel.toggleFavorite(channelId)
+    │ optimistic UI update
+    │ invokes
+    ▼
+ToggleFavoriteUseCase(channelId)
+    │ calls
+    ▼
+FavoriteRepository.toggleFavorite(channelId)
+    │ implemented by
+    ▼
+FavoriteRepositoryImpl
+    ├──► Checks isFavorite via FavoriteDao
+    ├──► Adds/removes FavoriteEntity via FavoriteDao
+    └──► Fire-and-forget: syncFavorites() → POST /api/v1/favorites
+    │
+    ▼
+Room emits updated Flow → ChannelRepositoryImpl recombines → ViewModel updates UI
 ```
 
-### 3. Video Playback Flow
+### Refresh flow: Background channel sync
 
-```
-┌──────────────────┐
-│ User Selects     │
-│ Channel          │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────────┐
-│ PlaybackActivity     │
-│ launched with        │
-│ channel URL          │
-└────────┬─────────────┘
-         │
-         ▼
-┌──────────────────────┐
-│ ExoPlayer           │
-│ - Load stream URL    │
-│ - Handle DRM (if any)│
-│ - Start playback     │
-└──────────────────────┘
+```text
+WorkManager (every 6 hours)
+    │
+    ▼
+ChannelSyncWorker.doWork()
+    │ calls
+    ▼
+ChannelRepository.refreshChannels()
+    │ implemented by
+    ▼
+ChannelRepositoryImpl
+    ├──► ChannelRemoteDataSource.fetchChannels() → GET /api/v1/channels
+    ├──► Maps ChannelDto → ChannelEntity via ChannelMapper
+    └──► ChannelLocalDataSource.replaceAllChannels() → @Transaction: delete all + insert
+    │
+    ▼
+Room emits updated Flow → any active ViewModel/screen recomposes
 ```
 
-## Component Details
+## Navigation
 
-### MainActivity
-- **Purpose**: Entry point, initialization
-- **Responsibilities**:
-  - Initialize Firebase
-  - Start UpdateManager
-  - Load MainFragment
-  - Handle app lifecycle
+Navigation uses Jetpack Navigation Compose with a `NavHostController`. The `ComposeMainActivity` sets up a shell layout:
 
-### MainFragment
-- **Purpose**: Browse UI using Leanback library
-- **Responsibilities**:
-  - Display channel categories
-  - Handle navigation
-  - Search functionality
-  - Launch PlaybackActivity
-
-### MovieList
-- **Purpose**: Channel data management
-- **Responsibilities**:
-  - Fetch channels from server
-  - Parse M3U fallback
-  - Cache channel list
-  - Provide data to UI
-
-### ApiClient
-- **Purpose**: HTTP communication
-- **Responsibilities**:
-  - Fetch channel list from server
-  - Check for app updates
-  - Handle network errors
-  - Parse JSON responses
-
-### UpdateManager
-- **Purpose**: App update management
-- **Responsibilities**:
-  - Check server for updates
-  - Download APK files
-  - Show update dialogs
-  - Trigger installation
-
-### PlaybackActivity
-- **Purpose**: Video playback
-- **Responsibilities**:
-  - Initialize ExoPlayer
-  - Handle stream URLs
-  - DRM support
-  - Playback controls
-
-## Storage
-
-### Local Assets
-```
-app/src/main/assets/
-└── playlist.m3u          # Fallback channel list
+```text
+┌──────────────────────────────────────────┐
+│ ┌──────┐ ┌────────────────────────────┐  │
+│ │ Side │ │                            │  │
+│ │ Nav  │ │       NavHost              │  │
+│ │ Rail │ │   (current screen)         │  │
+│ │      │ │                            │  │
+│ │ Home │ │                            │  │
+│ │ Chan │ │                            │  │
+│ │ Cat  │ │                            │  │
+│ │ Srch │ │                            │  │
+│ │ Fav  │ │                            │  │
+│ │ Set  │ │                            │  │
+│ └──────┘ └────────────────────────────┘  │
+└──────────────────────────────────────────┘
 ```
 
-### Shared Preferences
-- Last update check timestamp
-- Current app version
-- User preferences
+- **Sidebar routes** (Home, Channels, Categories, Search, Favorites, Settings): Navigate with `popUpTo(Home)`, `saveState`, `launchSingleTop`, `restoreState` — prevents duplicate destinations and preserves scroll state.
+- **Player**: Full-screen overlay, navigated to with `channelId` argument.
+- **Pairing**: Shown on first launch if TV code not configured. On success, clears itself from the back stack.
+- **Start destination**: Pairing (first launch) or Home (returning user).
 
-### Cache
-- Channel list cache
-- Image cache (Glide)
+## Key Design Decisions
 
-## Network Communication
-
-### Endpoints Used
-| Endpoint | Purpose | Frequency |
-|----------|---------|-----------|
-| `/api/v1/channels` | Fetch channel list | On app start, refresh |
-| `/api/v1/app/version` | Check for updates | On app start |
-| `/api/v1/app/download` | Download APK | User initiated |
-
-### Error Handling
-1. **Network Unavailable**: Fall back to local M3U
-2. **Server Error**: Show error, retry option
-3. **Update Download Failure**: Show error, allow retry
-
-## Fire TV Optimization
-
-### UI Considerations
-- D-Pad navigation support
-- Focus management
-- Leanback library for TV UI
-- Large touch targets
-
-### Performance
-- Image loading optimization (Glide)
-- Lazy loading of channels
-- Efficient list rendering
-- Memory management
-
-### Remote Control
-- Back button handling
-- Home button handling
-- Play/Pause controls
-- Search button integration
-
----
-
-**Last Updated**: 2025-01-01
-**Version**: 1.0.0
+| Decision | Rationale |
+|----------|-----------|
+| **Offline-first with Room as source of truth** | Fire TV devices may have intermittent connectivity. Local DB ensures the app is always usable. Remote data refreshes the cache. |
+| **Flow-based reactivity end-to-end** | Room DAOs return `Flow`, which propagates through repositories and use cases to ViewModels. Any data change (favorite toggled, channels refreshed) automatically updates all observing screens. |
+| **Optimistic UI updates** | Toggling favorites updates the UI immediately, then persists in the background. Rolls back on error for a responsive feel on TV remotes. |
+| **UseCase / FlowUseCase base classes** | Standardizes one-shot vs. streaming operations. ViewModels invoke use cases as functions via `operator fun invoke()`. |
+| **Separate ChannelRepository and FavoriteRepository** | Channels and favorites have different sync strategies. Channels do full-replace refresh; favorites do incremental sync with server. |
+| **ChannelHealthScanner as a service, not a use case** | Health scanning is a long-running background process (batched HTTP checks, thumbnail extraction) that doesn't fit the single-responsibility use case pattern. |
+| **Hilt over manual DI** | Compile-time DI validation, reduced boilerplate, native WorkManager and ViewModel integration via `@HiltWorker` and `@HiltViewModel`. |
+| **Compose for TV over Leanback XML** | Modern declarative UI with better state management. Leanback dependency kept for backward compatibility. |
+| **BuildConfig for API URL** | Allows different URLs per build variant (debug, dev, release) without code changes. |
+| **Destructive migration in dev** | `fallbackToDestructiveMigration()` simplifies schema iteration during development. Production should use proper migrations. |

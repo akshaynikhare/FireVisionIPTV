@@ -9,5 +9,6 @@ data class ChannelUiModel(
     val streamUrl: String? = null,
     val category: String,
     val isFavorite: Boolean,
-    val healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN
+    val healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN,
+    val thumbnailPath: String? = null
 )

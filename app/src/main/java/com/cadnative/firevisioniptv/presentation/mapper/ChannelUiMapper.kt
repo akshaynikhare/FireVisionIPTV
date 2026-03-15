@@ -12,7 +12,8 @@ class ChannelUiMapper @Inject constructor() {
 
     fun toUiModel(
         channel: Channel,
-        healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN
+        healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN,
+        thumbnailPath: String? = null
     ): ChannelUiModel {
         return ChannelUiModel(
             id = channel.id,
@@ -21,7 +22,8 @@ class ChannelUiMapper @Inject constructor() {
             streamUrl = channel.streamUrl,
             category = channel.category,
             isFavorite = channel.isFavorite,
-            healthStatus = healthStatus
+            healthStatus = healthStatus,
+            thumbnailPath = thumbnailPath
         )
     }
 
@@ -29,13 +31,14 @@ class ChannelUiMapper @Inject constructor() {
         channels: List<Channel>,
         healthEntities: List<ChannelHealthEntity>
     ): List<ChannelUiModel> {
-        val healthMap = healthEntities.associate { it.channelId to it.status }
+        val healthMap = healthEntities.associateBy { it.channelId }
         return channels.map { channel ->
-            val status = healthMap[channel.id]?.let { s ->
+            val healthEntity = healthMap[channel.id]
+            val status = healthEntity?.status?.let { s ->
                 try { ChannelHealthStatus.valueOf(s) }
                 catch (_: Exception) { ChannelHealthStatus.UNKNOWN }
             } ?: ChannelHealthStatus.UNKNOWN
-            toUiModel(channel, status)
+            toUiModel(channel, status, healthEntity?.thumbnailPath)
         }
     }
     

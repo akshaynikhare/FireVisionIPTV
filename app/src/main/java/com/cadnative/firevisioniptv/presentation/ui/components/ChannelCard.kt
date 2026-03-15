@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
@@ -80,8 +81,15 @@ fun ChannelCard(
         val catColor = categoryColor(channel.category)
 
         Box(modifier = Modifier.fillMaxSize()) {
+            // Prefer live thumbnail over static logo (remember avoids disk I/O on every recomposition)
+            val imageModel = remember(channel.thumbnailPath, channel.logoUrl) {
+                channel.thumbnailPath?.let { path ->
+                    File(path).takeIf { it.exists() }
+                } ?: channel.logoUrl
+            }
+
             AsyncImage(
-                model = channel.logoUrl,
+                model = imageModel,
                 contentDescription = channel.name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
