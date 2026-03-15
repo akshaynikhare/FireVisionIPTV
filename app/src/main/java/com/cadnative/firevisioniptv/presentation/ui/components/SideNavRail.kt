@@ -3,6 +3,9 @@ package com.cadnative.firevisioniptv.presentation.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
@@ -80,7 +83,7 @@ fun SideNavRail(
 
     val railWidth by animateDpAsState(
         targetValue = if (isExpanded) 220.dp else 72.dp,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
         label = "railWidth"
     )
 
@@ -154,7 +157,7 @@ private fun NavRailItem(
             isSelected -> Amber
             else -> TextSecondary
         },
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
         label = "navItemContent"
     )
 
@@ -163,7 +166,7 @@ private fun NavRailItem(
             isFocused -> FocusGlow
             else -> Color.Transparent
         },
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
         label = "navItemGlow"
     )
 

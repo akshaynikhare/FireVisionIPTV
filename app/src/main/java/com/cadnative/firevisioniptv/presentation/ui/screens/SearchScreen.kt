@@ -1,12 +1,17 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,12 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 import com.cadnative.firevisioniptv.presentation.viewmodel.SearchViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +61,7 @@ fun SearchScreen(
         Text(
             text = "Search",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.primary
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -71,19 +77,23 @@ fun SearchScreen(
                 Text(
                     text = "Search channels, categories...",
                     fontSize = 18.sp,
-                    color = TextDim
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = if (searchQuery.isNotEmpty()) SteelBlue else TextSecondary,
+                    tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             },
             trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = searchQuery.isNotEmpty(),
+                    enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                    exit = fadeOut(tween(DURATION_FAST, easing = EaseOutQuart))
+                ) {
                     IconButton(onClick = {
                         searchQuery = ""
                         viewModel.onQueryChange("")
@@ -91,7 +101,7 @@ fun SearchScreen(
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = "Clear",
-                            tint = TextSecondary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -103,61 +113,69 @@ fun SearchScreen(
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedIndicatorColor = SteelBlue,
+                focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
                 unfocusedIndicatorColor = SubtleBorder,
-                cursorColor = SteelBlue
+                cursorColor = MaterialTheme.colorScheme.secondary
             )
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        when {
-            uiState.isLoading -> {
-                LoadingIndicator(message = "Searching...")
-            }
-            uiState.error != null -> {
-                ErrorState(
+        // Crossfade between search states
+        val searchState = when {
+            uiState.isLoading -> "loading"
+            uiState.error != null -> "error"
+            searchQuery.isEmpty() && uiState.recentSearches.isNotEmpty() -> "recent"
+            searchQuery.isEmpty() -> "prompt"
+            uiState.results.isEmpty() -> "no_results"
+            else -> "results"
+        }
+
+        Crossfade(
+            targetState = searchState,
+            animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+            label = "searchState"
+        ) { state ->
+            when (state) {
+                "loading" -> LoadingIndicator(message = "Searching...")
+                "error" -> ErrorState(
                     message = uiState.error ?: "Search failed",
                     onRetry = { viewModel.onQueryChange(searchQuery) }
                 )
-            }
-            searchQuery.isEmpty() -> {
-                if (uiState.recentSearches.isNotEmpty()) {
-                    RecentSearches(
-                        searches = uiState.recentSearches,
-                        onSearchClick = { query ->
-                            searchQuery = query
-                            viewModel.onQueryChange(query)
-                        },
-                        onClearHistory = { viewModel.clearHistory() }
-                    )
-                } else {
-                    SearchPrompt()
-                }
-            }
-            uiState.results.isEmpty() -> {
-                NoResultsState(query = searchQuery)
-            }
-            else -> {
-                Text(
-                    text = "${uiState.results.size} result${if (uiState.results.size != 1) "s" else ""} for \"$searchQuery\"",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SteelBlue,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                "recent" -> RecentSearches(
+                    searches = uiState.recentSearches,
+                    onSearchClick = { query ->
+                        searchQuery = query
+                        viewModel.onQueryChange(query)
+                    },
+                    onClearHistory = { viewModel.clearHistory() }
                 )
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 200.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    items(uiState.results) { channel ->
-                        ChannelCard(
-                            channel = channel,
-                            onClick = { onChannelClick(channel.id) },
-                            onFavoriteClick = { viewModel.toggleFavorite(channel.id) }
+                "prompt" -> SearchPrompt()
+                "no_results" -> NoResultsState(query = searchQuery)
+                else -> {
+                    Column {
+                        Text(
+                            text = "${uiState.results.size} result${if (uiState.results.size != 1) "s" else ""} for \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 200.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            itemsIndexed(uiState.results) { index, channel ->
+                                ChannelCard(
+                                    channel = channel,
+                                    onClick = { onChannelClick(channel.id) },
+                                    onFavoriteClick = { viewModel.toggleFavorite(channel.id) },
+                                    modifier = Modifier.animateItemEntrance(index)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -170,27 +188,28 @@ private fun SearchPrompt(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = 80.dp),
+            .padding(top = 80.dp)
+            .animateFadeIn(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = SteelBlue.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
             modifier = Modifier.size(56.dp)
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "Find your channels",
             style = MaterialTheme.typography.titleLarge,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = "Search by name or category",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextDim
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -217,7 +236,7 @@ private fun RecentSearches(
             TextButton(onClick = onClearHistory) {
                 Text(
                     text = "Clear",
-                    color = Amber,
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -241,7 +260,7 @@ private fun RecentSearches(
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = null,
-                            tint = TextDim,
+                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
@@ -264,13 +283,14 @@ private fun NoResultsState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = 80.dp),
+            .padding(top = 80.dp)
+            .animateFadeIn(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = TextDim,
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f),
             modifier = Modifier.size(48.dp)
         )
         Spacer(modifier = Modifier.height(20.dp))
@@ -284,7 +304,7 @@ private fun NoResultsState(
         Text(
             text = "Try a different search term",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }

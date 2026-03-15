@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 
 @Composable
 fun ErrorState(
@@ -26,7 +26,9 @@ fun ErrorState(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(40.dp)
+            modifier = Modifier
+                .padding(40.dp)
+                .animateFadeIn()
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
@@ -48,7 +50,8 @@ fun ErrorState(
             ) {
                 Text(
                     text = "Retry",
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

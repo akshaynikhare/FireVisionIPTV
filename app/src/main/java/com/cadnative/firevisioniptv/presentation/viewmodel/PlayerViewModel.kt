@@ -6,6 +6,7 @@ import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetPlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.SavePlaybackPositionUseCase
+import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ class PlayerViewModel @Inject constructor(
     private val getChannelByIdUseCase: GetChannelByIdUseCase,
     private val savePlaybackPositionUseCase: SavePlaybackPositionUseCase,
     private val getPlaybackPositionUseCase: GetPlaybackPositionUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val channelUiMapper: ChannelUiMapper
 ) : ViewModel() {
     
@@ -202,8 +204,25 @@ class PlayerViewModel @Inject constructor(
     }
     
     /**
+     * Toggle favorite status for the current channel.
+     */
+    fun toggleFavorite() {
+        val channelId = _uiState.value.channel?.id ?: return
+        viewModelScope.launch {
+            val result = toggleFavoriteUseCase(channelId)
+            if (result is Result.Success) {
+                _uiState.update { state ->
+                    state.channel?.let { channel ->
+                        state.copy(channel = channel.copy(isFavorite = !channel.isFavorite))
+                    } ?: state
+                }
+            }
+        }
+    }
+
+    /**
      * Handle playback error.
-     * 
+     *
      * @param error The error message
      */
     fun onPlaybackError(error: String) {

@@ -4,11 +4,16 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -16,7 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
+import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
+import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -66,21 +75,33 @@ class ComposeMainActivity : ComponentActivity() {
             .takeIf { it.isNotEmpty() }
 
         val targetChannelId = deepLinkChannelId ?: autoloadChannelId
+        val showSplashOnStart = savedInstanceState == null
 
         setContent {
             FireVisionTheme {
+                var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
                 val navController = rememberNavController()
                 val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                FireVisionAppShell(
-                    navController = navController,
-                    startDestination = startDestination
-                )
+                Crossfade(
+                    targetState = showSplash,
+                    animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
+                    label = "splashTransition"
+                ) { isSplashing ->
+                    if (isSplashing) {
+                        SplashScreen(onSplashFinished = { showSplash = false })
+                    } else {
+                        FireVisionAppShell(
+                            navController = navController,
+                            startDestination = startDestination
+                        )
 
-                // Navigate to player if deep link or autoload channel is set (once only)
-                if (targetChannelId != null && savedInstanceState == null && !needsPairing) {
-                    LaunchedEffect(targetChannelId) {
-                        navController.navigate(Screen.Player.createRoute(targetChannelId))
+                        // Navigate to player if deep link or autoload channel is set (once only)
+                        if (targetChannelId != null && savedInstanceState == null && !needsPairing) {
+                            LaunchedEffect(targetChannelId) {
+                                navController.navigate(Screen.Player.createRoute(targetChannelId))
+                            }
+                        }
                     }
                 }
             }
@@ -119,24 +140,26 @@ private fun FireVisionAppShell(
 
     val showSidebar = currentRoute in Screen.sidebarRoutes
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        if (showSidebar) {
-            SideNavRail(
-                currentRoute = currentRoute,
-                onScreenSelected = { screen ->
-                    navController.navigate(screen.route) {
-                        popUpTo(Screen.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+    DiagonalGradientBackground {
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (showSidebar) {
+                SideNavRail(
+                    currentRoute = currentRoute,
+                    onScreenSelected = { screen ->
+                        navController.navigate(screen.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                }
+                )
+            }
+
+            FireVisionNavGraph(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.weight(1f)
             )
         }
-
-        FireVisionNavGraph(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.weight(1f)
-        )
     }
 }

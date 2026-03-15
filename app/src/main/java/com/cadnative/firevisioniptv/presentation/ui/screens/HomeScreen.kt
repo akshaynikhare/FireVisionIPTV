@@ -1,9 +1,12 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
@@ -35,21 +41,26 @@ fun HomeScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        when {
-            uiState.isLoading && uiState.channels.isEmpty() -> {
-                LoadingIndicator(message = "Loading channels...")
-            }
-            uiState.error != null && uiState.channels.isEmpty() -> {
-                ErrorState(
+        val contentState = when {
+            uiState.isLoading && uiState.channels.isEmpty() -> "loading"
+            uiState.error != null && uiState.channels.isEmpty() -> "error"
+            uiState.channels.isEmpty() -> "empty"
+            else -> "content"
+        }
+
+        Crossfade(
+            targetState = contentState,
+            animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+            label = "homeState"
+        ) { state ->
+            when (state) {
+                "loading" -> LoadingIndicator(message = "Loading channels...")
+                "error" -> ErrorState(
                     message = uiState.error ?: "Unknown error",
                     onRetry = { viewModel.refresh() }
                 )
-            }
-            uiState.channels.isEmpty() -> {
-                EmptyState(message = "No channels available")
-            }
-            else -> {
-                HomeContent(
+                "empty" -> EmptyState(message = "No channels available")
+                else -> HomeContent(
                     channels = uiState.channels,
                     onChannelClick = onChannelClick,
                     onNavigateToChannels = onNavigateToChannels,
@@ -72,6 +83,10 @@ private fun HomeContent(
         channels.groupBy { it.category.ifBlank { "Other" } }
     }
 
+    val categoryEntries = remember(channelsByCategory) {
+        channelsByCategory.entries.toList()
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 28.dp)
@@ -82,22 +97,27 @@ private fun HomeContent(
                 channels = channels.take(5),
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
-                modifier = Modifier.padding(bottom = 40.dp)
+                modifier = Modifier
+                    .padding(bottom = 40.dp)
+                    .animateItemEntrance(index = 0)
             )
         }
 
-        // Category rows
-        channelsByCategory.forEach { (category, categoryChannels) ->
-            item(key = "category_$category") {
-                ChannelRow(
-                    title = category,
-                    channels = categoryChannels,
-                    onChannelClick = onChannelClick,
-                    onSeeAllClick = { onNavigateToChannels(category) },
-                    onToggleFavorite = onToggleFavorite,
-                    modifier = Modifier.padding(bottom = 36.dp)
-                )
-            }
+        // Category rows — staggered entrance
+        itemsIndexed(
+            items = categoryEntries,
+            key = { _, entry -> "category_${entry.key}" }
+        ) { index, (category, categoryChannels) ->
+            ChannelRow(
+                title = category,
+                channels = categoryChannels,
+                onChannelClick = onChannelClick,
+                onSeeAllClick = { onNavigateToChannels(category) },
+                onToggleFavorite = onToggleFavorite,
+                modifier = Modifier
+                    .padding(bottom = 36.dp)
+                    .animateItemEntrance(index = index + 1)
+            )
         }
     }
 }
@@ -119,7 +139,7 @@ private fun HeroBanner(
         Text(
             text = "Featured",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(20.dp))
         LazyRow(

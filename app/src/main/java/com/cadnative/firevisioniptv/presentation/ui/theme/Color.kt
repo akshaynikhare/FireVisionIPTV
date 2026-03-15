@@ -49,6 +49,10 @@ val SelectionOverlay = Color(0x1AFFFFFF)
 // ── Borders ─────────────────────────────────────────────────────────
 val SubtleBorder = Color(0x10FFFFFF)
 
+// ── Background gradient glows ────────────────────────────────────
+val AmberGlow = Color(0x08E8A849)       // ~3% opacity Amber
+val SteelBlueGlow = Color(0x086B8EAE)   // ~3% opacity Steel Blue
+
 // ── Category colors — muted tones for dark backgrounds ──────────────
 val CategorySports = Color(0xFF4CAF7A)
 val CategoryNews = Color(0xFF5B9BD5)

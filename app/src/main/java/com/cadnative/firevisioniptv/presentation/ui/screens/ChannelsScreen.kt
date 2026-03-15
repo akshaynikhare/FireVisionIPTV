@@ -1,11 +1,14 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
@@ -86,21 +92,26 @@ fun ChannelsScreen(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading && uiState.channels.isEmpty() -> {
-                        LoadingIndicator(message = "Loading channels...")
-                    }
-                    uiState.error != null && uiState.channels.isEmpty() -> {
-                        ErrorState(
+                val contentState = when {
+                    uiState.isLoading && uiState.channels.isEmpty() -> "loading"
+                    uiState.error != null && uiState.channels.isEmpty() -> "error"
+                    uiState.channels.isEmpty() -> "empty"
+                    else -> "content"
+                }
+
+                Crossfade(
+                    targetState = contentState,
+                    animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                    label = "channelsState"
+                ) { state ->
+                    when (state) {
+                        "loading" -> LoadingIndicator(message = "Loading channels...")
+                        "error" -> ErrorState(
                             message = uiState.error ?: "Unknown error",
                             onRetry = { viewModel.refresh() }
                         )
-                    }
-                    uiState.channels.isEmpty() -> {
-                        EmptyState(message = "No channels available")
-                    }
-                    else -> {
-                        ChannelsGrid(
+                        "empty" -> EmptyState(message = "No channels available")
+                        else -> ChannelsGrid(
                             channels = uiState.channels,
                             onChannelClick = onChannelClick,
                             onToggleFavorite = { channelId ->
@@ -130,6 +141,11 @@ private fun CategoryChips(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
+            val borderColor by animateColorAsState(
+                targetValue = if (selectedCategory != null) SubtleBorder else Color.Transparent,
+                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                label = "allChipBorder"
+            )
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = onAllSelected,
@@ -143,26 +159,32 @@ private fun CategoryChips(
                     selectedContainerColor = Amber,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                border = if (selectedCategory != null) BorderStroke(1.dp, SubtleBorder) else null,
+                border = if (selectedCategory != null) BorderStroke(1.dp, borderColor) else null,
                 shape = RoundedCornerShape(8.dp)
             )
         }
         items(categories) { category ->
             val catColor = categoryColor(category)
+            val isSelected = selectedCategory == category
+            val borderColor by animateColorAsState(
+                targetValue = if (!isSelected) SubtleBorder else Color.Transparent,
+                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                label = "chipBorder_$category"
+            )
             FilterChip(
-                selected = selectedCategory == category,
+                selected = isSelected,
                 onClick = { onCategorySelected(category) },
                 label = {
                     Text(
                         text = category,
-                        fontWeight = if (selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = catColor,
                     selectedLabelColor = MaterialTheme.colorScheme.background
                 ),
-                border = if (selectedCategory != category) BorderStroke(1.dp, SubtleBorder) else null,
+                border = if (!isSelected) BorderStroke(1.dp, borderColor) else null,
                 shape = RoundedCornerShape(8.dp)
             )
         }
@@ -183,11 +205,12 @@ private fun ChannelsGrid(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        items(channels) { channel ->
+        itemsIndexed(channels) { index, channel ->
             ChannelCard(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },
-                onFavoriteClick = { onToggleFavorite(channel.id) }
+                onFavoriteClick = { onToggleFavorite(channel.id) },
+                modifier = Modifier.animateItemEntrance(index)
             )
         }
     }

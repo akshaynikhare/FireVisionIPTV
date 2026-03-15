@@ -11,6 +11,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.cadnative.firevisioniptv.presentation.ui.animation.screenEnterTransition
+import com.cadnative.firevisioniptv.presentation.ui.animation.screenExitTransition
+import com.cadnative.firevisioniptv.presentation.ui.animation.screenPopEnterTransition
+import com.cadnative.firevisioniptv.presentation.ui.animation.screenPopExitTransition
 import com.cadnative.firevisioniptv.presentation.ui.screens.CategoriesScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.ChannelsScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.FavoritesScreen
@@ -40,7 +44,11 @@ fun FireVisionNavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = { screenEnterTransition() },
+        exitTransition = { screenExitTransition() },
+        popEnterTransition = { screenPopEnterTransition() },
+        popExitTransition = { screenPopExitTransition() }
     ) {
         // ── Pairing (onboarding) ────────────────────────────────────────
         composable(route = Screen.Pairing.route) {

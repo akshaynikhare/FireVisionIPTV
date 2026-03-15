@@ -1,5 +1,9 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,12 +26,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
 import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 
@@ -65,26 +69,31 @@ fun SettingsScreen(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Pairing Status
+            // Pairing Status — stagger index 0
             PairingStatusCard(
                 isPaired = uiState.isPaired,
                 tvCode = uiState.tvCode,
-                onPairDevice = onPairDevice
+                onPairDevice = onPairDevice,
+                modifier = Modifier.animateItemEntrance(index = 0)
             )
 
-            // Server Configuration
+            // Server Configuration — stagger index 1
             ServerConfigCard(
                 serverUrl = uiState.serverUrl,
                 tvCode = uiState.tvCode,
                 settingsSaved = uiState.settingsSaved,
                 onServerUrlChange = { viewModel.onServerUrlChange(it) },
                 onTvCodeChange = { viewModel.onTvCodeChange(it) },
-                onSave = { viewModel.saveServerSettings() }
+                onSave = { viewModel.saveServerSettings() },
+                modifier = Modifier.animateItemEntrance(index = 1)
             )
 
-            // Account Registration QR
+            // Account Registration QR — stagger index 2
             uiState.qrCodeBitmap?.let { bitmap ->
-                SettingsCard(title = "Account Registration") {
+                SettingsCard(
+                    title = "Account Registration",
+                    modifier = Modifier.animateItemEntrance(index = 2)
+                ) {
                     Text(
                         text = "Scan with your phone to register",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -106,8 +115,11 @@ fun SettingsScreen(
                 }
             }
 
-            // Auto-Load Channel
-            SettingsCard(title = "Auto-Load Channel") {
+            // Auto-Load Channel — stagger index 3
+            SettingsCard(
+                title = "Auto-Load Channel",
+                modifier = Modifier.animateItemEntrance(index = 3)
+            ) {
                 Text(
                     text = "Long-press on any channel to set it as auto-load on startup",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -134,14 +146,18 @@ fun SettingsScreen(
                 }
             }
 
-            // Check Liveliness
+            // Check Liveliness — stagger index 4
             CheckLivelinessCard(
                 scanProgress = scanProgress,
-                onCheckLiveliness = { viewModel.triggerLivelinessCheck() }
+                onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
+                modifier = Modifier.animateItemEntrance(index = 4)
             )
 
-            // Display
-            SettingsCard(title = "Display") {
+            // Display — stagger index 5
+            SettingsCard(
+                title = "Display",
+                modifier = Modifier.animateItemEntrance(index = 5)
+            ) {
                 SettingsRow(
                     title = "Grid Size",
                     subtitle = "Channel grid columns",
@@ -154,8 +170,11 @@ fun SettingsScreen(
                 )
             }
 
-            // About
-            SettingsCard(title = "About") {
+            // About — stagger index 6
+            SettingsCard(
+                title = "About",
+                modifier = Modifier.animateItemEntrance(index = 6)
+            ) {
                 SettingsRow(
                     title = "Version",
                     subtitle = uiState.appVersion,
@@ -203,14 +222,14 @@ private fun PairingStatusCard(
                 Text(
                     text = if (isPaired) "TV Code: $tvCode" else "No TV code configured",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isPaired) SteelBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isPaired) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (!isPaired) {
                 Button(
                     onClick = onPairDevice,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Amber,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(8.dp)
@@ -237,7 +256,7 @@ private fun ServerConfigCard(
     SettingsCard(title = "Server Configuration", modifier = modifier) {
         Text(
             text = "Server URL",
-            color = TextDim,
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -254,7 +273,7 @@ private fun ServerConfigCard(
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = Amber,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = Color.Transparent
             )
         )
@@ -263,7 +282,7 @@ private fun ServerConfigCard(
 
         Text(
             text = "TV Pairing Code",
-            color = TextDim,
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -280,7 +299,7 @@ private fun ServerConfigCard(
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = Amber,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = Color.Transparent
             )
         )
@@ -306,14 +325,19 @@ private fun ServerConfigCard(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Amber,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Save Settings", fontWeight = FontWeight.SemiBold)
             }
-            if (settingsSaved) {
+            // Animated "Saved" confirmation
+            AnimatedVisibility(
+                visible = settingsSaved,
+                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+            ) {
                 Text(
                     text = "Saved",
                     color = Success,
@@ -323,14 +347,23 @@ private fun ServerConfigCard(
             }
         }
 
-        if (validationError != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = validationError!!,
-                color = Warning,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium
-            )
+        // Animated validation error
+        AnimatedVisibility(
+            visible = validationError != null,
+            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+            exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+        ) {
+            validationError?.let { error ->
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = error,
+                        color = Warning,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }
@@ -393,7 +426,7 @@ private fun CheckLivelinessCard(
                 onClick = onCheckLiveliness,
                 enabled = !scanProgress.isScanning,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = SteelBlue,
+                    containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(8.dp)
@@ -419,7 +452,7 @@ private fun SettingsCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = title,
-                color = Amber,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -459,7 +492,7 @@ private fun SettingsRow(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                color = SteelBlue
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }

@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 
 @Composable
 fun EmptyState(
@@ -25,12 +25,14 @@ fun EmptyState(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(40.dp)
+            modifier = Modifier
+                .padding(40.dp)
+                .animateFadeIn()
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = "Empty",
-                tint = TextDim,
+                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )
             Text(
