@@ -11,6 +11,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.cadnative.firevisioniptv.presentation.ui.screens.CategoriesScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.ChannelsScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.FavoritesScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.HomeScreen
@@ -79,12 +80,8 @@ fun FireVisionNavGraph(
         // ── Home ────────────────────────────────────────────────────────
         composable(route = Screen.Home.route) {
             HomeScreen(
-                onNavigateToChannels = {
-                    navController.navigate(Screen.Channels.route) {
-                        popUpTo(Screen.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                onNavigateToChannels = { category ->
+                    navController.navigate(Screen.ChannelsByCategory.createRoute(category))
                 },
                 onNavigateToSearch = {
                     navController.navigate(Screen.Search.route) {
@@ -113,6 +110,15 @@ fun FireVisionNavGraph(
             )
         }
 
+        // ── Categories ─────────────────────────────────────────────────
+        composable(route = Screen.Categories.route) {
+            CategoriesScreen(
+                onCategoryClick = { category ->
+                    navController.navigate(Screen.ChannelsByCategory.createRoute(category))
+                }
+            )
+        }
+
         // ── Channels ────────────────────────────────────────────────────
         composable(route = Screen.Channels.route) {
             ChannelsScreen(
@@ -127,19 +133,21 @@ fun FireVisionNavGraph(
         }
 
         // ── Channels by Category ────────────────────────────────────────
-        // TODO: Pass categoryId to ChannelsScreen once category filtering is implemented
         composable(
             route = Screen.ChannelsByCategory.route,
             arguments = listOf(
                 navArgument("categoryId") { type = NavType.StringType }
             )
-        ) {
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId")
+                ?.let { Screen.ChannelsByCategory.decodeCategory(it) }
             ChannelsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
                 },
-                onCategoryClick = { }
+                onCategoryClick = { },
+                initialCategory = categoryId
             )
         }
 

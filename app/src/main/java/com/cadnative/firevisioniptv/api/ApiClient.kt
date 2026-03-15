@@ -154,11 +154,16 @@ object ApiClient {
                 "Unknown"
             }
 
+            // Prefer tvgLogo over channelImg for logo URL
+            val tvgLogo = channelObj.optString("tvgLogo", "")
+            val channelImg = channelObj.optString("channelImg", "")
+            val resolvedLogo = tvgLogo.ifEmpty { channelImg }
+
             val channel = Channel(
                 channelId = channelObj.optString("channelId", ""),
                 channelName = channelObj.optString("channelName", "Unknown"),
                 channelUrl = channelObj.optString("channelUrl", ""),
-                channelImg = channelObj.optString("channelImg", ""),
+                channelImg = resolvedLogo,
                 channelGroup = channelObj.optString("channelGroup", "Uncategorized"),
                 channelDrmKey = channelObj.optString("channelDrmKey", ""),
                 channelDrmType = channelObj.optString("channelDrmType", ""),

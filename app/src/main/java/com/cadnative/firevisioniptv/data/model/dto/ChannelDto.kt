@@ -18,7 +18,9 @@ data class ChannelDto(
     val url: String,
 
     @SerializedName("channelImg")
-    val tvgLogo: String?,
+    val channelImg: String?,
+
+    val tvgLogo: String? = null,
 
     @SerializedName("channelGroup")
     val groupTitle: String?,
@@ -35,7 +37,11 @@ data class ChannelDto(
     val tvgName: String? = null,
     val isActive: Boolean = true,
     val metadata: ChannelMetadataDto? = null
-)
+) {
+    /** Resolved logo URL: prefers tvgLogo, falls back to channelImg */
+    val logoUrl: String?
+        get() = tvgLogo?.takeIf { it.isNotEmpty() } ?: channelImg?.takeIf { it.isNotEmpty() }
+}
 
 data class ChannelMetadataDto(
     @SerializedName("language")

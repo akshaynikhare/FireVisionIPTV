@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.cadnative.firevisioniptv.data.source.local.FireVisionDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.dao.SearchHistoryDao
@@ -103,5 +104,10 @@ object DatabaseModule {
     @Provides
     fun providePlaybackPositionDao(database: FireVisionDatabase): PlaybackPositionDao {
         return database.playbackPositionDao()
+    }
+
+    @Provides
+    fun provideChannelHealthDao(database: FireVisionDatabase): ChannelHealthDao {
+        return database.channelHealthDao()
     }
 }

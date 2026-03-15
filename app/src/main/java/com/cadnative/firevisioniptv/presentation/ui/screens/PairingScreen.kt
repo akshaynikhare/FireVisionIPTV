@@ -1,8 +1,10 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,48 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-/**
- * Compose replacement for the XML-based PairingActivity layout.
- *
- * This screen displays a PIN code for TV pairing alongside a QR code
- * for account registration. It accepts all UI state as parameters so
- * that the existing PairingActivity business logic remains unchanged.
- *
- * Usage from PairingActivity:
- * ```
- * setContent {
- *     FireVisionTheme {
- *         PairingScreen(
- *             pin = currentPin ?: "------",
- *             statusMessage = statusMsg,
- *             statusColor = statusClr,
- *             countdownText = countdown,
- *             isLoading = loading,
- *             showRetryButton = showRetry,
- *             showCountdown = showCd,
- *             qrCodeBitmap = qrBitmap,
- *             serverUrl = serverUrl,
- *             onRetryClick = { requestNewPairing() },
- *             onPairManuallyClick = { /* navigate to SettingsActivity */ },
- *             onUseDefaultClick = { useDefaultChannelList() }
- *         )
- *     }
- * }
- * ```
- *
- * @param pin The 6-character PIN to display (e.g. "------" or "A1B2C3")
- * @param statusMessage Current status text (e.g. "Waiting for confirmation...")
- * @param statusColor Color for the status message text
- * @param countdownText Countdown timer text (e.g. "Expires in: 9:42")
- * @param isLoading Whether to show the loading spinner overlay
- * @param showRetryButton Whether to show the "Generate New PIN" button
- * @param showCountdown Whether to show the countdown timer text
- * @param qrCodeBitmap The generated QR code bitmap for registration URL
- * @param serverUrl The server URL to display at the bottom
- * @param onRetryClick Callback when "Generate New PIN" is clicked
- * @param onPairManuallyClick Callback when "Pair Manually" is clicked
- * @param onUseDefaultClick Callback when "Use Default" is clicked
- */
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
+
 @Composable
 fun PairingScreen(
     pin: String,
@@ -93,7 +59,7 @@ fun PairingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
+            .padding(32.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -102,16 +68,24 @@ fun PairingScreen(
             // Title
             Text(
                 text = "Pair Your TV",
+                style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Main content: left PIN section | divider | right QR section
+            Text(
+                text = "Enter the PIN on your dashboard to connect",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextDim,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Main content: left PIN | divider | right QR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -119,133 +93,132 @@ fun PairingScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left side: PIN display
+                // Left: PIN display
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 16.dp),
+                        .padding(end = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Enter PIN",
+                        text = "Your PIN",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 16.sp
+                        style = MaterialTheme.typography.labelLarge
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // PIN display with background card
+                    // PIN box with amber border
                     Box(
                         modifier = Modifier
+                            .border(
+                                width = 1.dp,
+                                color = Amber.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(10.dp)
+                            )
                             .background(
                                 color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(10.dp)
                             )
-                            .padding(horizontal = 32.dp, vertical = 16.dp),
+                            .padding(horizontal = 36.dp, vertical = 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = pin,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 48.sp,
+                            color = Amber,
+                            fontSize = 52.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
-                            letterSpacing = 4.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Status message
-                    Text(
-                        text = statusMessage,
-                        color = statusColor,
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Countdown timer
-                    if (showCountdown) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = countdownText,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontSize = 16.sp,
-                            textAlign = TextAlign.Center
+                            letterSpacing = 6.sp
                         )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // Status
+                    Text(
+                        text = statusMessage,
+                        color = statusColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    if (showCountdown) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = countdownText,
+                            color = SteelBlue,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // Action buttons
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
+                        OutlinedButton(
                             onClick = onPairManuallyClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            )
+                            border = BorderStroke(1.dp, SubtleBorder),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = "Pair Manually",
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
 
-                        Button(
+                        OutlinedButton(
                             onClick = onUseDefaultClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            )
+                            border = BorderStroke(1.dp, SubtleBorder),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = "Use Default",
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                     }
                 }
 
-                // Vertical divider
+                // Divider — thin amber line
                 Box(
                     modifier = Modifier
-                        .width(2.dp)
-                        .fillMaxHeight(0.7f)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
+                        .width(1.dp)
+                        .fillMaxHeight(0.6f)
+                        .background(Amber.copy(alpha = 0.3f))
                 )
 
-                // Right side: QR code for registration
+                // Right: QR code
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 16.dp),
+                        .padding(start = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = "Don't have an account?",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 16.sp
+                        color = TextDim,
+                        style = MaterialTheme.typography.bodyMedium
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = "Scan to Create Account",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // QR code
                     if (qrCodeBitmap != null) {
                         Box(
                             modifier = Modifier
@@ -254,7 +227,7 @@ fun PairingScreen(
                                     color = Color.White,
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .padding(8.dp),
+                                .padding(10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
@@ -275,24 +248,25 @@ fun PairingScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                color = MaterialTheme.colorScheme.primary
+                                modifier = Modifier.size(32.dp),
+                                color = Amber,
+                                strokeWidth = 3.dp
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "$serverUrl/user/register.html",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 16.sp,
+                        color = SteelBlue,
+                        style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Bottom section: retry button, instructions, server URL
+            // Bottom bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -302,13 +276,15 @@ fun PairingScreen(
                     Button(
                         onClick = onRetryClick,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
+                            containerColor = Amber,
                             contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = "Generate New PIN",
-                            fontSize = 16.sp
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -317,17 +293,17 @@ fun PairingScreen(
 
                 Text(
                     text = "Visit your dashboard to enter this PIN",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 16.sp
+                    color = TextDim,
+                    style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
                     text = serverUrl,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    color = SteelBlue,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }
@@ -337,13 +313,13 @@ fun PairingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f)),
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.8f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(80.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 6.dp
+                    modifier = Modifier.size(56.dp),
+                    color = Amber,
+                    strokeWidth = 4.dp
                 )
             }
         }

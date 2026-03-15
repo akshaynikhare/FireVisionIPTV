@@ -1,6 +1,8 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -9,10 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 
-/**
- * Error state component with retry button for TV.
- */
 @Composable
 fun ErrorState(
     message: String,
@@ -25,14 +25,14 @@ fun ErrorState(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(40.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = "Error",
                 tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(48.dp)
             )
             Text(
                 text = message,
@@ -40,11 +40,11 @@ fun ErrorState(
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
-            Button(
+            Spacer(modifier = Modifier.height(4.dp))
+            OutlinedButton(
                 onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
                     text = "Retry",

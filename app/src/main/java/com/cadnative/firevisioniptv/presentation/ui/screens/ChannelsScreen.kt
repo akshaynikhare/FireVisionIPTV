@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -8,7 +9,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,7 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.FireOrange
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,13 +30,14 @@ fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit,
+    initialCategory: String? = null,
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadChannels()
+    LaunchedEffect(initialCategory) {
+        viewModel.loadChannels(initialCategory)
     }
 
     Scaffold(
@@ -42,25 +46,23 @@ fun ChannelsScreen(
                 title = {
                     Text(
                         text = uiState.selectedCategory ?: "All Channels",
-                        style = MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = uiState.selectedCategory?.let { categoryColor(it) }
+                            ?: MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (uiState.selectedCategory != null) {
-                            viewModel.loadChannels(null)
-                        } else {
-                            onNavigateBack()
+                    if (uiState.selectedCategory != null) {
+                        IconButton(onClick = { viewModel.loadChannels(null) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = Color.Transparent
                 )
             )
         }
@@ -70,7 +72,6 @@ fun ChannelsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Category filter chips
             if (uiState.categories.isNotEmpty()) {
                 CategoryChips(
                     categories = uiState.categories,
@@ -84,7 +85,6 @@ fun ChannelsScreen(
                 )
             }
 
-            // Channel grid
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     uiState.isLoading && uiState.channels.isEmpty() -> {
@@ -125,9 +125,9 @@ private fun CategoryChips(
     LazyRow(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 10.dp),
         contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
             FilterChip(
@@ -136,31 +136,34 @@ private fun CategoryChips(
                 label = {
                     Text(
                         text = "All",
-                        fontWeight = if (selectedCategory == null) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (selectedCategory == null) FontWeight.SemiBold else FontWeight.Normal
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = FireOrange,
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = Amber,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                shape = RoundedCornerShape(20.dp)
+                border = if (selectedCategory != null) BorderStroke(1.dp, SubtleBorder) else null,
+                shape = RoundedCornerShape(8.dp)
             )
         }
         items(categories) { category ->
+            val catColor = categoryColor(category)
             FilterChip(
                 selected = selectedCategory == category,
                 onClick = { onCategorySelected(category) },
                 label = {
                     Text(
                         text = category,
-                        fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = FireOrange,
-                    selectedLabelColor = Color.White
+                    selectedContainerColor = catColor,
+                    selectedLabelColor = MaterialTheme.colorScheme.background
                 ),
-                shape = RoundedCornerShape(20.dp)
+                border = if (selectedCategory != category) BorderStroke(1.dp, SubtleBorder) else null,
+                shape = RoundedCornerShape(8.dp)
             )
         }
     }
@@ -177,8 +180,8 @@ private fun ChannelsGrid(
         columns = GridCells.Fixed(4),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         items(channels) { channel ->
             ChannelCard(

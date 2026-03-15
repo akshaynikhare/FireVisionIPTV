@@ -11,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.SettingsActivity
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
+import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
+import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
@@ -28,11 +30,14 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val application: Application
+    private val application: Application,
+    private val channelHealthScanner: ChannelHealthScanner
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    val scanProgress: StateFlow<ScanProgress> = channelHealthScanner.scanProgress
 
     companion object {
         private const val PREFS_NAME = "FireVisionSettings"
@@ -261,6 +266,10 @@ class SettingsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun triggerLivelinessCheck() {
+        channelHealthScanner.triggerManualScan()
     }
 
     fun clearError() {

@@ -50,7 +50,7 @@ class ChannelMapper @Inject constructor() {
             id = dto.id,
             name = dto.name,
             streamUrl = dto.url,
-            logoUrl = dto.tvgLogo,
+            logoUrl = dto.logoUrl,
             categoryId = dto.groupTitle ?: "uncategorized",
             language = dto.metadata?.language ?: dto.tvgLanguage,
             country = dto.tvgCountry,

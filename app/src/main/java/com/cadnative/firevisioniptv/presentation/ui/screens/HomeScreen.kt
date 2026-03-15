@@ -8,16 +8,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
 @Composable
 fun HomeScreen(
-    onNavigateToChannels: () -> Unit,
+    onNavigateToChannels: (String) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -48,9 +50,9 @@ fun HomeScreen(
             else -> {
                 HomeContent(
                     channels = uiState.channels,
-                    categories = uiState.categories,
                     onChannelClick = onChannelClick,
-                    onNavigateToChannels = onNavigateToChannels
+                    onNavigateToChannels = onNavigateToChannels,
+                    onToggleFavorite = { channelId -> viewModel.toggleFavorite(channelId) }
                 )
             }
         }
@@ -60,38 +62,39 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     channels: List<ChannelUiModel>,
-    categories: List<String>,
     onChannelClick: (String) -> Unit,
-    onNavigateToChannels: () -> Unit,
+    onNavigateToChannels: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Group channels by category
     val channelsByCategory = remember(channels) {
         channels.groupBy { it.category.ifBlank { "Other" } }
     }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 24.dp)
+        contentPadding = PaddingValues(vertical = 28.dp)
     ) {
-        // Hero banner with first few channels
+        // Hero banner
         item {
             HeroBanner(
                 channels = channels.take(5),
                 onChannelClick = onChannelClick,
-                modifier = Modifier.padding(bottom = 32.dp)
+                onToggleFavorite = onToggleFavorite,
+                modifier = Modifier.padding(bottom = 40.dp)
             )
         }
 
-        // One row per category
+        // Category rows
         channelsByCategory.forEach { (category, categoryChannels) ->
             item(key = "category_$category") {
                 ChannelRow(
                     title = category,
                     channels = categoryChannels,
                     onChannelClick = onChannelClick,
-                    onSeeAllClick = onNavigateToChannels,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    onSeeAllClick = { onNavigateToChannels(category) },
+                    onToggleFavorite = onToggleFavorite,
+                    modifier = Modifier.padding(bottom = 36.dp)
                 )
             }
         }
@@ -102,28 +105,29 @@ private fun HomeContent(
 private fun HeroBanner(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (channels.isEmpty()) return
 
-    Column(modifier = modifier.padding(horizontal = 48.dp)) {
+    Column(modifier = modifier.padding(horizontal = 40.dp)) {
         Text(
             text = "Featured",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             items(channels) { channel ->
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
-                    onFavoriteClick = { },
+                    onFavoriteClick = { onToggleFavorite(channel.id) },
                     modifier = Modifier
-                        .width(300.dp)
-                        .height(180.dp)
+                        .width(360.dp)
+                        .height(200.dp)
                 )
             }
         }
@@ -136,9 +140,12 @@ private fun ChannelRow(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
     onSeeAllClick: () -> Unit,
+    onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.padding(horizontal = 48.dp)) {
+    val catColor = categoryColor(title)
+
+    Column(modifier = modifier.padding(horizontal = 40.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -146,25 +153,27 @@ private fun ChannelRow(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = catColor
             )
             TextButton(onClick = onSeeAllClick) {
                 Text(
                     text = "See All",
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelMedium,
+                    color = catColor.copy(alpha = 0.7f)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(channels) { channel ->
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
-                    onFavoriteClick = { }
+                    onFavoriteClick = { onToggleFavorite(channel.id) }
                 )
             }
         }

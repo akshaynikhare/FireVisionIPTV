@@ -8,10 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 
-/**
- * Loading indicator component for TV.
- */
 @Composable
 fun LoadingIndicator(
     message: String = "Loading...",
@@ -23,16 +21,17 @@ fun LoadingIndicator(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(36.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp
             )
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
             )
         }
     }

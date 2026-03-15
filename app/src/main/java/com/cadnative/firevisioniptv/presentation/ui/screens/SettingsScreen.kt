@@ -1,19 +1,18 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -22,7 +21,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cadnative.firevisioniptv.presentation.ui.theme.FireOrange
+import com.cadnative.firevisioniptv.domain.service.ScanProgress
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
+import com.cadnative.firevisioniptv.presentation.ui.theme.Success
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
+import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
 import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +40,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scanProgress by viewModel.scanProgress.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -41,20 +48,11 @@ fun SettingsScreen(
                 title = {
                     Text(
                         text = "Settings",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineMedium
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = Color.Transparent
                 )
             )
         }
@@ -64,17 +62,17 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Pairing Status ──────────────────────────────────────────
+            // Pairing Status
             PairingStatusCard(
                 isPaired = uiState.isPaired,
                 tvCode = uiState.tvCode,
                 onPairDevice = onPairDevice
             )
 
-            // ── Server Configuration ────────────────────────────────────
+            // Server Configuration
             ServerConfigCard(
                 serverUrl = uiState.serverUrl,
                 tvCode = uiState.tvCode,
@@ -84,36 +82,36 @@ fun SettingsScreen(
                 onSave = { viewModel.saveServerSettings() }
             )
 
-            // ── Account Registration QR ─────────────────────────────────
+            // Account Registration QR
             if (uiState.qrCodeBitmap != null) {
                 SettingsCard(title = "Account Registration") {
                     Text(
-                        text = "Scan with your phone to register an account",
+                        text = "Scan with your phone to register",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                        style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(8.dp))
+                            .background(Color.White, RoundedCornerShape(6.dp))
                             .padding(8.dp)
                     ) {
                         Image(
                             bitmap = uiState.qrCodeBitmap!!.asImageBitmap(),
                             contentDescription = "Registration QR Code",
-                            modifier = Modifier.size(180.dp),
+                            modifier = Modifier.size(160.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
                 }
             }
 
-            // ── Auto-Load Channel ───────────────────────────────────────
+            // Auto-Load Channel
             SettingsCard(title = "Auto-Load Channel") {
                 Text(
                     text = "Long-press on any channel to set it as auto-load on startup",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -122,24 +120,27 @@ fun SettingsScreen(
                     else
                         "No channel set",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodySmall
                 )
                 if (uiState.autoloadChannelName.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(
+                    OutlinedButton(
                         onClick = { viewModel.clearAutoloadChannel() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
+                        border = BorderStroke(1.dp, SubtleBorder),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Clear Auto-load", fontWeight = FontWeight.Bold)
+                        Text("Clear Auto-Load", fontWeight = FontWeight.Medium)
                     }
                 }
             }
 
-            // ── Display ─────────────────────────────────────────────────
+            // Check Liveliness
+            CheckLivelinessCard(
+                scanProgress = scanProgress,
+                onCheckLiveliness = { viewModel.triggerLivelinessCheck() }
+            )
+
+            // Display
             SettingsCard(title = "Display") {
                 SettingsRow(
                     title = "Grid Size",
@@ -153,7 +154,7 @@ fun SettingsScreen(
                 )
             }
 
-            // ── About ───────────────────────────────────────────────────
+            // About
             SettingsCard(title = "About") {
                 SettingsRow(
                     title = "Version",
@@ -162,7 +163,7 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -176,44 +177,45 @@ private fun PairingStatusCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        tonalElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, SubtleBorder)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (isPaired) Icons.Default.CheckCircle else Icons.Default.Warning,
-                contentDescription = null,
-                tint = if (isPaired) Color(0xFF4CAF50) else FireOrange,
-                modifier = Modifier.size(36.dp)
+            // Status dot
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isPaired) Success else Warning)
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = if (isPaired) "Paired" else "Not Paired",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = if (isPaired) "TV Code: $tvCode" else "No TV code configured",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isPaired) SteelBlue else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (!isPaired) {
                 Button(
                     onClick = onPairDevice,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = FireOrange,
-                        contentColor = Color.White
+                        containerColor = Amber,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Pair Now", fontWeight = FontWeight.Bold)
+                    Text("Pair Now", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -233,34 +235,46 @@ private fun ServerConfigCard(
     SettingsCard(title = "Server Configuration", modifier = modifier) {
         Text(
             text = "Server URL",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp
+            color = TextDim,
+            style = MaterialTheme.typography.labelMedium
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
+        Spacer(modifier = Modifier.height(6.dp))
+        TextField(
             value = serverUrl,
             onValueChange = onServerUrlChange,
             placeholder = { Text("https://tv.cadnative.com") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = Amber,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = "TV Pairing Code",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 14.sp
+            color = TextDim,
+            style = MaterialTheme.typography.labelMedium
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        OutlinedTextField(
+        Spacer(modifier = Modifier.height(6.dp))
+        TextField(
             value = tvCode,
             onValueChange = onTvCodeChange,
             placeholder = { Text("Enter TV code") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = Amber,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -272,20 +286,89 @@ private fun ServerConfigCard(
             Button(
                 onClick = { onSave() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = Amber,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Save Settings", fontWeight = FontWeight.Bold)
+                Text("Save Settings", fontWeight = FontWeight.SemiBold)
             }
             if (settingsSaved) {
                 Text(
                     text = "Saved",
-                    color = Color(0xFF4CAF50),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+                    color = Success,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckLivelinessCard(
+    scanProgress: ScanProgress,
+    onCheckLiveliness: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "Check Liveliness", modifier = modifier) {
+        Text(
+            text = "Scan all channels to check if their streams are online or offline.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (scanProgress.isScanning) {
+            val progress = if (scanProgress.total > 0) {
+                scanProgress.scanned.toFloat() / scanProgress.total
+            } else 0f
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = HealthChecking,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Text(
+                    text = "${scanProgress.scanned}/${scanProgress.total}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = HealthChecking,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Scanning channels...",
+                style = MaterialTheme.typography.bodySmall,
+                color = HealthChecking
+            )
+        } else {
+            if (scanProgress.total > 0) {
+                Text(
+                    text = "Last scan: ${scanProgress.scanned}/${scanProgress.total} channels checked",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Success
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            Button(
+                onClick = onCheckLiveliness,
+                enabled = !scanProgress.isScanning,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SteelBlue,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Check Liveliness", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -299,18 +382,18 @@ private fun SettingsCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        tonalElevation = 4.dp,
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, SubtleBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = title,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                color = Amber,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             content()
         }
     }
@@ -326,7 +409,7 @@ private fun SettingsRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -346,7 +429,7 @@ private fun SettingsRow(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = SteelBlue
             )
         }
     }

@@ -1,16 +1,13 @@
 package com.cadnative.firevisioniptv.presentation.model
 
-/**
- * UI model representing a channel for display in the presentation layer.
- * 
- * This model contains only the data needed for UI display, separated from
- * the domain model to allow UI-specific transformations and optimizations.
- */
+import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+
 data class ChannelUiModel(
     val id: String,
     val name: String,
     val logoUrl: String?,
     val streamUrl: String? = null,
     val category: String,
-    val isFavorite: Boolean
+    val isFavorite: Boolean,
+    val healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN
 )

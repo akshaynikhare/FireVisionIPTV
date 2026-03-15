@@ -13,12 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Main entry point for the modernized FireVision IPTV app.
@@ -28,6 +30,9 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class ComposeMainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var channelHealthScanner: ChannelHealthScanner
 
     companion object {
         private const val PREFS_NAME = "FireVisionSettings"
@@ -42,6 +47,11 @@ class ComposeMainActivity : ComponentActivity() {
         val needsPairing = isFirstLaunch() && !isTvCodeConfigured()
         if (needsPairing) {
             markFirstLaunchComplete()
+        }
+
+        // Start background channel health scanning
+        if (!needsPairing) {
+            channelHealthScanner.startAutoScan()
         }
 
         // Parse deep link channel ID if present

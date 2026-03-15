@@ -87,4 +87,7 @@ interface ChannelDao {
         deleteAllChannels()
         insertChannels(channels)
     }
+
+    @Query("SELECT * FROM channels WHERE id = :channelId")
+    suspend fun getChannelByIdSync(channelId: String): ChannelEntity?
 }

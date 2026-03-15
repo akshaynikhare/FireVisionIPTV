@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,7 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.FireOrange
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 import com.cadnative.firevisioniptv.presentation.viewmodel.SearchViewModel
 
@@ -41,20 +45,18 @@ fun SearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 24.dp)
+            .padding(horizontal = 32.dp, vertical = 28.dp)
     ) {
-        // ── Header ──────────────────────────────────────────────────
         Text(
             text = "Search",
             style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // ── Search Input ────────────────────────────────────────────
-        OutlinedTextField(
+        // Filled search input
+        TextField(
             value = searchQuery,
             onValueChange = {
                 searchQuery = it
@@ -64,15 +66,15 @@ fun SearchScreen(
                 Text(
                     text = "Search channels, categories...",
                     fontSize = 18.sp,
-                    color = TextSecondary
+                    color = TextDim
                 )
             },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = if (searchQuery.isNotEmpty()) FireOrange else TextSecondary,
-                    modifier = Modifier.size(28.dp)
+                    tint = if (searchQuery.isNotEmpty()) SteelBlue else TextSecondary,
+                    modifier = Modifier.size(24.dp)
                 )
             },
             trailingIcon = {
@@ -92,19 +94,18 @@ fun SearchScreen(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = FireOrange,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                cursorColor = FireOrange
+                focusedIndicatorColor = SteelBlue,
+                unfocusedIndicatorColor = SubtleBorder,
+                cursorColor = SteelBlue
             )
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // ── Content ─────────────────────────────────────────────────
         when {
             uiState.isLoading -> {
                 LoadingIndicator(message = "Searching...")
@@ -135,15 +136,16 @@ fun SearchScreen(
             else -> {
                 Text(
                     text = "${uiState.results.size} result${if (uiState.results.size != 1) "s" else ""} for \"$searchQuery\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SteelBlue,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
                     modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(uiState.results) { channel ->
                         ChannelCard(
@@ -169,21 +171,21 @@ private fun SearchPrompt(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = TextSecondary.copy(alpha = 0.4f),
-            modifier = Modifier.size(72.dp)
+            tint = SteelBlue.copy(alpha = 0.5f),
+            modifier = Modifier.size(56.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "Find your channels",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = TextSecondary,
             fontWeight = FontWeight.Medium
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Search by channel name or category",
+            text = "Search by name or category",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary.copy(alpha = 0.7f)
+            color = TextDim
         )
     }
 }
@@ -202,40 +204,40 @@ private fun RecentSearches(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Recent Searches",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                text = "Recent",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             TextButton(onClick = onClearHistory) {
                 Text(
-                    text = "Clear All",
-                    color = FireOrange,
-                    fontSize = 14.sp
+                    text = "Clear",
+                    color = Amber,
+                    style = MaterialTheme.typography.labelMedium
                 )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(searches) { search ->
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, SubtleBorder),
                     modifier = Modifier.clickable { onSearchClick(search) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(18.dp)
+                            tint = TextDim,
+                            modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = search,
@@ -263,19 +265,19 @@ private fun NoResultsState(
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = TextSecondary.copy(alpha = 0.3f),
-            modifier = Modifier.size(64.dp)
+            tint = TextDim,
+            modifier = Modifier.size(48.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "No results for \"$query\"",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Medium
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Try a different search term or check your spelling",
+            text = "Try a different search term",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary,
             textAlign = TextAlign.Center

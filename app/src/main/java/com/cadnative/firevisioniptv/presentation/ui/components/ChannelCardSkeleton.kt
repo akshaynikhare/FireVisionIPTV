@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
@@ -13,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 
 /**
  * Skeleton loading card with shimmer effect for TV.
@@ -48,6 +50,8 @@ fun ChannelCardSkeleton(
         modifier = modifier
             .width(200.dp)
             .height(120.dp),
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, SubtleBorder),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )

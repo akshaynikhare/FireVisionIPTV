@@ -5,72 +5,57 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/**
- * Dark color scheme optimized for Android TV viewing.
- * Uses Fire TV inspired orange/red theme with high contrast for TV displays.
- */
 private val DarkColorScheme = darkColorScheme(
-    // Primary colors
-    primary = FireOrange,
-    onPrimary = Color.Black,
-    primaryContainer = FireOrangeDark,
-    onPrimaryContainer = Color.White,
-    
-    // Secondary colors
-    secondary = FireBlue,
-    onSecondary = Color.White,
-    secondaryContainer = FireBlueDark,
-    onSecondaryContainer = Color.White,
-    
-    // Tertiary colors
-    tertiary = FireOrangeLight,
-    onTertiary = Color.Black,
-    tertiaryContainer = FireOrangeDark,
-    onTertiaryContainer = Color.White,
-    
-    // Background colors
+    // Primary — warm amber
+    primary = Amber,
+    onPrimary = Color(0xFF1A1207),
+    primaryContainer = AmberDark,
+    onPrimaryContainer = WarmHighlight,
+
+    // Secondary — steel blue
+    secondary = SteelBlue,
+    onSecondary = Color(0xFF0D1A24),
+    secondaryContainer = SteelBlueDark,
+    onSecondaryContainer = SteelBlueLight,
+
+    // Tertiary — light amber for accents
+    tertiary = AmberLight,
+    onTertiary = Color(0xFF1A1207),
+    tertiaryContainer = AmberDark,
+    onTertiaryContainer = WarmHighlight,
+
+    // Background
     background = BackgroundDark,
     onBackground = TextPrimary,
-    
-    // Surface colors
+
+    // Surface
     surface = SurfaceDark,
     onSurface = TextPrimary,
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = TextSecondary,
-    
-    // Error colors
+
+    // Error — warm terracotta
     error = Error,
-    onError = Color.White,
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
-    
-    // Outline colors
-    outline = Color(0xFF938F99),
-    outlineVariant = Color(0xFF49454F),
-    
-    // Inverse colors
-    inverseSurface = Color(0xFFE6E1E5),
-    inverseOnSurface = Color(0xFF313033),
-    inversePrimary = FireOrangeDark,
-    
+    onError = Color(0xFF1A0A06),
+    errorContainer = Color(0xFF5C2214),
+    onErrorContainer = Color(0xFFF5C4B8),
+
+    // Outline
+    outline = Color(0xFF46434A),
+    outlineVariant = Color(0xFF2A2830),
+
+    // Inverse
+    inverseSurface = Color(0xFFE8E2DC),
+    inverseOnSurface = Color(0xFF1A1816),
+    inversePrimary = AmberDark,
+
     // Scrim
-    scrim = Color.Black,
-    
+    scrim = Color(0xFF05050A),
+
     // Surface tint
-    surfaceTint = FireOrange
+    surfaceTint = Amber
 )
 
-/**
- * FireVision theme for Android TV.
- * 
- * Provides a dark theme optimized for TV viewing with:
- * - High contrast colors for TV displays
- * - Large typography (minimum 16sp) for readability from distance
- * - Fire TV inspired orange/red color scheme
- * - Material Design 3 components
- * 
- * @param content The composable content to apply the theme to
- */
 @Composable
 fun FireVisionTheme(
     content: @Composable () -> Unit

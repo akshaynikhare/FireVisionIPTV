@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.SearchFilter
 import com.cadnative.firevisioniptv.domain.usecase.ClearSearchHistoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetRecentSearchesUseCase
@@ -15,6 +16,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -37,7 +39,8 @@ class SearchViewModel @Inject constructor(
     private val saveSearchQueryUseCase: SaveSearchQueryUseCase,
     private val getRecentSearchesUseCase: GetRecentSearchesUseCase,
     private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase,
-    private val channelUiMapper: ChannelUiMapper
+    private val channelUiMapper: ChannelUiMapper,
+    private val channelHealthDao: ChannelHealthDao
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -100,28 +103,30 @@ class SearchViewModel @Inject constructor(
                 filters = _uiState.value.activeFilters
             )
             
-            searchChannelsUseCase(params).collect { result ->
-                when (result) {
-                    is Result.Success -> {
-                        _uiState.update {
-                            it.copy(
-                                results = result.data.map { channel ->
-                                    channelUiMapper.toUiModel(channel)
-                                },
-                                isLoading = false
-                            )
+            searchChannelsUseCase(params)
+                .combine(channelHealthDao.getAllHealth()) { result, healthList ->
+                    result to healthList
+                }
+                .collect { (result, healthList) ->
+                    when (result) {
+                        is Result.Success -> {
+                            _uiState.update {
+                                it.copy(
+                                    results = channelUiMapper.toUiModelsWithHealth(result.data, healthList),
+                                    isLoading = false
+                                )
+                            }
                         }
-                    }
-                    is Result.Error -> {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = result.exception.message ?: "Search failed"
-                            )
+                        is Result.Error -> {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = result.exception.message ?: "Search failed"
+                                )
+                            }
                         }
                     }
                 }
-            }
         }
     }
     

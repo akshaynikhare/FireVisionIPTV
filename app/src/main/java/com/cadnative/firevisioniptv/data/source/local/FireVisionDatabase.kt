@@ -4,11 +4,13 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.dao.SearchHistoryDao
 import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
+import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.PlaybackPositionEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
@@ -36,9 +38,10 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
         CategoryEntity::class,
         FavoriteEntity::class,
         SearchHistoryEntity::class,
-        PlaybackPositionEntity::class
+        PlaybackPositionEntity::class,
+        ChannelHealthEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -67,4 +70,9 @@ abstract class FireVisionDatabase : RoomDatabase() {
      * Provides access to playback position data operations.
      */
     abstract fun playbackPositionDao(): PlaybackPositionDao
+
+    /**
+     * Provides access to channel health/liveliness data operations.
+     */
+    abstract fun channelHealthDao(): ChannelHealthDao
 }
