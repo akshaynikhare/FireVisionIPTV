@@ -58,5 +58,6 @@
     
     <!-- Generic Background -->
     <color name="background">#FF000000</color>
+    <color name="background_dark">#FF0A0A0C</color>
     <color name="card_background">#FF181818</color>
 </resources>

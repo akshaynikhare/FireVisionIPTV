@@ -1,0 +1,260 @@
+package com.cadnative.firevisioniptv.data.repository
+
+import android.app.Application
+import android.provider.Settings
+import android.util.Log
+import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
+import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
+import com.cadnative.firevisioniptv.data.source.local.FavoriteLocalDataSource
+import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
+import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
+import com.cadnative.firevisioniptv.di.IoDispatcher
+import com.cadnative.firevisioniptv.domain.model.Channel
+import com.cadnative.firevisioniptv.domain.repository.FavoriteRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Implementation of FavoriteRepository with offline-first strategy and background sync.
+ * 
+ * This repository manages favorite channels with the following features:
+ * 1. Local database as single source of truth
+ * 2. Immediate local updates for responsive UI
+ * 3. Background synchronization with server
+ * 4. Conflict resolution (local changes take precedence)
+ * 5. Graceful error handling
+ * 
+ * Requirements:
+ * - TR-006: Network Performance (offline-first architecture, background sync)
+ * - US-008: Enhanced Favorites (sync across devices, quick add/remove)
+ */
+@Singleton
+class FavoriteRepositoryImpl @Inject constructor(
+    private val localDataSource: FavoriteLocalDataSource,
+    private val apiService: FireVisionApiService,
+    private val channelMapper: ChannelMapper,
+    private val application: Application,
+    @IoDispatcher private val dispatcher: CoroutineDispatcher
+) : FavoriteRepository {
+
+    private val syncScope = CoroutineScope(SupervisorJob() + dispatcher)
+
+    companion object {
+        private const val TAG = "FavoriteRepo"
+    }
+    
+    /**
+     * Get all favorite channels with offline-first strategy.
+     * 
+     * Emits local data immediately. The Flow will automatically emit
+     * updated data when favorites are added/removed.
+     */
+    override fun getFavoriteChannels(): Flow<Result<List<Channel>>> = flow {
+        localDataSource.getFavoriteChannels()
+            .map { entities ->
+                entities.map { entity ->
+                    channelMapper.toDomain(entity, isFavorite = true)
+                }
+            }
+            .catch { e ->
+                emit(Result.Error(Exception(e.message, e)))
+            }
+            .collect { channels ->
+                emit(Result.Success(channels))
+            }
+    }.flowOn(dispatcher)
+    
+    /**
+     * Check if a channel is marked as favorite.
+     * 
+     * @param channelId The channel ID to check
+     * @return Flow emitting Result with boolean indicating favorite status
+     */
+    override fun isFavorite(channelId: String): Flow<Result<Boolean>> = flow {
+        localDataSource.isFavorite(channelId)
+            .catch { e ->
+                emit(Result.Error(Exception(e.message, e)))
+            }
+            .collect { isFavorite ->
+                emit(Result.Success(isFavorite))
+            }
+    }.flowOn(dispatcher)
+    
+    /**
+     * Add a channel to favorites.
+     * 
+     * Updates local database immediately and triggers background sync.
+     * 
+     * @param channelId The ID of the channel to add
+     * @return Result indicating success or failure
+     */
+    override suspend fun addFavorite(channelId: String): Result<Unit> = withContext(dispatcher) {
+        try {
+            // Check if already a favorite
+            val isAlreadyFavorite = localDataSource.isFavorite(channelId).first()
+            if (isAlreadyFavorite) {
+                return@withContext Result.Success(Unit)
+            }
+            
+            // Add to local database
+            val favorite = FavoriteEntity(
+                channelId = channelId,
+                addedAt = System.currentTimeMillis(),
+                displayOrder = 0
+            )
+            localDataSource.addFavorite(favorite)
+            
+            // Trigger background sync (fire and forget)
+            syncFavoritesInBackground()
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+    
+    /**
+     * Remove a channel from favorites.
+     * 
+     * Updates local database immediately and triggers background sync.
+     * 
+     * @param channelId The ID of the channel to remove
+     * @return Result indicating success or failure
+     */
+    override suspend fun removeFavorite(channelId: String): Result<Unit> = withContext(dispatcher) {
+        try {
+            // Remove from local database
+            localDataSource.removeFavorite(channelId)
+            
+            // Trigger background sync (fire and forget)
+            syncFavoritesInBackground()
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+    
+    /**
+     * Toggle favorite status for a channel.
+     * 
+     * If the channel is currently a favorite, it will be removed.
+     * If it's not a favorite, it will be added.
+     * 
+     * @param channelId The ID of the channel to toggle
+     * @return Result indicating success or failure
+     */
+    override suspend fun toggleFavorite(channelId: String): Result<Unit> = withContext(dispatcher) {
+        try {
+            val isFavorite = localDataSource.isFavorite(channelId).first()
+            
+            if (isFavorite) {
+                removeFavorite(channelId)
+            } else {
+                addFavorite(channelId)
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+    
+    /**
+     * Reorder favorites by updating display order.
+     * 
+     * @param channelId The ID of the channel to reorder
+     * @param newOrder The new display order position
+     * @return Result indicating success or failure
+     */
+    override suspend fun updateFavoriteOrder(channelId: String, newOrder: Int): Result<Unit> = 
+        withContext(dispatcher) {
+            try {
+                localDataSource.updateFavoriteOrder(channelId, newOrder)
+                
+                // Trigger background sync (fire and forget)
+                syncFavoritesInBackground()
+                
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error(e)
+            }
+        }
+    
+    /**
+     * Synchronize favorites with the server.
+     * 
+     * This uploads local favorite changes to the server. Local changes
+     * take precedence in case of conflicts (last-write-wins strategy).
+     * 
+     * @return Result indicating success or failure of synchronization
+     */
+    override suspend fun syncFavorites(): Result<Unit> = withContext(dispatcher) {
+        try {
+            // Get all local favorites
+            val favorites = localDataSource.getAllFavorites().first()
+            val channelIds = favorites.map { it.channelId }
+            
+            // Prepare sync request
+            val request = FavoritesRequest(
+                channelIds = channelIds,
+                deviceId = getDeviceId(),
+                timestamp = System.currentTimeMillis()
+            )
+            
+            // Send to server
+            val response = apiService.syncFavorites(request)
+            
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error(Exception("Sync failed: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            // Sync failures are non-critical - local data is still valid
+            Result.Error(e)
+        }
+    }
+    
+    /**
+     * Trigger background sync without blocking the caller.
+     * 
+     * This is a fire-and-forget operation that attempts to sync
+     * favorites in the background. Failures are logged but don't
+     * affect the user experience.
+     */
+    private fun syncFavoritesInBackground() {
+        syncScope.launch {
+            try {
+                syncFavorites()
+            } catch (e: Exception) {
+                Log.w(TAG, "Background favorites sync failed: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Get device identifier for sync operations.
+     * 
+     * In a production app, this would use Android ID or a generated UUID
+     * stored in SharedPreferences. For now, returns a placeholder.
+     * 
+     * @return Device identifier string
+     */
+    private fun getDeviceId(): String {
+        return Settings.Secure.getString(
+            application.contentResolver,
+            Settings.Secure.ANDROID_ID
+        ) ?: "unknown_device"
+    }
+}

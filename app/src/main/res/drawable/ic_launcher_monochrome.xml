@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- TV Screen outline -->
+    <path
+        android:pathData="M30,32 L78,32 Q80,32 80,34 L80,66 Q80,68 78,68 L30,68 Q28,68 28,66 L28,34 Q28,32 30,32 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#000000"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- TV Stand -->
+    <path
+        android:pathData="M44,68 L44,73 M64,68 L64,73 M40,73 L68,73"
+        android:strokeWidth="2.5"
+        android:strokeColor="#000000"
+        android:strokeLineCap="round" />
+
+    <!-- Streaming arrow -->
+    <path
+        android:pathData="M46,50 L62,50 M56,43 L62,50 L56,57"
+        android:strokeWidth="3"
+        android:strokeColor="#000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Signal waves -->
+    <path
+        android:pathData="M68,38 Q71,41 68,44"
+        android:strokeWidth="1.8"
+        android:strokeColor="#000000"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+
+    <path
+        android:pathData="M71,36 Q75,41 71,46"
+        android:strokeWidth="1.8"
+        android:strokeColor="#000000"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:alpha="0.7" />
+</vector>
