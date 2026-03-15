@@ -50,6 +50,7 @@ class SettingsViewModel @Inject constructor(
         private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
         private const val UPDATE_CHECK_TIMEOUT = 15_000
+        private const val GITHUB_RELEASES_API = "https://api.github.com/repos/akshaynikhare/FireVisionIPTV/releases/latest"
     }
 
     init {
@@ -297,47 +298,8 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(isCheckingForUpdate = true, updateInfo = null, updateChecked = false) }
 
             val result = withContext(Dispatchers.IO) {
-                try {
-                    val ctx = application.applicationContext
-                    val baseUrl = AppPreferences.getServerUrl(ctx)
-                    val tvCode = AppPreferences.getTvCode(ctx)
-                    val versionCode = getVersionCode()
-
-                    val url = java.net.URL("$baseUrl/api/v1/app/version?currentVersion=$versionCode")
-                    val connection = url.openConnection() as java.net.HttpURLConnection
-                    connection.connectTimeout = UPDATE_CHECK_TIMEOUT
-                    connection.readTimeout = UPDATE_CHECK_TIMEOUT
-                    connection.requestMethod = "GET"
-                    connection.setRequestProperty("Accept", "application/json")
-                    connection.setRequestProperty("X-TV-Code", tvCode)
-
-                    try {
-                        if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                            val response = connection.inputStream.bufferedReader().use { it.readText() }
-                            val json = org.json.JSONObject(response)
-
-                            if (json.optBoolean("success", false) && json.optBoolean("updateAvailable", false)) {
-                                val latest = json.optJSONObject("latestVersion")
-                                val fileBytes = latest?.optLong("apkFileSize", 0) ?: 0
-                                UpdateInfo(
-                                    versionName = latest?.optString("versionName", "") ?: "",
-                                    releaseNotes = latest?.optString("releaseNotes", "") ?: "",
-                                    fileSize = formatFileSize(fileBytes),
-                                    downloadUrl = latest?.optString("downloadUrl", "") ?: "",
-                                    isMandatory = json.optBoolean("isMandatory", false)
-                                )
-                            } else {
-                                null // no update available
-                            }
-                        } else {
-                            throw Exception("Server returned ${connection.responseCode}")
-                        }
-                    } finally {
-                        connection.disconnect()
-                    }
-                } catch (e: Exception) {
-                    throw e
-                }
+                // Try server API first, fall back to GitHub releases
+                checkFromServer() ?: checkFromGitHub()
             }
 
             _uiState.update {
@@ -362,7 +324,125 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun getUpdateDownloadUrl(): String? = _uiState.value.updateInfo?.downloadUrl
+    private fun checkFromServer(): UpdateInfo? {
+        return try {
+            val ctx = application.applicationContext
+            val baseUrl = AppPreferences.getServerUrl(ctx)
+            val tvCode = AppPreferences.getTvCode(ctx)
+            val versionCode = getVersionCode()
+
+            val url = java.net.URL("$baseUrl/api/v1/app/version?currentVersion=$versionCode")
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = UPDATE_CHECK_TIMEOUT
+            connection.readTimeout = UPDATE_CHECK_TIMEOUT
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("X-TV-Code", tvCode)
+
+            try {
+                if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(response)
+
+                    if (json.optBoolean("success", false) && json.optBoolean("updateAvailable", false)) {
+                        val latest = json.optJSONObject("latestVersion")
+                        val fileBytes = latest?.optLong("apkFileSize", 0) ?: 0
+                        UpdateInfo(
+                            versionName = latest?.optString("versionName", "") ?: "",
+                            releaseNotes = latest?.optString("releaseNotes", "") ?: "",
+                            fileSize = formatFileSize(fileBytes),
+                            downloadUrl = latest?.optString("downloadUrl", "") ?: "",
+                            isMandatory = json.optBoolean("isMandatory", false)
+                        )
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Exception) {
+            null // fall through to GitHub check
+        }
+    }
+
+    private fun checkFromGitHub(): UpdateInfo? {
+        return try {
+            val url = java.net.URL(GITHUB_RELEASES_API)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = UPDATE_CHECK_TIMEOUT
+            connection.readTimeout = UPDATE_CHECK_TIMEOUT
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/vnd.github+json")
+
+            try {
+                if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) return null
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = org.json.JSONObject(response)
+
+                val tagName = json.optString("tag_name", "")
+                val latestVersion = tagName.removePrefix("v")
+                val currentVersionName = getAppVersionName()
+
+                if (latestVersion.isNotEmpty() && latestVersion != currentVersionName &&
+                    compareVersions(latestVersion, currentVersionName) > 0) {
+
+                    // Find APK asset
+                    val assets = json.optJSONArray("assets")
+                    var downloadUrl = ""
+                    var fileSize = 0L
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.getJSONObject(i)
+                            val name = asset.optString("name", "")
+                            if (name.endsWith(".apk")) {
+                                downloadUrl = asset.optString("browser_download_url", "")
+                                fileSize = asset.optLong("size", 0)
+                                break
+                            }
+                        }
+                    }
+
+                    UpdateInfo(
+                        versionName = latestVersion,
+                        releaseNotes = json.optString("body", "").take(500),
+                        fileSize = formatFileSize(fileSize),
+                        downloadUrl = downloadUrl,
+                        isMandatory = false
+                    )
+                } else {
+                    null
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun getAppVersionName(): String {
+        return try {
+            application.packageManager.getPackageInfo(application.packageName, 0).versionName ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun compareVersions(v1: String, v2: String): Int {
+        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
+        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
+        val maxLen = maxOf(parts1.size, parts2.size)
+        for (i in 0 until maxLen) {
+            val p1 = parts1.getOrElse(i) { 0 }
+            val p2 = parts2.getOrElse(i) { 0 }
+            if (p1 != p2) return p1.compareTo(p2)
+        }
+        return 0
+    }
 
     private fun getVersionCode(): Int {
         return try {
