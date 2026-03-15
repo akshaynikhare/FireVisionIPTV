@@ -10,7 +10,6 @@ import com.cadnative.firevisioniptv.domain.repository.CategoryRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -45,25 +44,19 @@ class CategoryRepositoryImpl @Inject constructor(
      * Emits local data immediately, then fetches from remote in background.
      * The Flow will automatically emit updated data when remote fetch completes.
      */
-    override fun getCategories(): Flow<Result<List<Category>>> = flow {
+    override fun getCategories(): Flow<Result<List<Category>>> =
         localDataSource.getAllCategories()
             .map { entities ->
-                entities.map { entity ->
-                    categoryMapper.toDomain(entity)
-                }
+                entities.map { entity -> categoryMapper.toDomain(entity) }
             }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { categories ->
-                emit(Result.Success(categories))
-            }
-    }.flowOn(dispatcher)
-    
+            .map<List<Category>, Result<List<Category>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
+
     /**
      * Get a specific category by ID with offline-first strategy.
      */
-    override fun getCategoryById(id: String): Flow<Result<Category>> = flow {
+    override fun getCategoryById(id: String): Flow<Result<Category>> =
         localDataSource.getCategoryById(id)
             .map { entity ->
                 if (entity != null) {
@@ -72,13 +65,8 @@ class CategoryRepositoryImpl @Inject constructor(
                     Result.Error(Exception("Category not found: $id"))
                 }
             }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { result ->
-                emit(result)
-            }
-    }.flowOn(dispatcher)
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
     
     /**
      * Refresh categories from remote source.

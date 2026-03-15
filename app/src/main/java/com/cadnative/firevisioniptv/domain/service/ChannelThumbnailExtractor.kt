@@ -13,6 +13,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,6 +31,7 @@ class ChannelThumbnailExtractor @Inject constructor(
         private const val THUMBNAIL_WIDTH = 320
         private const val THUMBNAIL_HEIGHT = 180
         private const val JPEG_QUALITY = 70
+        private const val EXTRACT_TIMEOUT_MS = 15_000L
         private val SAFE_FILENAME_REGEX = Regex("[^a-zA-Z0-9._-]")
     }
 
@@ -77,28 +79,30 @@ class ChannelThumbnailExtractor @Inject constructor(
         return withContext(dispatcher) {
             val retriever = MediaMetadataRetriever()
             try {
-                retriever.setDataSource(streamUrl, HashMap<String, String>())
-                val frame = retriever.getFrameAtTime(
-                    0,
-                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-                ) ?: return@withContext false
+                withTimeout(EXTRACT_TIMEOUT_MS) {
+                    retriever.setDataSource(streamUrl, HashMap<String, String>())
+                    val frame = retriever.getFrameAtTime(
+                        0,
+                        MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+                    ) ?: return@withTimeout false
 
-                val scaled = Bitmap.createScaledBitmap(
-                    frame, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, true
-                )
-                if (scaled !== frame) frame.recycle()
+                    val scaled = Bitmap.createScaledBitmap(
+                        frame, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, true
+                    )
+                    if (scaled !== frame) frame.recycle()
 
-                // Sanitize channelId for safe filename (replace filesystem-invalid chars)
-                val safeId = channelId.replace(SAFE_FILENAME_REGEX, "_")
-                val file = File(thumbnailDir, "${safeId}.jpg")
-                file.outputStream().use { out ->
-                    scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+                    // Sanitize channelId for safe filename (replace filesystem-invalid chars)
+                    val safeId = channelId.replace(SAFE_FILENAME_REGEX, "_")
+                    val file = File(thumbnailDir, "${safeId}.jpg")
+                    file.outputStream().use { out ->
+                        scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+                    }
+                    scaled.recycle()
+
+                    channelHealthDao.updateThumbnailPath(channelId, file.absolutePath)
+                    Log.d(TAG, "Thumbnail saved for $channelId")
+                    true
                 }
-                scaled.recycle()
-
-                channelHealthDao.updateThumbnailPath(channelId, file.absolutePath)
-                Log.d(TAG, "Thumbnail saved for $channelId")
-                true
             } catch (e: Exception) {
                 Log.w(TAG, "Failed thumbnail for $channelId: ${e.message}")
                 false

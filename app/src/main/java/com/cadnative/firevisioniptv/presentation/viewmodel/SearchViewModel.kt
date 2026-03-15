@@ -160,7 +160,10 @@ class SearchViewModel @Inject constructor(
      * @param query The query to search for
      */
     fun searchFromHistory(query: String) {
-        onQueryChange(query)
+        _uiState.update { it.copy(query = query) }
+        _searchQuery.value = query
+        // Bypass debounce — execute search immediately for history clicks
+        performSearch(query)
     }
     
     /**

@@ -71,7 +71,7 @@ fun FavoritesScreen(
                     "loading" -> LoadingIndicator(message = "Loading favorites...")
                     "error" -> ErrorState(
                         message = uiState.error ?: "Failed to load favorites",
-                        onRetry = { viewModel.clearError() }
+                        onRetry = { viewModel.retryLoadFavorites() }
                     )
                     "empty" -> EmptyState(message = "No favorite channels yet")
                     else -> FavoritesGrid(
@@ -101,7 +101,7 @@ private fun FavoritesGrid(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        itemsIndexed(favorites) { index, channel ->
+        itemsIndexed(favorites, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },

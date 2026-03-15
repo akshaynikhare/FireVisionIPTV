@@ -26,6 +26,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -38,6 +39,9 @@ class PairingActivity : ComponentActivity() {
         private const val TAG = "PairingActivity"
         private const val POLL_INTERVAL_MS = 3000L
         private const val MAX_POLL_ATTEMPTS = 200
+        private const val CONNECT_TIMEOUT_MS = 15_000
+        private const val READ_TIMEOUT_MS = 15_000
+        private const val POLL_READ_TIMEOUT_MS = 10_000
     }
 
     // Compose state
@@ -58,7 +62,7 @@ class PairingActivity : ComponentActivity() {
     private var countdownHandler: Handler? = null
     private var countdownRunnable: Runnable? = null
     private var pollAttempts = 0
-    private var isPairing = false
+    @Volatile private var isPairing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +134,8 @@ class PairingActivity : ComponentActivity() {
                 val baseUrl = SettingsActivity.getServerUrl(this)
                 val url = URL("$baseUrl/api/v1/tv/pairing/request")
                 val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = CONNECT_TIMEOUT_MS
+                connection.readTimeout = READ_TIMEOUT_MS
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json")
                 connection.doOutput = true
@@ -201,6 +207,8 @@ class PairingActivity : ComponentActivity() {
                 val baseUrl = SettingsActivity.getServerUrl(this)
                 val url = URL("$baseUrl/api/v1/tv/pairing/status/$currentPin")
                 val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = CONNECT_TIMEOUT_MS
+                connection.readTimeout = POLL_READ_TIMEOUT_MS
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Accept", "application/json")
 
@@ -310,7 +318,7 @@ class PairingActivity : ComponentActivity() {
     private fun parseISO8601(dateStr: String): Long {
         return try {
             val cleaned = dateStr.replace("Z", "+00:00")
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
             sdf.parse(cleaned)?.time ?: (System.currentTimeMillis() + 10 * 60 * 1000)
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing date", e)

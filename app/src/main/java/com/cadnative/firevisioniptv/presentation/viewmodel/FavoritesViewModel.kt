@@ -40,6 +40,10 @@ class FavoritesViewModel @Inject constructor(
         loadFavorites()
     }
 
+    fun retryLoadFavorites() {
+        loadFavorites()
+    }
+
     private fun loadFavorites() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {

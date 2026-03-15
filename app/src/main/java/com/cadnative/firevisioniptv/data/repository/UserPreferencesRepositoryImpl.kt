@@ -104,7 +104,10 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun clearCache(): Result<Unit> {
         return try {
             withContext(ioDispatcher) {
-                context.cacheDir.deleteRecursively()
+                // Only clear contents inside cacheDir, not cacheDir itself.
+                // This preserves the directory and avoids breaking other libraries
+                // (Coil, OkHttp) that expect cacheDir to exist.
+                context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
             }
             Result.Success(Unit)
         } catch (e: Exception) {

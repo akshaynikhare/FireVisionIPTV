@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -49,28 +48,22 @@ class ChannelRepositoryImpl @Inject constructor(
      * Emits local data immediately, then fetches from remote in background.
      * The Flow will automatically emit updated data when remote fetch completes.
      */
-    override fun getChannels(): Flow<Result<List<Channel>>> = flow {
-        // Combine channels with their favorite status
-        try {
-            localDataSource.getAllChannels()
-                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                    val favoriteIds = favorites.map { it.channelId }.toSet()
-                    channels.map { entity ->
-                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
-                    }
+    override fun getChannels(): Flow<Result<List<Channel>>> =
+        localDataSource.getAllChannels()
+            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                val favoriteIds = favorites.map { it.channelId }.toSet()
+                channels.map { entity ->
+                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
                 }
-                .collect { channels ->
-                    emit(Result.Success(channels))
-                }
-        } catch (e: Exception) {
-            emit(Result.Error(e))
-        }
-    }.flowOn(dispatcher)
+            }
+            .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
     
     /**
      * Get a specific channel by ID with offline-first strategy.
      */
-    override fun getChannelById(id: String): Flow<Result<Channel>> = flow {
+    override fun getChannelById(id: String): Flow<Result<Channel>> =
         localDataSource.getChannelById(id)
             .combine(favoriteDao.isFavorite(id)) { entity, isFavorite ->
                 if (entity != null) {
@@ -79,53 +72,38 @@ class ChannelRepositoryImpl @Inject constructor(
                     Result.Error(Exception("Channel not found: $id"))
                 }
             }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { result ->
-                emit(result)
-            }
-    }.flowOn(dispatcher)
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
     
     /**
      * Get channels by category with offline-first strategy.
      */
-    override fun getChannelsByCategory(category: String): Flow<Result<List<Channel>>> = flow {
-        try {
-            localDataSource.getChannelsByCategory(category)
-                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                    val favoriteIds = favorites.map { it.channelId }.toSet()
-                    channels.map { entity ->
-                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
-                    }
+    override fun getChannelsByCategory(category: String): Flow<Result<List<Channel>>> =
+        localDataSource.getChannelsByCategory(category)
+            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                val favoriteIds = favorites.map { it.channelId }.toSet()
+                channels.map { entity ->
+                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
                 }
-                .collect { channels ->
-                    emit(Result.Success(channels))
-                }
-        } catch (e: Exception) {
-            emit(Result.Error(e))
-        }
-    }.flowOn(dispatcher)
+            }
+            .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
     
     /**
      * Search channels with offline-first strategy.
      */
-    override fun searchChannels(query: String): Flow<Result<List<Channel>>> = flow {
-        try {
-            localDataSource.searchChannels(query)
-                .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
-                    val favoriteIds = favorites.map { it.channelId }.toSet()
-                    channels.map { entity ->
-                        channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
-                    }
+    override fun searchChannels(query: String): Flow<Result<List<Channel>>> =
+        localDataSource.searchChannels(query)
+            .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
+                val favoriteIds = favorites.map { it.channelId }.toSet()
+                channels.map { entity ->
+                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
                 }
-                .collect { channels ->
-                    emit(Result.Success(channels))
-                }
-        } catch (e: Exception) {
-            emit(Result.Error(e))
-        }
-    }.flowOn(dispatcher)
+            }
+            .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
     
     /**
      * Refresh channels from remote source.
@@ -187,18 +165,14 @@ class ChannelRepositoryImpl @Inject constructor(
     /**
      * Get all favorite channels.
      */
-    override fun getFavoriteChannels(): Flow<Result<List<Channel>>> = flow {
+    override fun getFavoriteChannels(): Flow<Result<List<Channel>>> =
         favoriteDao.getFavoriteChannels()
             .map { entities ->
                 entities.map { entity ->
                     channelMapper.toDomain(entity, isFavorite = true)
                 }
             }
-            .catch { e ->
-                emit(Result.Error(Exception(e.message, e)))
-            }
-            .collect { channels ->
-                emit(Result.Success(channels))
-            }
-    }.flowOn(dispatcher)
+            .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
+            .catch { e -> emit(Result.Error(Exception(e.message, e))) }
+            .flowOn(dispatcher)
 }
