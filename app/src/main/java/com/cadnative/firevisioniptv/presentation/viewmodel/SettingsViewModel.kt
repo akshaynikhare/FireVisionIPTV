@@ -14,10 +14,12 @@ import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
+import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.ln
+import kotlin.math.pow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,10 +43,13 @@ class SettingsViewModel @Inject constructor(
 
     val scanProgress: StateFlow<ScanProgress> = channelHealthScanner.scanProgress
 
+    private var updateCheckJob: Job? = null
+
     companion object {
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
         private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
+        private const val UPDATE_CHECK_TIMEOUT = 15_000
     }
 
     init {
@@ -79,7 +86,10 @@ class SettingsViewModel @Inject constructor(
                         appVersion = current.appVersion,
                         qrCodeBitmap = current.qrCodeBitmap,
                         isPaired = current.isPaired,
-                        settingsSaved = current.settingsSaved
+                        settingsSaved = current.settingsSaved,
+                        isCheckingForUpdate = current.isCheckingForUpdate,
+                        updateInfo = current.updateInfo,
+                        updateChecked = current.updateChecked
                     )
                 }
             }
@@ -279,6 +289,101 @@ class SettingsViewModel @Inject constructor(
 
     fun triggerLivelinessCheck() {
         channelHealthScanner.triggerManualScan()
+    }
+
+    fun checkForUpdate() {
+        updateCheckJob?.cancel()
+        updateCheckJob = viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingForUpdate = true, updateInfo = null, updateChecked = false) }
+
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val ctx = application.applicationContext
+                    val baseUrl = AppPreferences.getServerUrl(ctx)
+                    val tvCode = AppPreferences.getTvCode(ctx)
+                    val versionCode = getVersionCode()
+
+                    val url = java.net.URL("$baseUrl/api/v1/app/version?currentVersion=$versionCode")
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.connectTimeout = UPDATE_CHECK_TIMEOUT
+                    connection.readTimeout = UPDATE_CHECK_TIMEOUT
+                    connection.requestMethod = "GET"
+                    connection.setRequestProperty("Accept", "application/json")
+                    connection.setRequestProperty("X-TV-Code", tvCode)
+
+                    try {
+                        if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                            val response = connection.inputStream.bufferedReader().use { it.readText() }
+                            val json = org.json.JSONObject(response)
+
+                            if (json.optBoolean("success", false) && json.optBoolean("updateAvailable", false)) {
+                                val latest = json.optJSONObject("latestVersion")
+                                val fileBytes = latest?.optLong("apkFileSize", 0) ?: 0
+                                UpdateInfo(
+                                    versionName = latest?.optString("versionName", "") ?: "",
+                                    releaseNotes = latest?.optString("releaseNotes", "") ?: "",
+                                    fileSize = formatFileSize(fileBytes),
+                                    downloadUrl = latest?.optString("downloadUrl", "") ?: "",
+                                    isMandatory = json.optBoolean("isMandatory", false)
+                                )
+                            } else {
+                                null // no update available
+                            }
+                        } else {
+                            throw Exception("Server returned ${connection.responseCode}")
+                        }
+                    } finally {
+                        connection.disconnect()
+                    }
+                } catch (e: Exception) {
+                    throw e
+                }
+            }
+
+            _uiState.update {
+                it.copy(
+                    isCheckingForUpdate = false,
+                    updateInfo = result,
+                    updateChecked = true
+                )
+            }
+        }
+
+        updateCheckJob?.invokeOnCompletion { error ->
+            if (error != null && error !is kotlinx.coroutines.CancellationException) {
+                _uiState.update {
+                    it.copy(
+                        isCheckingForUpdate = false,
+                        updateChecked = true,
+                        error = "Failed to check for updates"
+                    )
+                }
+            }
+        }
+    }
+
+    fun getUpdateDownloadUrl(): String? = _uiState.value.updateInfo?.downloadUrl
+
+    private fun getVersionCode(): Int {
+        return try {
+            val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode
+            }
+        } catch (e: Exception) {
+            1
+        }
+    }
+
+    private fun formatFileSize(bytes: Long): String {
+        if (bytes <= 0) return ""
+        if (bytes < 1024) return "$bytes B"
+        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt()
+        val pre = "KMGTPE"[exp - 1]
+        return "%.1f %sB".format(bytes / 1024.0.pow(exp.toDouble()), pre)
     }
 
     fun clearError() {

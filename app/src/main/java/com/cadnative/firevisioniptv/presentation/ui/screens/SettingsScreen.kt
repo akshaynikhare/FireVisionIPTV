@@ -33,6 +33,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
+import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,17 +171,15 @@ fun SettingsScreen(
                 )
             }
 
-            // About — stagger index 6
-            SettingsCard(
-                title = "About",
+            // About & Update — stagger index 6
+            AppUpdateCard(
+                appVersion = uiState.appVersion,
+                isChecking = uiState.isCheckingForUpdate,
+                updateInfo = uiState.updateInfo,
+                updateChecked = uiState.updateChecked,
+                onCheckForUpdate = { viewModel.checkForUpdate() },
                 modifier = Modifier.animateItemEntrance(index = 6)
-            ) {
-                SettingsRow(
-                    title = "Version",
-                    subtitle = uiState.appVersion,
-                    value = ""
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -432,6 +431,112 @@ private fun CheckLivelinessCard(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Check Liveliness", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppUpdateCard(
+    appVersion: String,
+    isChecking: Boolean,
+    updateInfo: UpdateInfo?,
+    updateChecked: Boolean,
+    onCheckForUpdate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "About", modifier = modifier) {
+        SettingsRow(
+            title = "Version",
+            subtitle = appVersion,
+            value = ""
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (isChecking) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Checking for updates...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (updateInfo != null) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Update available: v${updateInfo.versionName}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (updateInfo.releaseNotes.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = updateInfo.releaseNotes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3
+                        )
+                    }
+                    if (updateInfo.fileSize.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Size: ${updateInfo.fileSize}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (updateInfo.isMandatory) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "This update is mandatory",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Warning
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onCheckForUpdate,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Check Again", fontWeight = FontWeight.SemiBold)
+            }
+        } else {
+            if (updateChecked) {
+                Text(
+                    text = "You're on the latest version",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Success
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            OutlinedButton(
+                onClick = onCheckForUpdate,
+                border = BorderStroke(1.dp, SubtleBorder),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Check for Updates", fontWeight = FontWeight.Medium)
             }
         }
     }

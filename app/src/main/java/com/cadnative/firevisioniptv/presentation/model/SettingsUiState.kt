@@ -24,5 +24,17 @@ data class SettingsUiState(
     val appVersion: String = "1.0.0",
     val qrCodeBitmap: Bitmap? = null,
     val isPaired: Boolean = false,
-    val settingsSaved: Boolean = false
+    val settingsSaved: Boolean = false,
+    // App update
+    val isCheckingForUpdate: Boolean = false,
+    val updateInfo: UpdateInfo? = null,
+    val updateChecked: Boolean = false
+)
+
+data class UpdateInfo(
+    val versionName: String,
+    val releaseNotes: String,
+    val fileSize: String,
+    val downloadUrl: String,
+    val isMandatory: Boolean
 )
