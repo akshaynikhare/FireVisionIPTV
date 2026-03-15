@@ -46,6 +46,15 @@ class SearchHistoryLocalDataSource @Inject constructor(
     }
     
     /**
+     * Remove a specific search query from history.
+     *
+     * @param query The search query to remove
+     */
+    suspend fun removeSearch(query: String) = withContext(dispatcher) {
+        searchHistoryDao.deleteByQuery(query)
+    }
+
+    /**
      * Clear all search history.
      */
     suspend fun clearHistory() = withContext(dispatcher) {

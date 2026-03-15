@@ -122,8 +122,7 @@ class SearchHistoryRepositoryImpl @Inject constructor(
      */
     override suspend fun removeSearch(query: String): Result<Unit> = withContext(dispatcher) {
         try {
-            // TODO: Implement removeSearch in DAO and local data source
-            // For now, return success as this is an optional feature
+            localDataSource.removeSearch(query)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

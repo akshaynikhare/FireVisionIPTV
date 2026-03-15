@@ -23,6 +23,9 @@ class SavePlaybackPositionUseCase @Inject constructor(
     )
     
     override suspend fun execute(params: Params): Result<Unit> {
+        if (params.position < 0 || params.duration < 0) {
+            return Result.Error(IllegalArgumentException("Position and duration must be non-negative"))
+        }
         return playbackRepository.savePlaybackPosition(
             channelId = params.channelId,
             position = params.position,

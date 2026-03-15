@@ -2,6 +2,8 @@ package com.cadnative.firevisioniptv.data.source.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
@@ -45,7 +47,36 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
-    
+
+    companion object {
+        /** v1→v2: Add channel_health table */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `channel_health` (
+                        `channelId` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `lastCheckedAt` INTEGER NOT NULL DEFAULT 0,
+                        `responseTimeMs` INTEGER,
+                        `errorMessage` TEXT,
+                        PRIMARY KEY(`channelId`),
+                        FOREIGN KEY(`channelId`) REFERENCES `channels`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_channel_health_channelId` ON `channel_health` (`channelId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_channel_health_lastCheckedAt` ON `channel_health` (`lastCheckedAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_channel_health_status` ON `channel_health` (`status`)")
+            }
+        }
+
+        /** v2→v3: Add thumbnailPath column to channel_health */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `channel_health` ADD COLUMN `thumbnailPath` TEXT DEFAULT NULL")
+            }
+        }
+    }
+
     /**
      * Provides access to channel data operations.
      */

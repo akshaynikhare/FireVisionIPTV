@@ -79,7 +79,7 @@ fun CategoriesScreen(
                     }
 
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
+                        columns = GridCells.Adaptive(minSize = 200.dp),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),

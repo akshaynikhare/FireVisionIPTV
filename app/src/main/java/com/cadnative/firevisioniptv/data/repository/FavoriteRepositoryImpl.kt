@@ -1,5 +1,8 @@
 package com.cadnative.firevisioniptv.data.repository
 
+import android.app.Application
+import android.provider.Settings
+import android.util.Log
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
@@ -39,8 +42,13 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val localDataSource: FavoriteLocalDataSource,
     private val apiService: FireVisionApiService,
     private val channelMapper: ChannelMapper,
+    private val application: Application,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : FavoriteRepository {
+
+    companion object {
+        private const val TAG = "FavoriteRepo"
+    }
     
     /**
      * Get all favorite channels with offline-first strategy.
@@ -224,8 +232,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         try {
             syncFavorites()
         } catch (e: Exception) {
-            // Log error but don't propagate - sync is best-effort
-            // In production, this would use proper logging framework
+            Log.w(TAG, "Background favorites sync failed: ${e.message}")
         }
     }
     
@@ -238,8 +245,9 @@ class FavoriteRepositoryImpl @Inject constructor(
      * @return Device identifier string
      */
     private fun getDeviceId(): String {
-        // TODO: Implement proper device ID retrieval
-        // This should use Settings.Secure.ANDROID_ID or a generated UUID
-        return "device_id_placeholder"
+        return Settings.Secure.getString(
+            application.contentResolver,
+            Settings.Secure.ANDROID_ID
+        ) ?: "unknown_device"
     }
 }

@@ -19,9 +19,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.Closeable
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -61,14 +64,18 @@ class ChannelHealthScanner @Inject constructor(
     val scanProgress: StateFlow<ScanProgress> = _scanProgress.asStateFlow()
 
     private var scanJob: Job? = null
-    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val scanMutex = Mutex()
+    private val supervisorJob = SupervisorJob()
+    private val scope = CoroutineScope(supervisorJob + dispatcher)
 
     /**
      * Loop: health scan → 5 min → thumbnail extraction (ONLINE only) → 30 min → repeat
      */
     fun startAutoScan() {
-        if (scanJob?.isActive == true) return
-        scanJob = scope.launch {
+        scope.launch {
+            scanMutex.withLock {
+                if (scanJob?.isActive == true) return@launch
+                scanJob = scope.launch scanLoop@{
             Log.d(TAG, "Auto scan started")
             while (isActive) {
                 // Phase 1: Health scan
@@ -87,12 +94,16 @@ class ChannelHealthScanner @Inject constructor(
                 // Phase 4: Main cooldown before next health scan cycle
                 delay(COOLDOWN_MS)
             }
+                }
+            }
         }
     }
 
     fun triggerManualScan() {
-        scanJob?.cancel()
-        scanJob = scope.launch {
+        scope.launch {
+            scanMutex.withLock {
+                scanJob?.cancel()
+                scanJob = scope.launch {
             Log.d(TAG, "Manual scan triggered — clearing old results")
             channelHealthDao.deleteAll()
             thumbnailExtractor.clearThumbnails()
@@ -113,6 +124,8 @@ class ChannelHealthScanner @Inject constructor(
 
                 runFullScan()
             }
+                }
+            }
         }
     }
 
@@ -121,6 +134,14 @@ class ChannelHealthScanner @Inject constructor(
         scanJob = null
         _scanProgress.value = _scanProgress.value.copy(isScanning = false)
         Log.d(TAG, "Scan stopped")
+    }
+
+    fun destroy() {
+        stopScan()
+        supervisorJob.cancel()
+        scanClient.dispatcher.executorService.shutdown()
+        scanClient.connectionPool.evictAll()
+        Log.d(TAG, "Scanner destroyed")
     }
 
     private suspend fun runFullScan() {
@@ -241,11 +262,12 @@ class ChannelHealthScanner @Inject constructor(
             }
 
             // Read first 4KB to validate HLS manifest
-            val body = resp.body?.source()
-            val peek = body?.let {
-                val buffer = okio.Buffer()
-                it.read(buffer, 4096)
-                buffer.readUtf8()
+            val peek = resp.body?.let { body ->
+                body.source().use { source ->
+                    val buffer = okio.Buffer()
+                    source.read(buffer, 4096)
+                    buffer.readUtf8()
+                }
             } ?: ""
 
             val isValid = peek.contains("#EXTM3U") ||

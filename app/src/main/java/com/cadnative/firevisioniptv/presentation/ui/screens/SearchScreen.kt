@@ -17,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,9 @@ fun SearchScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Column(
         modifier = modifier
@@ -91,7 +96,7 @@ fun SearchScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
             shape = RoundedCornerShape(12.dp),
@@ -141,7 +146,7 @@ fun SearchScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
+                    columns = GridCells.Adaptive(minSize = 200.dp),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -151,7 +156,7 @@ fun SearchScreen(
                         ChannelCard(
                             channel = channel,
                             onClick = { onChannelClick(channel.id) },
-                            onFavoriteClick = { }
+                            onFavoriteClick = { viewModel.toggleFavorite(channel.id) }
                         )
                     }
                 }

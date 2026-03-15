@@ -38,14 +38,16 @@ class PlayerViewModel @Inject constructor(
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
     
     private var savePositionJob: Job? = null
-    
+    private var loadJob: Job? = null
+
     /**
      * Load a channel for playback.
-     * 
+     *
      * @param channelId The ID of the channel to load
      */
     fun loadChannel(channelId: String) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             getChannelByIdUseCase(channelId).collect { result ->
                 when (result) {

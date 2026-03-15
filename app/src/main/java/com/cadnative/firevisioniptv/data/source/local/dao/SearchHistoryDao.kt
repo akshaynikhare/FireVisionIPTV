@@ -33,6 +33,14 @@ interface SearchHistoryDao {
     suspend fun saveSearch(searchHistory: SearchHistoryEntity)
     
     /**
+     * Delete a specific search query from history.
+     *
+     * @param query The search query to remove
+     */
+    @Query("DELETE FROM search_history WHERE `query` = :query")
+    suspend fun deleteByQuery(query: String)
+
+    /**
      * Clear all search history.
      */
     @Query("DELETE FROM search_history")

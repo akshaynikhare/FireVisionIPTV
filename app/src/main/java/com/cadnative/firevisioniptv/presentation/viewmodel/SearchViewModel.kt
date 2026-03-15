@@ -9,10 +9,12 @@ import com.cadnative.firevisioniptv.domain.usecase.ClearSearchHistoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetRecentSearchesUseCase
 import com.cadnative.firevisioniptv.domain.usecase.SaveSearchQueryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.SearchChannelsUseCase
+import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.SearchUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,14 +41,16 @@ class SearchViewModel @Inject constructor(
     private val saveSearchQueryUseCase: SaveSearchQueryUseCase,
     private val getRecentSearchesUseCase: GetRecentSearchesUseCase,
     private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val channelUiMapper: ChannelUiMapper,
     private val channelHealthDao: ChannelHealthDao
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
-    
+
     private val _searchQuery = MutableStateFlow("")
+    private var searchJob: Job? = null
     
     init {
         loadRecentSearches()
@@ -81,9 +85,10 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(query = query) }
         _searchQuery.value = query
         
-        // Clear results if query is empty
+        // Clear results and error if query is empty
         if (query.isBlank()) {
-            _uiState.update { it.copy(results = emptyList(), isLoading = false) }
+            searchJob?.cancel()
+            _uiState.update { it.copy(results = emptyList(), isLoading = false, error = null) }
         }
     }
     
@@ -91,7 +96,8 @@ class SearchViewModel @Inject constructor(
      * Perform the actual search operation.
      */
     private fun performSearch(query: String) {
-        viewModelScope.launch {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             // Save search query to history
@@ -214,6 +220,30 @@ class SearchViewModel @Inject constructor(
     /**
      * Clear any error message.
      */
+    fun toggleFavorite(channelId: String) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    results = state.results.map { channel ->
+                        if (channel.id == channelId) channel.copy(isFavorite = !channel.isFavorite)
+                        else channel
+                    }
+                )
+            }
+            val result = toggleFavoriteUseCase(channelId)
+            if (result is Result.Error) {
+                _uiState.update { state ->
+                    state.copy(
+                        results = state.results.map { channel ->
+                            if (channel.id == channelId) channel.copy(isFavorite = !channel.isFavorite)
+                            else channel
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

@@ -105,7 +105,9 @@ class ChannelThumbnailExtractor @Inject constructor(
             } finally {
                 try {
                     retriever.release()
-                } catch (_: Exception) { }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to release MediaMetadataRetriever for $channelId: ${e.message}")
+                }
             }
         }
     }

@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -33,12 +34,14 @@ fun PlayerScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Initialize player
+    // Handle back press for TV remote
+    BackHandler { onNavigateBack() }
+
+    // Initialize player with DisposableEffect for proper lifecycle
     val exoPlayer = remember {
         ExoPlayer.Builder(context)
             .build()
             .apply {
-                // Configure for live streaming
                 playWhenReady = true
             }
     }
@@ -52,7 +55,10 @@ fun PlayerScreen(
     LaunchedEffect(uiState.channel) {
         uiState.channel?.let { channel ->
             val url = channel.streamUrl
-            if (url.isNullOrEmpty()) return@let
+            if (url.isNullOrEmpty()) {
+                viewModel.onPlaybackError("Invalid stream URL")
+                return@let
+            }
             val mediaItem = MediaItem.Builder()
                 .setUri(url)
                 .build()
@@ -61,9 +67,10 @@ fun PlayerScreen(
         }
     }
 
-    // Clean up player on dispose
+    // Clean up player on dispose — handles config changes & navigation
     DisposableEffect(Unit) {
         onDispose {
+            exoPlayer.stop()
             exoPlayer.release()
         }
     }
@@ -80,13 +87,15 @@ fun PlayerScreen(
             uiState.error != null -> {
                 ErrorState(
                     message = uiState.error ?: "Failed to load channel",
-                    onRetry = { viewModel.loadChannel(channelId) }
+                    onRetry = {
+                        viewModel.clearError()
+                        viewModel.loadChannel(channelId)
+                    }
                 )
             }
             uiState.channel != null -> {
                 VideoPlayer(
                     exoPlayer = exoPlayer,
-                    onBack = onNavigateBack,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -97,7 +106,6 @@ fun PlayerScreen(
 @Composable
 private fun VideoPlayer(
     exoPlayer: ExoPlayer,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AndroidView(

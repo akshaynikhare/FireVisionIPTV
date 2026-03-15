@@ -83,7 +83,7 @@ fun SettingsScreen(
             )
 
             // Account Registration QR
-            if (uiState.qrCodeBitmap != null) {
+            uiState.qrCodeBitmap?.let { bitmap ->
                 SettingsCard(title = "Account Registration") {
                     Text(
                         text = "Scan with your phone to register",
@@ -97,7 +97,7 @@ fun SettingsScreen(
                             .padding(8.dp)
                     ) {
                         Image(
-                            bitmap = uiState.qrCodeBitmap!!.asImageBitmap(),
+                            bitmap = bitmap.asImageBitmap(),
                             contentDescription = "Registration QR Code",
                             modifier = Modifier.size(160.dp),
                             contentScale = ContentScale.Fit
@@ -232,6 +232,8 @@ private fun ServerConfigCard(
     onSave: () -> Boolean,
     modifier: Modifier = Modifier
 ) {
+    var validationError by remember { mutableStateOf<String?>(null) }
+
     SettingsCard(title = "Server Configuration", modifier = modifier) {
         Text(
             text = "Server URL",
@@ -241,7 +243,10 @@ private fun ServerConfigCard(
         Spacer(modifier = Modifier.height(6.dp))
         TextField(
             value = serverUrl,
-            onValueChange = onServerUrlChange,
+            onValueChange = {
+                onServerUrlChange(it)
+                validationError = null
+            },
             placeholder = { Text("https://tv.cadnative.com") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -264,7 +269,10 @@ private fun ServerConfigCard(
         Spacer(modifier = Modifier.height(6.dp))
         TextField(
             value = tvCode,
-            onValueChange = onTvCodeChange,
+            onValueChange = {
+                onTvCodeChange(it)
+                validationError = null
+            },
             placeholder = { Text("Enter TV code") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -284,7 +292,19 @@ private fun ServerConfigCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = { onSave() },
+                onClick = {
+                    val saved = onSave()
+                    if (!saved) {
+                        validationError = when {
+                            serverUrl.isBlank() || tvCode.isBlank() -> "Server URL and TV code are required"
+                            !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://") ->
+                                "URL must start with http:// or https://"
+                            else -> "Invalid settings"
+                        }
+                    } else {
+                        validationError = null
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Amber,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -301,6 +321,16 @@ private fun ServerConfigCard(
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+
+        if (validationError != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = validationError!!,
+                color = Warning,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

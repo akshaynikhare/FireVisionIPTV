@@ -47,6 +47,10 @@ object DatabaseModule {
             FireVisionDatabase::class.java,
             "firevision_db"
         )
+            .addMigrations(
+                FireVisionDatabase.MIGRATION_1_2,
+                FireVisionDatabase.MIGRATION_2_3
+            )
             .fallbackToDestructiveMigration()
             .build()
     }

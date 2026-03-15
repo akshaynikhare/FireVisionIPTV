@@ -10,12 +10,15 @@ import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.FavoritesUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,12 +33,16 @@ class FavoritesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
 
+    private val reorderMutex = Mutex()
+    private var loadJob: Job? = null
+
     init {
         loadFavorites()
     }
 
     private fun loadFavorites() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             getFavoriteChannelsUseCase(Unit)
@@ -88,30 +95,32 @@ class FavoritesViewModel @Inject constructor(
 
     fun reorderFavorite(channelId: String, newPosition: Int) {
         viewModelScope.launch {
-            val currentFavorites = _uiState.value.favorites
-            val currentIndex = currentFavorites.indexOfFirst { it.id == channelId }
+            reorderMutex.withLock {
+                val currentFavorites = _uiState.value.favorites
+                val currentIndex = currentFavorites.indexOfFirst { it.id == channelId }
 
-            if (currentIndex != -1 && newPosition in currentFavorites.indices) {
-                val mutableList = currentFavorites.toMutableList()
-                val item = mutableList.removeAt(currentIndex)
-                mutableList.add(newPosition, item)
+                if (currentIndex != -1 && newPosition in currentFavorites.indices) {
+                    val mutableList = currentFavorites.toMutableList()
+                    val item = mutableList.removeAt(currentIndex)
+                    mutableList.add(newPosition, item)
 
-                _uiState.update { it.copy(favorites = mutableList) }
+                    _uiState.update { it.copy(favorites = mutableList) }
 
-                val params = ReorderFavoritesUseCase.Params(
-                    channelId = channelId,
-                    newOrder = newPosition
-                )
+                    val params = ReorderFavoritesUseCase.Params(
+                        channelId = channelId,
+                        newOrder = newPosition
+                    )
 
-                val result = reorderFavoritesUseCase(params)
+                    val result = reorderFavoritesUseCase(params)
 
-                if (result is Result.Error) {
-                    _uiState.update {
-                        it.copy(
-                            error = result.exception.message ?: "Failed to reorder favorites"
-                        )
+                    if (result is Result.Error) {
+                        _uiState.update {
+                            it.copy(
+                                error = result.exception.message ?: "Failed to reorder favorites"
+                            )
+                        }
+                        loadFavorites()
                     }
-                    loadFavorites()
                 }
             }
         }

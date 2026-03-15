@@ -32,6 +32,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -81,12 +83,16 @@ fun ChannelCard(
         val catColor = categoryColor(channel.category)
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // Prefer live thumbnail over static logo (remember avoids disk I/O on every recomposition)
-            val imageModel = remember(channel.thumbnailPath, channel.logoUrl) {
-                channel.thumbnailPath?.let { path ->
-                    File(path).takeIf { it.exists() }
-                } ?: channel.logoUrl
+            // Prefer live thumbnail over static logo — defer File.exists() off composition
+            var thumbnailFile by remember(channel.thumbnailPath) { mutableStateOf<File?>(null) }
+            LaunchedEffect(channel.thumbnailPath) {
+                thumbnailFile = withContext(Dispatchers.IO) {
+                    channel.thumbnailPath?.let { path ->
+                        File(path).takeIf { it.exists() }
+                    }
+                }
             }
+            val imageModel = thumbnailFile ?: channel.logoUrl
 
             AsyncImage(
                 model = imageModel,
@@ -210,13 +216,8 @@ private fun HealthIndicatorDot(
             .size(10.dp)
             .clip(CircleShape)
             .background(dotColor.copy(alpha = alpha))
-            .border(1.dp, Color.Black.copy(alpha = 0.4f), CircleShape),
+            .border(1.dp, Color.Black.copy(alpha = 0.4f), CircleShape)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
-    ) {
-        // Invisible text for accessibility — TalkBack reads the status
-        Text(
-            text = "",
-            modifier = Modifier.semantics { contentDescription = label }
-        )
-    }
+    ) { }
 }

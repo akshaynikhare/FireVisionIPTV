@@ -12,6 +12,7 @@ import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.ChannelsUiState
 import android.util.Log
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,13 +34,16 @@ class ChannelsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChannelsUiState())
     val uiState: StateFlow<ChannelsUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
         loadChannels()
         refresh()
     }
 
     fun loadChannels(category: String? = null) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             val channelFlow = if (category != null) {

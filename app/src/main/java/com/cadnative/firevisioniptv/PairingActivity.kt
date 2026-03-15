@@ -55,6 +55,8 @@ class PairingActivity : ComponentActivity() {
     private var expiresAt: Long = 0
     private var pollHandler: Handler? = null
     private var pollRunnable: Runnable? = null
+    private var countdownHandler: Handler? = null
+    private var countdownRunnable: Runnable? = null
     private var pollAttempts = 0
     private var isPairing = false
 
@@ -227,7 +229,7 @@ class PairingActivity : ComponentActivity() {
 
     private fun onPairingSuccess(channelListCode: String, username: String) {
         isPairing = false
-        pollHandler?.removeCallbacks(pollRunnable!!)
+        pollRunnable?.let { pollHandler?.removeCallbacks(it) }
 
         runOnUiThread {
             val prefs: SharedPreferences = getSharedPreferences("FireVisionSettings", MODE_PRIVATE)
@@ -264,8 +266,10 @@ class PairingActivity : ComponentActivity() {
     }
 
     private fun startCountdown() {
-        val countdownHandler = Handler(Looper.getMainLooper())
-        val countdownRunnable = object : Runnable {
+        // Clean up any previous countdown
+        countdownRunnable?.let { countdownHandler?.removeCallbacks(it) }
+        countdownHandler = Handler(Looper.getMainLooper())
+        countdownRunnable = object : Runnable {
             override fun run() {
                 if (!isPairing) return
 
@@ -279,10 +283,10 @@ class PairingActivity : ComponentActivity() {
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining)
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
                 countdownText = String.format("Expires in: %d:%02d", minutes, seconds)
-                countdownHandler.postDelayed(this, 1000)
+                countdownHandler?.postDelayed(this, 1000)
             }
         }
-        countdownHandler.post(countdownRunnable)
+        countdownHandler?.post(countdownRunnable!!)
     }
 
     private fun useDefaultChannelList() {
@@ -319,6 +323,9 @@ class PairingActivity : ComponentActivity() {
         isPairing = false
         pollHandler?.let { handler ->
             pollRunnable?.let { handler.removeCallbacks(it) }
+        }
+        countdownHandler?.let { handler ->
+            countdownRunnable?.let { handler.removeCallbacks(it) }
         }
     }
 }

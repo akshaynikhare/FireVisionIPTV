@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -110,6 +111,10 @@ private fun HeroBanner(
 ) {
     if (channels.isEmpty()) return
 
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val cardWidth = (screenWidth * 0.28f).coerceIn(200.dp, 400.dp)
+    val cardHeight = (cardWidth * 0.56f).coerceIn(110.dp, 224.dp)
+
     Column(modifier = modifier.padding(horizontal = 40.dp)) {
         Text(
             text = "Featured",
@@ -120,14 +125,14 @@ private fun HeroBanner(
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            items(channels) { channel ->
+            items(channels, key = { it.id }) { channel ->
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
                     onFavoriteClick = { onToggleFavorite(channel.id) },
                     modifier = Modifier
-                        .width(360.dp)
-                        .height(200.dp)
+                        .width(cardWidth)
+                        .height(cardHeight)
                 )
             }
         }
@@ -169,7 +174,7 @@ private fun ChannelRow(
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            items(channels) { channel ->
+            items(channels, key = { it.id }) { channel ->
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },

@@ -122,11 +122,13 @@ class SettingsViewModel @Inject constructor(
         if (url.isEmpty() || code.isEmpty()) return false
         if (!url.startsWith("http://") && !url.startsWith("https://")) return false
 
-        val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit()
-            .putString("server_url", url)
-            .putString("tv_code", code)
-            .apply()
+        viewModelScope.launch(Dispatchers.IO) {
+            val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putString("server_url", url)
+                .putString("tv_code", code)
+                .apply()
+        }
 
         val isPaired = code.isNotEmpty() && code != DEFAULT_TV_CODE
         _uiState.update {
@@ -134,7 +136,8 @@ class SettingsViewModel @Inject constructor(
                 serverUrl = url,
                 tvCode = code,
                 isPaired = isPaired,
-                settingsSaved = true
+                settingsSaved = true,
+                error = null
             )
         }
 
@@ -143,11 +146,13 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun clearAutoloadChannel() {
-        val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit()
-            .remove("autoload_channel_id")
-            .remove(AUTOLOAD_CHANNEL_NAME_KEY)
-            .apply()
+        viewModelScope.launch(Dispatchers.IO) {
+            val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit()
+                .remove("autoload_channel_id")
+                .remove(AUTOLOAD_CHANNEL_NAME_KEY)
+                .apply()
+        }
 
         _uiState.update { it.copy(autoloadChannelName = "") }
     }
