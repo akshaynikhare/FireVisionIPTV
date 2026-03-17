@@ -198,8 +198,8 @@ class PairingViewModel @Inject constructor(
                             return@launch
                         }
                     }
-                } catch (_: Exception) {
-                    // Silently retry on next poll interval
+                } catch (e: Exception) {
+                    android.util.Log.w("PairingViewModel", "Poll attempt failed: ${e.message}")
                 } finally {
                     connection?.disconnect()
                 }

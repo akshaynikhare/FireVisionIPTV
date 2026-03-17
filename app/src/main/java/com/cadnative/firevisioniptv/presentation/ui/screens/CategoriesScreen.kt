@@ -28,6 +28,7 @@ import com.cadnative.firevisioniptv.presentation.ui.components.EmptyState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
@@ -179,7 +180,7 @@ private fun CategoryCard(
                 Text(
                     text = "$channelCount channels",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextPrimary.copy(alpha = 0.6f)
+                    color = TextPrimary.copy(alpha = EmphasisMedium)
                 )
             }
         }

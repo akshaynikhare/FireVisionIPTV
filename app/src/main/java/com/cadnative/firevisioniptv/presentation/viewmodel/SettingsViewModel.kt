@@ -132,6 +132,7 @@ class SettingsViewModel @Inject constructor(
 
         if (url.isEmpty() || code.isEmpty()) return false
         if (!url.startsWith("http://") && !url.startsWith("https://")) return false
+        if (!android.util.Patterns.WEB_URL.matcher(url).matches()) return false
 
         viewModelScope.launch(Dispatchers.IO) {
             val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -461,7 +462,7 @@ class SettingsViewModel @Inject constructor(
     private fun formatFileSize(bytes: Long): String {
         if (bytes <= 0) return ""
         if (bytes < 1024) return "$bytes B"
-        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt()
+        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt().coerceIn(1, 6)
         val pre = "KMGTPE"[exp - 1]
         return "%.1f %sB".format(bytes / 1024.0.pow(exp.toDouble()), pre)
     }

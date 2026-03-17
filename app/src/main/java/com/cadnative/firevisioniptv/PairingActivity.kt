@@ -25,6 +25,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import com.cadnative.firevisioniptv.data.AppPreferences
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -130,10 +131,11 @@ class PairingActivity : ComponentActivity() {
         showRetryButton = false
 
         Thread {
+            var connection: HttpURLConnection? = null
             try {
                 val baseUrl = SettingsActivity.getServerUrl(this)
                 val url = URL("$baseUrl/api/v1/tv/pairing/request")
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = CONNECT_TIMEOUT_MS
                 connection.readTimeout = READ_TIMEOUT_MS
                 connection.requestMethod = "POST"
@@ -174,11 +176,11 @@ class PairingActivity : ComponentActivity() {
                 } else {
                     showError("Server error: $responseCode")
                 }
-
-                connection.disconnect()
             } catch (e: Exception) {
                 Log.e(TAG, "Error requesting pairing", e)
                 showError("Connection error: ${e.message}")
+            } finally {
+                connection?.disconnect()
             }
         }.start()
     }
@@ -203,10 +205,11 @@ class PairingActivity : ComponentActivity() {
 
     private fun checkPairingStatus() {
         Thread {
+            var connection: HttpURLConnection? = null
             try {
                 val baseUrl = SettingsActivity.getServerUrl(this)
                 val url = URL("$baseUrl/api/v1/tv/pairing/status/$currentPin")
-                val connection = url.openConnection() as HttpURLConnection
+                connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = CONNECT_TIMEOUT_MS
                 connection.readTimeout = POLL_READ_TIMEOUT_MS
                 connection.requestMethod = "GET"
@@ -227,10 +230,10 @@ class PairingActivity : ComponentActivity() {
                         showError("PIN expired. Please generate a new one.")
                     }
                 }
-
-                connection.disconnect()
             } catch (e: Exception) {
                 Log.e(TAG, "Error checking pairing status", e)
+            } finally {
+                connection?.disconnect()
             }
         }.start()
     }
@@ -304,7 +307,7 @@ class PairingActivity : ComponentActivity() {
         }
 
         val prefs: SharedPreferences = getSharedPreferences("FireVisionSettings", MODE_PRIVATE)
-        prefs.edit().putString("tv_code", "5T6FEP").apply()
+        prefs.edit().putString("tv_code", AppPreferences.DEFAULT_TV_CODE).apply()
 
         Toast.makeText(this, "Using default channel list", Toast.LENGTH_SHORT).show()
 

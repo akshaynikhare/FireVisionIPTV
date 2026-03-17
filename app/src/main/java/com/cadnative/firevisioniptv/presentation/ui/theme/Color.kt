@@ -49,6 +49,11 @@ val SelectionOverlay = Color(0x1AFFFFFF)
 // ── Borders ─────────────────────────────────────────────────────────
 val SubtleBorder = Color(0x10FFFFFF)
 
+// ── Standardized emphasis opacities ──────────────────────────────────
+const val EmphasisHigh = 0.87f
+const val EmphasisMedium = 0.6f
+const val EmphasisDisabled = 0.38f
+
 // ── Background gradient glows ────────────────────────────────────
 val AmberGlow = Color(0x08E8A849)       // ~3% opacity Amber
 val SteelBlueGlow = Color(0x086B8EAE)   // ~3% opacity Steel Blue

@@ -69,7 +69,7 @@ fun ChannelOverlay(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f))
             )
         }
 
@@ -145,7 +145,7 @@ private fun NowPlayingBar(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0.7f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
                         Color.Transparent
                     )
                 )
@@ -205,7 +205,7 @@ private fun NowPlayingBar(
                     text = "LIVE",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onError,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )
             }

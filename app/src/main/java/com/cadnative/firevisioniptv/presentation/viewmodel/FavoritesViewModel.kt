@@ -100,48 +100,60 @@ class FavoritesViewModel @Inject constructor(
     fun reorderFavorite(channelId: String, newPosition: Int) {
         viewModelScope.launch {
             reorderMutex.withLock {
-                val currentFavorites = _uiState.value.favorites
-                val currentIndex = currentFavorites.indexOfFirst { it.id == channelId }
+                performReorder(channelId, newPosition)
+            }
+        }
+    }
 
-                if (currentIndex != -1 && newPosition in currentFavorites.indices) {
-                    val mutableList = currentFavorites.toMutableList()
-                    val item = mutableList.removeAt(currentIndex)
-                    mutableList.add(newPosition, item)
+    private suspend fun performReorder(channelId: String, newPosition: Int) {
+        val currentFavorites = _uiState.value.favorites
+        val currentIndex = currentFavorites.indexOfFirst { it.id == channelId }
 
-                    _uiState.update { it.copy(favorites = mutableList) }
+        if (currentIndex != -1 && newPosition in currentFavorites.indices) {
+            val mutableList = currentFavorites.toMutableList()
+            val item = mutableList.removeAt(currentIndex)
+            mutableList.add(newPosition, item)
 
-                    val params = ReorderFavoritesUseCase.Params(
-                        channelId = channelId,
-                        newOrder = newPosition
+            _uiState.update { it.copy(favorites = mutableList) }
+
+            val params = ReorderFavoritesUseCase.Params(
+                channelId = channelId,
+                newOrder = newPosition
+            )
+
+            val result = reorderFavoritesUseCase(params)
+
+            if (result is Result.Error) {
+                _uiState.update {
+                    it.copy(
+                        error = result.exception.message ?: "Failed to reorder favorites"
                     )
-
-                    val result = reorderFavoritesUseCase(params)
-
-                    if (result is Result.Error) {
-                        _uiState.update {
-                            it.copy(
-                                error = result.exception.message ?: "Failed to reorder favorites"
-                            )
-                        }
-                        loadFavorites()
-                    }
                 }
+                loadFavorites()
             }
         }
     }
 
     fun moveFavoriteUp(channelId: String) {
-        val currentIndex = _uiState.value.favorites.indexOfFirst { it.id == channelId }
-        if (currentIndex > 0) {
-            reorderFavorite(channelId, currentIndex - 1)
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                val currentIndex = _uiState.value.favorites.indexOfFirst { it.id == channelId }
+                if (currentIndex > 0) {
+                    performReorder(channelId, currentIndex - 1)
+                }
+            }
         }
     }
 
     fun moveFavoriteDown(channelId: String) {
-        val favorites = _uiState.value.favorites
-        val currentIndex = favorites.indexOfFirst { it.id == channelId }
-        if (currentIndex != -1 && currentIndex < favorites.size - 1) {
-            reorderFavorite(channelId, currentIndex + 1)
+        viewModelScope.launch {
+            reorderMutex.withLock {
+                val favorites = _uiState.value.favorites
+                val currentIndex = favorites.indexOfFirst { it.id == channelId }
+                if (currentIndex != -1 && currentIndex < favorites.size - 1) {
+                    performReorder(channelId, currentIndex + 1)
+                }
+            }
         }
     }
 

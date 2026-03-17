@@ -31,7 +31,7 @@ fun EmptyState(
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
-                contentDescription = "Empty",
+                contentDescription = message,
                 tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )

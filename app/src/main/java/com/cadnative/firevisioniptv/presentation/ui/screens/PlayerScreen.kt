@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -175,7 +176,7 @@ fun PlayerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.scrim)
     ) {
         // Video player — always present when channel is loaded and no initial error
         if (uiState.channel != null && !uiState.isLoading && uiState.error == null) {
@@ -242,11 +243,11 @@ fun PlayerScreen(
                     .padding(16.dp)
                     .size(48.dp)
                     .background(
-                        color = Color.Black.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
                         shape = CircleShape
                     ),
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = if (isFavorite) Color.Red else Color.White
+                    contentColor = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
             ) {
                 Icon(

@@ -198,7 +198,7 @@ private fun ChannelCardContent(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = gradientAlpha)
+                            MaterialTheme.colorScheme.scrim.copy(alpha = gradientAlpha)
                         )
                     )
                 )
@@ -262,7 +262,7 @@ private fun ChannelCardContent(
             Text(
                 text = "Hold to favorite",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
     }
@@ -308,7 +308,7 @@ private fun HealthIndicatorDot(
             .size(10.dp)
             .clip(CircleShape)
             .background(dotColor.copy(alpha = alpha))
-            .border(1.dp, Color.Black.copy(alpha = 0.4f), CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f), CircleShape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) { }
