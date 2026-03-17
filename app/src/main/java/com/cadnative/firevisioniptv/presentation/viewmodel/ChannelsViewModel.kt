@@ -34,6 +34,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val RECENTLY_WATCHED_LIMIT = 20
+private const val FEATURED_CHANNELS_LIMIT = 5
+private const val POPULAR_CATEGORIES_LIMIT = 10
+private const val HEALTH_SCAN_DEBOUNCE_MS = 500L
+private const val CATEGORY_UPDATE_DEBOUNCE_MS = 1_000L
+
 @HiltViewModel
 class ChannelsViewModel @Inject constructor(
     private val getChannelsUseCase: GetChannelsUseCase,
@@ -126,14 +132,14 @@ class ChannelsViewModel @Inject constructor(
         // Recently watched — auto-updates when user watches a new channel
         viewModelScope.launch {
             try {
-                playbackPositionDao.observeRecentlyWatchedIds(20)
+                playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT)
                     .flatMapLatest { recentIds ->
                         if (recentIds.isEmpty()) {
                             val empty = emptyList<ChannelUiModel>()
                             flowOf(empty to empty)
                         } else {
                             channelHealthDao.getAllHealth()
-                                .debounce(500) // Avoid UI churn during health scans
+                                .debounce(HEALTH_SCAN_DEBOUNCE_MS)
                                 .map { health ->
                                     val recentEntities = channelDao.getChannelsByIds(recentIds)
                                     val favIds = favoriteDao.getFavoriteChannelIds().toSet()
@@ -145,7 +151,7 @@ class ChannelsViewModel @Inject constructor(
                                     // Preserve the order from recentIds
                                     val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
                                     val sortedRecent = recentUi.sortedBy { idOrder[it.id] ?: Int.MAX_VALUE }
-                                    sortedRecent to sortedRecent.take(5)
+                                    sortedRecent to sortedRecent.take(FEATURED_CHANNELS_LIMIT)
                                 }
                         }
                     }
@@ -163,7 +169,7 @@ class ChannelsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 combine(
-                    playbackPositionDao.observePopularCategoryIds(10),
+                    playbackPositionDao.observePopularCategoryIds(POPULAR_CATEGORIES_LIMIT),
                     favoriteCategoryDao.getAllFavoriteCategoryNames(),
                     channelDao.getAllChannels(),
                     channelHealthDao.getAllHealth()
@@ -188,7 +194,7 @@ class ChannelsViewModel @Inject constructor(
                         )
                     }
                 }
-                    .debounce(1000) // Health scans update many rows; batch UI updates
+                    .debounce(CATEGORY_UPDATE_DEBOUNCE_MS)
                     .collect { popular ->
                         _uiState.update { it.copy(popularCategories = popular) }
                     }

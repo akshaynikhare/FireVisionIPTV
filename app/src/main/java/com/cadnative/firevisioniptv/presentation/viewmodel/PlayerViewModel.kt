@@ -30,6 +30,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val POSITION_SAVE_INTERVAL_MS = 5_000L
+private const val DEAD_STREAM_COUNTDOWN_SECONDS = 5
+private const val COUNTDOWN_TICK_MS = 1_000L
+private const val FINAL_SAVE_TIMEOUT_MS = 3_000L
+
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val getChannelByIdUseCase: GetChannelByIdUseCase,
@@ -125,7 +130,7 @@ class PlayerViewModel @Inject constructor(
         savePositionJob?.cancel()
         savePositionJob = viewModelScope.launch {
             while (true) {
-                delay(5000)
+                delay(POSITION_SAVE_INTERVAL_MS)
                 saveCurrentPosition()
             }
         }
@@ -409,13 +414,13 @@ class PlayerViewModel @Inject constructor(
     private fun startDeadStreamCountdown() {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
-            for (seconds in 5 downTo 0) {
+            for (seconds in DEAD_STREAM_COUNTDOWN_SECONDS downTo 0) {
                 _uiState.update { it.copy(deadStreamCountdown = seconds) }
                 if (seconds == 0) {
                     _uiState.update { it.copy(shouldNavigateBack = true) }
                     return@launch
                 }
-                delay(1000L)
+                delay(COUNTDOWN_TICK_MS)
             }
         }
     }
@@ -443,7 +448,7 @@ class PlayerViewModel @Inject constructor(
         val job = SupervisorJob()
         CoroutineScope(Dispatchers.IO + job).launch {
             try {
-                kotlinx.coroutines.withTimeout(3000L) {
+                kotlinx.coroutines.withTimeout(FINAL_SAVE_TIMEOUT_MS) {
                     savePlaybackPositionUseCase(
                         SavePlaybackPositionUseCase.Params(
                             channelId = channelId,

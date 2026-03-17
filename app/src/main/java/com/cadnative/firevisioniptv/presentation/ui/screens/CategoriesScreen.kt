@@ -34,6 +34,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.EmptyState
+import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
@@ -74,6 +75,7 @@ fun CategoriesScreen(
         ) {
             val contentState = when {
                 uiState.isLoading && uiState.categories.isEmpty() -> "loading"
+                uiState.error != null && uiState.categories.isEmpty() -> "error"
                 uiState.categories.isEmpty() -> "empty"
                 else -> "content"
             }
@@ -85,6 +87,10 @@ fun CategoriesScreen(
             ) { state ->
                 when (state) {
                     "loading" -> LoadingIndicator(message = "Loading categories...")
+                    "error" -> ErrorState(
+                        message = uiState.error ?: "Failed to load categories",
+                        onRetry = { viewModel.loadChannels() }
+                    )
                     "empty" -> EmptyState(message = "No categories available")
                     else -> {
                         val categoriesWithCount = remember(uiState.channels) {

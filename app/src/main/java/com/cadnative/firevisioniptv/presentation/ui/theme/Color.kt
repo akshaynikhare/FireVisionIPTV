@@ -188,11 +188,3 @@ fun categoryIcon(category: String): ImageVector = when (category.lowercase(Local
     "xxx" -> Icons.Filled.Block
     else -> Icons.Filled.LiveTv
 }
-
-// ── Legacy aliases (keep references working across codebase) ────────
-val FireOrange = Amber
-val FireOrangeDark = AmberDark
-val FireOrangeLight = AmberLight
-val FireBlue = SteelBlue
-val FireBlueDark = SteelBlueDark
-val FireBlueLight = SteelBlueLight
