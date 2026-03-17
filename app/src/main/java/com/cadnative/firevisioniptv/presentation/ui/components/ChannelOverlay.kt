@@ -23,6 +23,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import android.view.KeyEvent
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -226,7 +228,8 @@ private fun BottomChannelPanel(
     modifier: Modifier = Modifier
 ) {
     val channelListState = rememberLazyListState()
-    val focusRequester = remember { FocusRequester() }
+    val categoryFocusRequester = remember { FocusRequester() }
+    val channelFocusRequester = remember { FocusRequester() }
 
     // Auto-scroll to the current channel when overlay appears
     val currentIndex = channels.indexOfFirst { it.id == currentChannel?.id }
@@ -239,14 +242,16 @@ private fun BottomChannelPanel(
         }
     }
 
-    // Request focus on the channel row
-    LaunchedEffect(channels) {
-        if (channels.isNotEmpty()) {
-            try {
-                focusRequester.requestFocus()
-            } catch (_: Exception) {
-                // Focus request can fail if not yet attached
+    // Request focus on the category chips first (TV-friendly)
+    LaunchedEffect(categories, channels) {
+        try {
+            if (categories.isNotEmpty()) {
+                categoryFocusRequester.requestFocus()
+            } else if (channels.isNotEmpty()) {
+                channelFocusRequester.requestFocus()
             }
+        } catch (_: Exception) {
+            // Focus request can fail if not yet attached
         }
     }
 
@@ -284,12 +289,22 @@ private fun BottomChannelPanel(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Category chips
+        // Category chips — focusable for TV D-Pad navigation
         if (categories.isNotEmpty()) {
             OverlayCategoryChips(
                 categories = categories,
                 selectedCategory = selectedCategory,
-                onCategorySelected = onCategorySelected
+                onCategorySelected = onCategorySelected,
+                modifier = Modifier
+                    .focusRequester(categoryFocusRequester)
+                    .focusProperties { down = channelFocusRequester }
+                    .onKeyEvent { keyEvent ->
+                        if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+                        if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                            try { channelFocusRequester.requestFocus() } catch (_: Exception) {}
+                            true
+                        } else false
+                    }
             )
             Spacer(modifier = Modifier.height(14.dp))
         }
@@ -313,7 +328,16 @@ private fun BottomChannelPanel(
                 state = channelListState,
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.focusRequester(focusRequester)
+                modifier = Modifier
+                    .focusRequester(channelFocusRequester)
+                    .focusProperties { up = categoryFocusRequester }
+                    .onKeyEvent { keyEvent ->
+                        if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+                        if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                            try { categoryFocusRequester.requestFocus() } catch (_: Exception) {}
+                            true
+                        } else false
+                    }
             ) {
                 itemsIndexed(channels, key = { _, ch -> ch.id }) { index, channel ->
                     val isCurrentChannel = channel.id == currentChannel?.id

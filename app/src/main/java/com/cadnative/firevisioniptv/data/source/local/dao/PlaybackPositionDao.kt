@@ -55,6 +55,45 @@ interface PlaybackPositionDao {
     suspend fun deleteAllPositions()
     
     /**
+     * Get channel IDs of recently watched channels (one-shot).
+     */
+    @Query("SELECT channelId FROM playback_positions ORDER BY lastPlayed DESC LIMIT :limit")
+    suspend fun getRecentlyWatchedIds(limit: Int = 20): List<String>
+
+    /**
+     * Observe channel IDs of recently watched channels (reactive).
+     * Re-emits whenever playback_positions table changes.
+     */
+    @Query("SELECT channelId FROM playback_positions ORDER BY lastPlayed DESC LIMIT :limit")
+    fun observeRecentlyWatchedIds(limit: Int = 20): Flow<List<String>>
+
+    /**
+     * Get popular category IDs based on recent plays (one-shot).
+     */
+    @Query("""
+        SELECT c.categoryId FROM playback_positions p
+        INNER JOIN channels c ON p.channelId = c.id
+        WHERE c.isActive = 1
+        GROUP BY c.categoryId
+        ORDER BY COUNT(*) DESC
+        LIMIT :limit
+    """)
+    suspend fun getPopularCategoryIds(limit: Int = 10): List<String>
+
+    /**
+     * Observe popular category IDs based on recent plays (reactive).
+     */
+    @Query("""
+        SELECT c.categoryId FROM playback_positions p
+        INNER JOIN channels c ON p.channelId = c.id
+        WHERE c.isActive = 1
+        GROUP BY c.categoryId
+        ORDER BY COUNT(*) DESC
+        LIMIT :limit
+    """)
+    fun observePopularCategoryIds(limit: Int = 10): Flow<List<String>>
+
+    /**
      * Delete old playback positions, keeping only the most recent ones.
      * 
      * @param keepCount Number of recent positions to keep

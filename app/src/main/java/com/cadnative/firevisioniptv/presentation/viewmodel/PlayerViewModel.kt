@@ -1,10 +1,12 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsUseCase
@@ -28,14 +30,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * ViewModel for the player screen.
- * 
- * Manages playback state, channel information, and periodically saves
- * playback position for resume functionality.
- * 
- * Requirements: US-004 (Better Video Playback)
- */
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val getChannelByIdUseCase: GetChannelByIdUseCase,
@@ -45,7 +39,8 @@ class PlayerViewModel @Inject constructor(
     private val getPlaybackPositionUseCase: GetPlaybackPositionUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val channelUiMapper: ChannelUiMapper,
-    private val channelHealthDao: ChannelHealthDao
+    private val channelHealthDao: ChannelHealthDao,
+    private val thumbnailExtractor: ChannelThumbnailExtractor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -58,11 +53,6 @@ class PlayerViewModel @Inject constructor(
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
 
-    /**
-     * Load a channel for playback.
-     *
-     * @param channelId The ID of the channel to load
-     */
     fun loadChannel(channelId: String) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
@@ -77,9 +67,9 @@ class PlayerViewModel @Inject constructor(
                                 error = null
                             )
                         }
-                        
-                        // Load saved playback position
                         loadPlaybackPosition(channelId)
+                        // Preload channel list for next/prev navigation
+                        preloadChannelList()
                     }
                     is Result.Error -> {
                         _uiState.update {
@@ -93,10 +83,7 @@ class PlayerViewModel @Inject constructor(
             }
         }
     }
-    
-    /**
-     * Load the saved playback position for the current channel.
-     */
+
     private fun loadPlaybackPosition(channelId: String) {
         playbackPositionJob?.cancel()
         playbackPositionJob = viewModelScope.launch {
@@ -112,96 +99,57 @@ class PlayerViewModel @Inject constructor(
                             }
                         }
                     }
-                    is Result.Error -> {
-                        // Silently fail - start from beginning
-                    }
+                    is Result.Error -> { /* Start from beginning */ }
                 }
             }
         }
     }
-    
-    /**
-     * Update playback state.
-     * 
-     * @param isPlaying Whether playback is active
-     * @param position Current playback position in milliseconds
-     * @param duration Total duration in milliseconds
-     */
+
     fun updatePlaybackState(isPlaying: Boolean, position: Long, duration: Long) {
         _uiState.update {
-            it.copy(
-                isPlaying = isPlaying,
-                position = position,
-                duration = duration
-            )
+            it.copy(isPlaying = isPlaying, position = position, duration = duration)
         }
-        
-        // Start periodic position saving when playing
         if (isPlaying) {
             startPeriodicPositionSaving()
         } else {
             stopPeriodicPositionSaving()
-            // Save position immediately when paused
             saveCurrentPosition()
         }
     }
-    
-    /**
-     * Update buffering state.
-     * 
-     * @param isBuffering Whether the player is currently buffering
-     */
+
     fun updateBufferingState(isBuffering: Boolean) {
         _uiState.update { it.copy(isBuffering = isBuffering) }
     }
-    
-    /**
-     * Start periodically saving playback position.
-     * 
-     * Saves position every 5 seconds during playback.
-     */
+
     private fun startPeriodicPositionSaving() {
-        // Cancel existing job if any
         savePositionJob?.cancel()
-        
         savePositionJob = viewModelScope.launch {
             while (true) {
-                delay(5000) // Save every 5 seconds
+                delay(5000)
                 saveCurrentPosition()
             }
         }
     }
-    
-    /**
-     * Stop periodic position saving.
-     */
+
     private fun stopPeriodicPositionSaving() {
         savePositionJob?.cancel()
         savePositionJob = null
     }
-    
-    /**
-     * Save the current playback position.
-     */
+
     private fun saveCurrentPosition() {
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
-        
         viewModelScope.launch {
-            val params = SavePlaybackPositionUseCase.Params(
-                channelId = channelId,
-                position = state.position,
-                duration = state.duration
+            savePlaybackPositionUseCase(
+                SavePlaybackPositionUseCase.Params(
+                    channelId = channelId,
+                    position = state.position,
+                    duration = state.duration
+                )
             )
-            
-            savePlaybackPositionUseCase(params)
-            // Silently fail - not critical
         }
     }
-    
-    /**
-     * Toggle favorite status for the current channel.
-     */
+
     fun toggleFavorite() {
         val channelId = _uiState.value.channel?.id ?: return
         viewModelScope.launch {
@@ -216,12 +164,24 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Save a thumbnail captured from ExoPlayer for the current channel.
+     */
+    fun saveThumbnailFromPlayer(bitmap: Bitmap) {
+        val channelId = _uiState.value.channel?.id ?: return
+        viewModelScope.launch {
+            thumbnailExtractor.saveThumbnailBitmap(channelId, bitmap)
+        }
+    }
+
     // ── Channel Overlay ─────────────────────────────────────────────
 
     fun showOverlay() {
         _uiState.update { it.copy(showChannelOverlay = true) }
+        // Default to current channel's category
+        val currentCategory = _uiState.value.channel?.category
         if (_uiState.value.overlayChannels.isEmpty()) {
-            loadChannelList()
+            loadChannelList(currentCategory)
         }
         resetAutoHideTimer()
     }
@@ -231,10 +191,27 @@ class PlayerViewModel @Inject constructor(
         autoHideJob?.cancel()
     }
 
+    /**
+     * Preload all channels so next/prev works even before overlay is opened.
+     */
+    private fun preloadChannelList() {
+        if (_uiState.value.overlayChannels.isEmpty()) {
+            loadChannelListInternal(null, updateSelection = false)
+        }
+    }
+
     fun loadChannelList(category: String? = null) {
+        loadChannelListInternal(category, updateSelection = true)
+    }
+
+    private fun loadChannelListInternal(category: String?, updateSelection: Boolean) {
         channelListJob?.cancel()
         channelListJob = viewModelScope.launch {
-            _uiState.update { it.copy(overlayIsLoadingChannels = true, overlaySelectedCategory = category) }
+            if (updateSelection) {
+                _uiState.update { it.copy(overlayIsLoadingChannels = true, overlaySelectedCategory = category) }
+            } else {
+                _uiState.update { it.copy(overlayIsLoadingChannels = true) }
+            }
 
             val channelFlow = if (category != null) {
                 getChannelsByCategoryUseCase(category)
@@ -248,7 +225,8 @@ class PlayerViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
-                        val categories = if (category == null) {
+                        // Always load all categories when loading all channels
+                        val categories = if (category == null || _uiState.value.overlayCategories.isEmpty()) {
                             uiChannels.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
                         } else {
                             _uiState.value.overlayCategories
@@ -269,12 +247,31 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    // ── Next / Previous Channel (D-Pad & remote buttons) ───────────
+
+    fun nextChannel() {
+        val channels = _uiState.value.overlayChannels
+        if (channels.isEmpty()) return
+        val currentId = _uiState.value.channel?.id
+        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val nextIndex = if (currentIndex < 0 || currentIndex >= channels.size - 1) 0 else currentIndex + 1
+        switchChannel(channels[nextIndex].id)
+    }
+
+    fun previousChannel() {
+        val channels = _uiState.value.overlayChannels
+        if (channels.isEmpty()) return
+        val currentId = _uiState.value.channel?.id
+        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val prevIndex = if (currentIndex <= 0) channels.size - 1 else currentIndex - 1
+        switchChannel(channels[prevIndex].id)
+    }
+
     fun switchChannel(channelId: String) {
         if (channelId == _uiState.value.channel?.id) {
             hideOverlay()
             return
         }
-        // Reset recovery/dead-stream state for the new channel
         countdownJob?.cancel()
         _uiState.update {
             it.copy(
@@ -326,7 +323,6 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleOverlayFavorite(channelId: String) {
         viewModelScope.launch {
-            // Optimistic update on overlay list
             _uiState.update { state ->
                 state.copy(
                     overlayChannels = state.overlayChannels.map { ch ->
@@ -336,7 +332,6 @@ class PlayerViewModel @Inject constructor(
             }
             val result = toggleFavoriteUseCase(channelId)
             if (result is Result.Error) {
-                // Revert on failure
                 _uiState.update { state ->
                     state.copy(
                         overlayChannels = state.overlayChannels.map { ch ->
@@ -345,7 +340,6 @@ class PlayerViewModel @Inject constructor(
                     )
                 }
             } else if (channelId == _uiState.value.channel?.id) {
-                // Also update current channel if same (only on success)
                 _uiState.update { state ->
                     state.channel?.let { ch ->
                         state.copy(channel = ch.copy(isFavorite = !ch.isFavorite))
@@ -391,7 +385,6 @@ class PlayerViewModel @Inject constructor(
 
     fun onStreamDead(errorMessage: String) {
         val channelId = _uiState.value.channel?.id ?: return
-
         _uiState.update {
             it.copy(
                 isRecovering = false,
@@ -401,8 +394,6 @@ class PlayerViewModel @Inject constructor(
                 error = null
             )
         }
-
-        // Mark channel OFFLINE in health database
         viewModelScope.launch {
             channelHealthDao.upsertPreservingThumbnail(
                 channelId = channelId,
@@ -412,7 +403,6 @@ class PlayerViewModel @Inject constructor(
                 errorMessage = errorMessage
             )
         }
-
         startDeadStreamCountdown()
     }
 
@@ -440,7 +430,7 @@ class PlayerViewModel @Inject constructor(
     fun onNavigatedBack() {
         _uiState.update { it.copy(shouldNavigateBack = false) }
     }
-    
+
     override fun onCleared() {
         super.onCleared()
         stopPeriodicPositionSaving()
@@ -448,8 +438,6 @@ class PlayerViewModel @Inject constructor(
         channelListJob?.cancel()
         autoHideJob?.cancel()
         countdownJob?.cancel()
-        // viewModelScope is already cancelled at this point, so use a dedicated scope
-        // for the final position save. Use withTimeout to prevent leaking.
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
         val job = SupervisorJob()
