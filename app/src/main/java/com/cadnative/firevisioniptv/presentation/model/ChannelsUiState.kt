@@ -1,15 +1,18 @@
 package com.cadnative.firevisioniptv.presentation.model
 
-/**
- * UI state for the channels screen.
- * 
- * Represents the complete state of the channels screen including
- * data, loading status, errors, and selected filters.
- */
 data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
     val categories: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val selectedCategory: String? = null
+    val selectedCategory: String? = null,
+    // HomeScreen: Featured & Recently Watched
+    val featuredChannels: List<ChannelUiModel> = emptyList(),
+    val recentlyWatched: List<ChannelUiModel> = emptyList(),
+    // HomeScreen: Popular categories slider
+    val popularCategories: List<PopularCategoryUiModel> = emptyList(),
+    // Category logos (category name → up to 4 channel logo URLs for collage)
+    val categoryLogos: Map<String, List<String>> = emptyMap(),
+    // Category favorite names
+    val favoriteCategoryNames: Set<String> = emptySet()
 )

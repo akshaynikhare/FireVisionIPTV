@@ -92,6 +92,9 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE id = :channelId")
     suspend fun getChannelByIdSync(channelId: String): ChannelEntity?
 
+    @Query("SELECT * FROM channels WHERE id IN (:ids) AND isActive = 1")
+    suspend fun getChannelsByIds(ids: List<String>): List<ChannelEntity>
+
     @Query("DELETE FROM channels WHERE id NOT IN (:ids)")
     suspend fun deleteChannelsNotIn(ids: List<String>)
 }

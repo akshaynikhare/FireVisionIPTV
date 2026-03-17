@@ -78,6 +78,12 @@ interface FavoriteDao {
     fun getAllFavorites(): Flow<List<FavoriteEntity>>
     
     /**
+     * Get all favorite channel IDs as a simple list.
+     */
+    @Query("SELECT channelId FROM favorites")
+    suspend fun getFavoriteChannelIds(): List<String>
+
+    /**
      * Delete all favorites from the database.
      */
     @Query("DELETE FROM favorites")

@@ -52,8 +52,11 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceElevated
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
+import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -155,7 +158,7 @@ private fun ChannelCardContent(
     val catColor = categoryColor(channel.category)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Prefer live thumbnail over static logo
+        // Resolve thumbnail file on IO thread
         var thumbnailFile by remember(channel.thumbnailPath) { mutableStateOf<File?>(null) }
         LaunchedEffect(channel.thumbnailPath) {
             thumbnailFile = withContext(Dispatchers.IO) {
@@ -164,20 +167,112 @@ private fun ChannelCardContent(
                 }
             }
         }
-        val imageModel = thumbnailFile ?: channel.logoUrl
 
-        // Image with subtle zoom on focus
-        AsyncImage(
-            model = imageModel,
-            contentDescription = channel.name,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = imageScale
-                    scaleY = imageScale
-                },
-            contentScale = ContentScale.Crop
-        )
+        val hasThumbnail = thumbnailFile != null
+        val hasLogo = channel.logoUrl != null
+
+        // ── Background layers based on available assets ──────────────
+
+        when {
+            // Case 2: Both logo + thumbnail → thumbnail bg + tint + logo overlay
+            hasLogo && hasThumbnail -> {
+                AsyncImage(
+                    model = thumbnailFile,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { scaleX = imageScale; scaleY = imageScale },
+                    contentScale = ContentScale.Crop
+                )
+                // Dark tint so logo pops
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f))
+                )
+                // Logo overlay — centered, slightly above bottom text
+                Card(
+                    shape = MaterialTheme.shapes.small,
+                    colors = CardDefaults.cardColors(containerColor = SurfaceElevated.copy(alpha = 0.75f)),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-8).dp)
+                        .size(40.dp)
+                ) {
+                    AsyncImage(
+                        model = channel.logoUrl,
+                        contentDescription = channel.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+
+            // Case 1: Logo only → category gradient bg + logo centered
+            hasLogo -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(catColor.copy(alpha = 0.15f), catColor.copy(alpha = 0.03f))
+                            )
+                        )
+                )
+                AsyncImage(
+                    model = channel.logoUrl,
+                    contentDescription = channel.name,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-8).dp)
+                        .size(48.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
+            // Case 3: Thumbnail only → thumbnail bg + darker tint (name is sole identifier)
+            hasThumbnail -> {
+                AsyncImage(
+                    model = thumbnailFile,
+                    contentDescription = channel.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { scaleX = imageScale; scaleY = imageScale },
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                )
+            }
+
+            // Case 4: Neither → category gradient + category icon as placeholder
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(catColor.copy(alpha = 0.2f), catColor.copy(alpha = 0.05f))
+                            )
+                        )
+                )
+                Icon(
+                    imageVector = categoryIcon(channel.category),
+                    contentDescription = null,
+                    tint = catColor.copy(alpha = 0.3f),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = (-8).dp)
+                        .size(36.dp)
+                )
+            }
+        }
+
+        // ── Common overlays (all states) ─────────────────────────────
 
         // Category accent line at top
         Box(
@@ -188,23 +283,23 @@ private fun ChannelCardContent(
                 .background(catColor.copy(alpha = 0.8f))
         )
 
-        // Cinematic gradient overlay — deepens on focus
+        // Bottom gradient for text readability
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .fillMaxHeight(0.55f)
+                .fillMaxHeight(0.45f)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = gradientAlpha)
+                            MaterialTheme.colorScheme.scrim.copy(alpha = gradientAlpha)
                         )
                     )
                 )
         )
 
-        // Channel name
+        // Channel name — bottom-left
         Text(
             text = channel.name,
             style = MaterialTheme.typography.bodyMedium,
@@ -214,7 +309,7 @@ private fun ChannelCardContent(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         )
 
         // Top-right row: favorite star + health indicator
@@ -225,7 +320,6 @@ private fun ChannelCardContent(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Animated favorite star
             AnimatedVisibility(
                 visible = channel.isFavorite,
                 enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)) + scaleIn(
@@ -250,7 +344,7 @@ private fun ChannelCardContent(
             }
         }
 
-        // Long-press hint when focused — animated fade-in
+        // Long-press hint when focused
         AnimatedVisibility(
             visible = isFocused,
             modifier = Modifier
@@ -262,7 +356,7 @@ private fun ChannelCardContent(
             Text(
                 text = "Hold to favorite",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f)
+                color = TextDim
             )
         }
     }
@@ -308,7 +402,7 @@ private fun HealthIndicatorDot(
             .size(10.dp)
             .clip(CircleShape)
             .background(dotColor.copy(alpha = alpha))
-            .border(1.dp, Color.Black.copy(alpha = 0.4f), CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f), CircleShape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) { }

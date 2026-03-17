@@ -122,7 +122,7 @@ fun SettingsScreen(
                 modifier = Modifier.animateItemEntrance(index = 3)
             ) {
                 Text(
-                    text = "Long-press on any channel to set it as auto-load on startup",
+                    text = "Hold OK button on any channel to set it as auto-load on startup",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -255,7 +255,7 @@ private fun ServerConfigCard(
     SettingsCard(title = "Server Configuration", modifier = modifier) {
         Text(
             text = "Server URL",
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -281,7 +281,7 @@ private fun ServerConfigCard(
 
         Text(
             text = "TV Pairing Code",
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(6.dp))

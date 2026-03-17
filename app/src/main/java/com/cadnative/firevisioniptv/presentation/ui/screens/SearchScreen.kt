@@ -84,7 +84,7 @@ fun SearchScreen(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = null,
+                    contentDescription = "Search",
                     tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
@@ -196,7 +196,7 @@ private fun SearchPrompt(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             modifier = Modifier.size(56.dp)
         )
         Spacer(modifier = Modifier.height(20.dp))
@@ -291,7 +291,7 @@ private fun NoResultsState(
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f),
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             modifier = Modifier.size(48.dp)
         )
         Spacer(modifier = Modifier.height(20.dp))

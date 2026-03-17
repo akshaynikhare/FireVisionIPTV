@@ -7,12 +7,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
+import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.dao.SearchHistoryDao
 import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
+import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.PlaybackPositionEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
@@ -41,9 +43,10 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
         FavoriteEntity::class,
         SearchHistoryEntity::class,
         PlaybackPositionEntity::class,
-        ChannelHealthEntity::class
+        ChannelHealthEntity::class,
+        FavoriteCategoryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -76,7 +79,7 @@ abstract class FireVisionDatabase : RoomDatabase() {
             }
         }
 
-        /** v3→v4: Add unique index on favorites.channelId, add unique index on search_history.query */
+        /** v3→v4: Add unique index on favorites.channelId and search_history.query */
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Remove duplicate favorites keeping the earliest entry per channelId
@@ -86,6 +89,20 @@ abstract class FireVisionDatabase : RoomDatabase() {
                 // Remove duplicate search history keeping the latest entry per query
                 db.execSQL("DELETE FROM search_history WHERE id NOT IN (SELECT MAX(id) FROM search_history GROUP BY `query`)")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_search_history_query` ON `search_history` (`query`)")
+            }
+        }
+
+        /** v4→v5: Add favorite_categories table */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `favorite_categories` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `categoryName` TEXT NOT NULL,
+                        `addedAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_favorite_categories_categoryName` ON `favorite_categories` (`categoryName`)")
             }
         }
     }
@@ -119,4 +136,6 @@ abstract class FireVisionDatabase : RoomDatabase() {
      * Provides access to channel health/liveliness data operations.
      */
     abstract fun channelHealthDao(): ChannelHealthDao
+
+    abstract fun favoriteCategoryDao(): FavoriteCategoryDao
 }

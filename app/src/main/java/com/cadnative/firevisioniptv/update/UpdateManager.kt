@@ -79,13 +79,12 @@ class UpdateManager(activity: Activity) {
                             releaseNotes = latest?.optString("releaseNotes", "") ?: ""
                         )
 
-                        activityRef.get()?.runOnUiThread {
+                        val uiActivity = activityRef.get() ?: return@Thread
+                        uiActivity.runOnUiThread {
                             if (versionInfo.updateAvailable) {
                                 showUpdateDialog(versionInfo)
                             } else if (showNoUpdateDialog) {
-                                activityRef.get()?.let {
-                                    Toast.makeText(it, "You are using the latest version", Toast.LENGTH_SHORT).show()
-                                }
+                                Toast.makeText(uiActivity, "You are using the latest version", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -93,10 +92,9 @@ class UpdateManager(activity: Activity) {
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) Log.e(TAG, "Update check failed", e)
                 if (showNoUpdateDialog) {
-                    activityRef.get()?.runOnUiThread {
-                        activityRef.get()?.let {
-                            Toast.makeText(it, "Failed to check for updates", Toast.LENGTH_SHORT).show()
-                        }
+                    val errActivity = activityRef.get() ?: return@Thread
+                    errActivity.runOnUiThread {
+                        Toast.makeText(errActivity, "Failed to check for updates", Toast.LENGTH_SHORT).show()
                     }
                 }
             } finally {
@@ -173,20 +171,22 @@ class UpdateManager(activity: Activity) {
                     if (id == downloadId) {
                         val query = DownloadManager.Query().apply { setFilterById(downloadId) }
                         val cursor = downloadManager.query(query)
+                        try {
+                            if (cursor.moveToFirst()) {
+                                val columnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                                val status = cursor.getInt(columnIndex)
 
-                        if (cursor.moveToFirst()) {
-                            val columnIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                            val status = cursor.getInt(columnIndex)
-
-                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                                activityRef.get()?.let { installUpdate(it) }
-                            } else {
-                                activityRef.get()?.let {
-                                    Toast.makeText(it, "Download failed", Toast.LENGTH_SHORT).show()
+                                if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                    activityRef.get()?.let { installUpdate(it) }
+                                } else {
+                                    activityRef.get()?.let {
+                                        Toast.makeText(it, "Download failed", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             }
+                        } finally {
+                            cursor.close()
                         }
-                        cursor.close()
                     }
                 }
             }
@@ -259,8 +259,9 @@ class UpdateManager(activity: Activity) {
     }
 
     private fun formatFileSize(bytes: Long): String {
+        if (bytes <= 0) return "0 B"
         if (bytes < 1024) return "$bytes B"
-        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt()
+        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt().coerceIn(1, 6)
         val pre = "KMGTPE"[exp - 1]
         return "%.1f %sB".format(bytes / 1024.0.pow(exp.toDouble()), pre)
     }

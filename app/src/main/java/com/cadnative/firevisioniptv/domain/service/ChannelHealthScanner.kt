@@ -104,10 +104,7 @@ class ChannelHealthScanner @Inject constructor(
             scanMutex.withLock {
                 scanJob?.cancel()
                 scanJob = scope.launch {
-            Log.d(TAG, "Manual scan triggered — clearing old results")
-            channelHealthDao.deleteAll()
-            thumbnailExtractor.clearThumbnails()
-
+            Log.d(TAG, "Manual scan triggered — incremental rescan")
             runFullScan()
 
             // Resume auto cycle

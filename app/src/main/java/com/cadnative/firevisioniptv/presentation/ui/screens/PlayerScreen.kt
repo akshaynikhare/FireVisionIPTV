@@ -1,14 +1,24 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.graphics.Bitmap
+import android.view.KeyEvent
+import android.view.TextureView
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -17,10 +27,13 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -41,16 +54,12 @@ import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
-/**
- * Player screen with ExoPlayer integration for IPTV live streaming.
- *
- * Default ExoPlayer controls (seek bar, play/pause, forward/rewind) are
- * disabled — they are not applicable to live streams. Channel switching
- * is handled via the [ChannelOverlay].
- */
+private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
+
 @Composable
 fun PlayerScreen(
     channelId: String,
@@ -70,10 +79,7 @@ fun PlayerScreen(
         }
     }
 
-    // Back press state machine:
-    // 1st back → show overlay
-    // 2nd back → hide overlay
-    // 3rd back within 2s → exit player
+    // Back press state machine
     var recentlyDismissedOverlay by remember { mutableStateOf(false) }
 
     LaunchedEffect(recentlyDismissedOverlay) {
@@ -98,6 +104,15 @@ fun PlayerScreen(
         }
     }
 
+    // Favorite button auto-hide
+    var showFavButton by remember { mutableStateOf(true) }
+    LaunchedEffect(showFavButton) {
+        if (showFavButton) {
+            delay(FAV_BUTTON_AUTO_HIDE_MS)
+            showFavButton = false
+        }
+    }
+
     // Initialize ExoPlayer
     val exoPlayer = remember {
         ExoPlayer.Builder(context)
@@ -107,7 +122,10 @@ fun PlayerScreen(
             }
     }
 
-    // Wire ErrorRecoveryManager for auto-reconnect and dead-stream detection
+    // Keep a ref to PlayerView for thumbnail capture
+    var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
+
+    // Wire ErrorRecoveryManager
     val errorRecoveryManager = remember(exoPlayer) {
         ErrorRecoveryManager(
             player = exoPlayer,
@@ -124,7 +142,7 @@ fun PlayerScreen(
         viewModel.loadChannel(channelId)
     }
 
-    // Set up media item when channel loads (also handles channel switching)
+    // Set up media item when channel loads
     LaunchedEffect(uiState.channel) {
         uiState.channel?.let { channel ->
             val url = channel.streamUrl
@@ -138,10 +156,12 @@ fun PlayerScreen(
                 .build()
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
+            // Reset fav button visibility on channel switch
+            showFavButton = true
         }
     }
 
-    // Playback state listener (error handling is done by ErrorRecoveryManager)
+    // Playback state listener
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -165,6 +185,12 @@ fun PlayerScreen(
         exoPlayer.addListener(listener)
 
         onDispose {
+            // Capture thumbnail before releasing player
+            if (uiState.isPlaying || uiState.channel != null) {
+                capturePlayerThumbnail(playerViewRef)?.let { bitmap ->
+                    viewModel.saveThumbnailFromPlayer(bitmap)
+                }
+            }
             exoPlayer.removeListener(listener)
             errorRecoveryManager.release()
             exoPlayer.stop()
@@ -175,17 +201,44 @@ fun PlayerScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.scrim)
+            .onKeyEvent { keyEvent ->
+                // Only handle key-down events when overlay is NOT visible
+                if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+                if (uiState.showChannelOverlay) return@onKeyEvent false
+
+                when (keyEvent.nativeKeyEvent.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_RIGHT,
+                    KeyEvent.KEYCODE_MEDIA_NEXT,
+                    KeyEvent.KEYCODE_CHANNEL_UP -> {
+                        viewModel.nextChannel()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                    KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                        viewModel.previousChannel()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER -> {
+                        showFavButton = true
+                        true
+                    }
+                    else -> false
+                }
+            }
     ) {
-        // Video player — always present when channel is loaded and no initial error
+        // Video player
         if (uiState.channel != null && !uiState.isLoading && uiState.error == null) {
             VideoPlayer(
                 exoPlayer = exoPlayer,
+                onPlayerViewCreated = { playerViewRef = it },
                 modifier = Modifier.fillMaxSize()
             )
         }
 
-        // Loading / initial error states (full-screen replacements)
+        // Loading / initial error states
         val contentState = when {
             uiState.isLoading -> "loading"
             uiState.error != null && !uiState.isStreamDead && !uiState.isRecovering -> "error"
@@ -206,11 +259,11 @@ fun PlayerScreen(
                         viewModel.loadChannel(channelId)
                     }
                 )
-                else -> { /* Player is rendered separately above */ }
+                else -> { }
             }
         }
 
-        // Recovery overlay (semi-transparent over the player)
+        // Recovery overlay
         AnimatedVisibility(
             visible = uiState.isRecovering,
             enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
@@ -219,7 +272,7 @@ fun PlayerScreen(
             RecoveringOverlay(attempt = uiState.recoveryAttempt, maxAttempts = 5)
         }
 
-        // Dead stream overlay with countdown
+        // Dead stream overlay
         AnimatedVisibility(
             visible = uiState.isStreamDead,
             enter = fadeIn(tween(DURATION_ENTRANCE, easing = EaseOutQuart)),
@@ -232,28 +285,26 @@ fun PlayerScreen(
             )
         }
 
-        // Favorite button overlay — hidden when channel overlay or dead-stream is visible
-        if (uiState.channel != null && !uiState.showChannelOverlay && !uiState.isStreamDead && !uiState.isRecovering) {
-            val isFavorite = uiState.channel?.isFavorite == true
-            IconButton(
-                onClick = { viewModel.toggleFavorite() },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(48.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.5f),
-                        shape = CircleShape
-                    ),
-                colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = if (isFavorite) Color.Red else Color.White
-                )
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
-                )
-            }
+        // Favorite button — bottom-left, auto-hides, focus border, press animation
+        AnimatedVisibility(
+            visible = uiState.channel != null
+                    && !uiState.showChannelOverlay
+                    && !uiState.isStreamDead
+                    && !uiState.isRecovering
+                    && showFavButton,
+            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(24.dp)
+        ) {
+            FavoriteButton(
+                isFavorite = uiState.channel?.isFavorite == true,
+                onClick = {
+                    viewModel.toggleFavorite()
+                    showFavButton = true // reset auto-hide timer
+                }
+            )
         }
 
         // Channel overlay
@@ -275,8 +326,69 @@ fun PlayerScreen(
 }
 
 @Composable
+private fun FavoriteButton(
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = when {
+            isPressed -> 0.82f
+            isFocused -> 1.1f
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "favBtnScale"
+    )
+
+    val borderWidth by animateFloatAsState(
+        targetValue = if (isFocused) 3f else 0f,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "favBtnBorder"
+    )
+
+    IconButton(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = modifier
+            .size(52.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .onFocusChanged { isFocused = it.isFocused }
+            .then(
+                if (borderWidth > 0f) Modifier.border(
+                    BorderStroke(borderWidth.dp, Amber),
+                    CircleShape
+                ) else Modifier
+            )
+            .background(
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+                shape = CircleShape
+            ),
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+        )
+    ) {
+        Icon(
+            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
+        )
+    }
+}
+
+@Composable
 private fun VideoPlayer(
     exoPlayer: ExoPlayer,
+    onPlayerViewCreated: (PlayerView) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -290,8 +402,27 @@ private fun VideoPlayer(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                onPlayerViewCreated(this)
             }
         },
         modifier = modifier
     )
+}
+
+/**
+ * Capture a bitmap from the PlayerView's TextureView surface.
+ * Checks that the TextureView is still available before attempting capture,
+ * since the surface may already be released during dispose.
+ */
+private fun capturePlayerThumbnail(playerView: PlayerView?): Bitmap? {
+    return try {
+        val textureView = playerView?.videoSurfaceView as? TextureView
+        if (textureView != null && textureView.isAvailable) {
+            textureView.bitmap
+        } else {
+            null
+        }
+    } catch (_: Exception) {
+        null
+    }
 }
