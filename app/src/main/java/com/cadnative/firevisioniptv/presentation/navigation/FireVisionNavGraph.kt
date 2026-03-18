@@ -185,6 +185,11 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onResetPairing = {
+                    navController.navigate(Screen.Pairing.route) {
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                    }
                 }
             )
         }

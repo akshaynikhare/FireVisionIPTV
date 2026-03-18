@@ -59,10 +59,12 @@ fun LegacySettingsScreen(
     autoloadChannelInfo: String,
     appVersionInfo: String,
     qrCodeBitmap: Bitmap?,
+    isPaired: Boolean = false,
     onServerUrlChange: (String) -> Unit,
     onTvCodeChange: (String) -> Unit,
     onSaveSettings: () -> Unit,
     onPairDevice: () -> Unit,
+    onResetPairing: () -> Unit = {},
     onClearAutoload: () -> Unit,
     onCheckUpdates: () -> Unit,
     onNavigateBack: () -> Unit
@@ -224,6 +226,28 @@ fun LegacySettingsScreen(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    if (isPaired) {
+                        OutlinedButton(
+                            onClick = onResetPairing,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(
+                                    MaterialTheme.colorScheme.error
+                                )
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = "Reset Pairing",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

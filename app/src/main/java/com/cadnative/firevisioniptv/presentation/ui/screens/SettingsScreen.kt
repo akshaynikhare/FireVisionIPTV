@@ -41,6 +41,7 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onPairDevice: () -> Unit,
+    onResetPairing: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -75,6 +76,10 @@ fun SettingsScreen(
                 isPaired = uiState.isPaired,
                 tvCode = uiState.tvCode,
                 onPairDevice = onPairDevice,
+                onResetPairing = {
+                    viewModel.resetPairing()
+                    onResetPairing()
+                },
                 modifier = Modifier.animateItemEntrance(index = 0)
             )
 
@@ -89,14 +94,14 @@ fun SettingsScreen(
                 modifier = Modifier.animateItemEntrance(index = 1)
             )
 
-            // Account Registration QR — stagger index 2
+            // Pairing QR Code — stagger index 2
             uiState.qrCodeBitmap?.let { bitmap ->
                 SettingsCard(
-                    title = "Account Registration",
+                    title = "Pairing QR Code",
                     modifier = Modifier.animateItemEntrance(index = 2)
                 ) {
                     Text(
-                        text = "Scan with your phone to register",
+                        text = "Scan with your phone to pair",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -108,7 +113,7 @@ fun SettingsScreen(
                     ) {
                         Image(
                             bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "Registration QR Code",
+                            contentDescription = "Pairing QR Code",
                             modifier = Modifier.size(160.dp),
                             contentScale = ContentScale.Fit
                         )
@@ -191,6 +196,7 @@ private fun PairingStatusCard(
     isPaired: Boolean,
     tvCode: String,
     onPairDevice: () -> Unit,
+    onResetPairing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -224,7 +230,19 @@ private fun PairingStatusCard(
                     color = if (isPaired) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (!isPaired) {
+            if (isPaired) {
+                OutlinedButton(
+                    onClick = onResetPairing,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        "Reset Pairing",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
                 Button(
                     onClick = onPairDevice,
                     colors = ButtonDefaults.buttonColors(

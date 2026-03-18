@@ -202,7 +202,7 @@ fun PairingScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Don't have an account?",
+                        text = "Scan with your phone",
                         color = TextDim,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -210,7 +210,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Scan to Create Account",
+                        text = "Scan to Pair",
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -232,7 +232,7 @@ fun PairingScreen(
                         ) {
                             Image(
                                 bitmap = qrCodeBitmap.asImageBitmap(),
-                                contentDescription = "QR Code for Signup",
+                                contentDescription = "QR Code for Pairing",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
@@ -258,7 +258,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "$serverUrl/user/register.html",
+                        text = "Sign in or register to pair",
                         color = SteelBlue,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center

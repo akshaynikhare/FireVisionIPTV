@@ -56,20 +56,20 @@ class PairingActivity : ComponentActivity() {
     private var qrCodeBitmap by mutableStateOf<Bitmap?>(null)
     private var serverUrl by mutableStateOf("")
 
-    private var currentPin: String? = null
-    private var expiresAt: Long = 0
+    @Volatile private var currentPin: String? = null
+    @Volatile private var expiresAt: Long = 0
     private var pollHandler: Handler? = null
     private var pollRunnable: Runnable? = null
     private var countdownHandler: Handler? = null
     private var countdownRunnable: Runnable? = null
     private var pollAttempts = 0
     @Volatile private var isPairing = false
+    @Volatile private var isRequestingPin = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         serverUrl = SettingsActivity.getServerUrl(this)
-        generateSignupQRCode(serverUrl)
 
         setContent {
             FireVisionTheme {
@@ -96,10 +96,10 @@ class PairingActivity : ComponentActivity() {
         requestNewPairing()
     }
 
-    private fun generateSignupQRCode(serverUrl: String) {
+    private fun generateSignupQRCode(serverUrl: String, pin: String) {
         Thread {
             try {
-                val registrationUrl = "$serverUrl/user/register.html"
+                val registrationUrl = "$serverUrl/pair?pin=$pin"
                 val writer = QRCodeWriter()
                 val bitMatrix = writer.encode(registrationUrl, BarcodeFormat.QR_CODE, 512, 512)
                 val width = bitMatrix.width
@@ -120,8 +120,14 @@ class PairingActivity : ComponentActivity() {
     }
 
     private fun requestNewPairing() {
+        if (isRequestingPin) return
+        isRequestingPin = true
         isPairing = true
         pollAttempts = 0
+
+        // Stop any existing polling/countdown
+        pollHandler?.let { handler -> pollRunnable?.let { handler.removeCallbacks(it) } }
+        countdownHandler?.let { handler -> countdownRunnable?.let { handler.removeCallbacks(it) } }
 
         isLoading = true
         pin = "------"
@@ -167,6 +173,7 @@ class PairingActivity : ComponentActivity() {
                             statusMessage = "Waiting for confirmation..."
                             statusColor = androidx.compose.ui.graphics.Color.White
                             showCountdown = true
+                            generateSignupQRCode(baseUrl, currentPin ?: "")
                             startPolling()
                             startCountdown()
                         }
@@ -181,6 +188,7 @@ class PairingActivity : ComponentActivity() {
                 showError("Connection error: ${e.message}")
             } finally {
                 connection?.disconnect()
+                isRequestingPin = false
             }
         }.start()
     }

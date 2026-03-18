@@ -157,6 +157,11 @@ class SettingsViewModel @Inject constructor(
         return true
     }
 
+    fun resetPairing() {
+        AppPreferences.clearPairing(application.applicationContext)
+        _uiState.update { it.copy(tvCode = "", isPaired = false) }
+    }
+
     fun clearAutoloadChannel() {
         viewModelScope.launch(Dispatchers.IO) {
             val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -173,7 +178,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
                 try {
-                    val registrationUrl = "$serverUrl/user/register.html"
+                    val registrationUrl = "$serverUrl/pair"
                     val writer = QRCodeWriter()
                     val bitMatrix = writer.encode(registrationUrl, BarcodeFormat.QR_CODE, 512, 512)
                     val w = bitMatrix.width
@@ -338,7 +343,7 @@ class SettingsViewModel @Inject constructor(
             connection.readTimeout = UPDATE_CHECK_TIMEOUT
             connection.requestMethod = "GET"
             connection.setRequestProperty("Accept", "application/json")
-            connection.setRequestProperty("X-TV-Code", tvCode)
+            connection.setRequestProperty("X-Session-ID", tvCode)
 
             try {
                 if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {

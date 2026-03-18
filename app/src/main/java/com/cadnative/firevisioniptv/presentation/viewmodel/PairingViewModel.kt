@@ -58,6 +58,7 @@ class PairingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PairingUiState())
     val uiState: StateFlow<PairingUiState> = _uiState.asStateFlow()
 
+    private var requestJob: Job? = null
     private var pollingJob: Job? = null
     private var countdownJob: Job? = null
     @Volatile
@@ -66,11 +67,11 @@ class PairingViewModel @Inject constructor(
     init {
         val serverUrl = AppPreferences.getServerUrl(context)
         _uiState.update { it.copy(serverUrl = serverUrl) }
-        generateQrCode(serverUrl)
         requestNewPairing()
     }
 
     fun requestNewPairing() {
+        requestJob?.cancel()
         pollingJob?.cancel()
         countdownJob?.cancel()
 
@@ -86,7 +87,7 @@ class PairingViewModel @Inject constructor(
             )
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        requestJob = viewModelScope.launch(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(context)
@@ -130,6 +131,7 @@ class PairingViewModel @Inject constructor(
                             )
                         }
 
+                        generateQrCode(baseUrl, pin)
                         startPolling(pin)
                         startCountdown(expiry)
                     } else {
@@ -264,13 +266,13 @@ class PairingViewModel @Inject constructor(
         }
     }
 
-    private fun generateQrCode(serverUrl: String) {
+    private fun generateQrCode(serverUrl: String, pin: String) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val registrationUrl = "$serverUrl/user/register.html"
+                val pairingUrl = "$serverUrl/pair?pin=$pin"
                 val writer = QRCodeWriter()
                 val bitMatrix = writer.encode(
-                    registrationUrl, BarcodeFormat.QR_CODE, 512, 512
+                    pairingUrl, BarcodeFormat.QR_CODE, 512, 512
                 )
                 val width = bitMatrix.width
                 val height = bitMatrix.height
@@ -308,6 +310,7 @@ class PairingViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        requestJob?.cancel()
         pollingJob?.cancel()
         countdownJob?.cancel()
     }

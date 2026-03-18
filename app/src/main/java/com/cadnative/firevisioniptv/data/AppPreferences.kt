@@ -51,4 +51,9 @@ object AppPreferences {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(TV_CODE_KEY, code).apply()
     }
+
+    fun clearPairing(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().remove(TV_CODE_KEY).apply()
+    }
 }

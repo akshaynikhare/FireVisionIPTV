@@ -91,11 +91,20 @@ class SettingsActivity : ComponentActivity() {
                     autoloadChannelInfo = autoloadChannelInfo,
                     appVersionInfo = appVersionInfo,
                     qrCodeBitmap = qrCodeBitmap,
+                    isPaired = tvCode.isNotEmpty() && tvCode != DEFAULT_TV_CODE,
                     onServerUrlChange = { serverUrl = it },
                     onTvCodeChange = { tvCode = it },
                     onSaveSettings = { saveSettings() },
                     onPairDevice = {
                         startActivity(Intent(this, PairingActivity::class.java))
+                    },
+                    onResetPairing = {
+                        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        prefs.edit().remove(TV_CODE_KEY).apply()
+                        tvCode = ""
+                        Toast.makeText(this, "Pairing reset", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this, PairingActivity::class.java))
+                        finish()
                     },
                     onClearAutoload = { clearAutoloadChannel() },
                     onCheckUpdates = { checkForUpdates() },
@@ -196,7 +205,7 @@ class SettingsActivity : ComponentActivity() {
     private fun generateQRCode() {
         Thread {
             try {
-                val registrationUrl = "$serverUrl/user/register.html"
+                val registrationUrl = "$serverUrl/pair"
                 val writer = QRCodeWriter()
                 val bitMatrix = writer.encode(registrationUrl, BarcodeFormat.QR_CODE, 512, 512)
                 val width = bitMatrix.width
