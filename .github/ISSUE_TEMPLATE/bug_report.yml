@@ -1,0 +1,93 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour in FireVision IPTV
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below as completely as possible to help us reproduce and fix the issue quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe what went wrong…
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the bug.
+      placeholder: |
+        1. Open the app
+        2. Navigate to …
+        3. Press …
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened? Include any error messages or screenshots.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device Type
+      options:
+        - Amazon Fire TV Stick (4K / Max)
+        - Amazon Fire TV Cube
+        - Android TV (generic)
+        - Google TV
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: android_version
+    attributes:
+      label: Android / Fire OS Version
+      placeholder: "e.g. Fire OS 8 / Android 11"
+    validations:
+      required: false
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      placeholder: "e.g. 2.0.3 (found in Settings → About)"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs (optional)
+      description: Paste any relevant `adb logcat` output here.
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have reproduced this on the latest available version.
+          required: false

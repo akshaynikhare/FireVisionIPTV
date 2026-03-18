@@ -1,0 +1,70 @@
+name: Feature Request
+description: Suggest a new feature or improvement for FireVision IPTV
+title: "[Enhancement]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make FireVision IPTV better? We'd love to hear it! Please describe your suggestion in detail.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Motivation
+      description: What problem does this feature solve, or what use-case does it enable?
+      placeholder: "e.g. I can't quickly switch between categories without going back to the home screen…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or improvement you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Are there other ways this could be solved? Why is your suggestion the best approach?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      multiple: true
+      options:
+        - Player / Playback
+        - Channel List / Guide
+        - Favorites
+        - Search
+        - Settings
+        - D-pad / Remote Navigation
+        - EPG (Electronic Programme Guide)
+        - Parental Controls
+        - Performance
+        - Analytics / Crash Reporting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or screenshots about the feature request here.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this has not already been requested.
+          required: true
