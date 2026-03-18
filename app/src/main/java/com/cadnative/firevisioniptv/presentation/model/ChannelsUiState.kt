@@ -1,10 +1,19 @@
 package com.cadnative.firevisioniptv.presentation.model
 
+enum class ErrorType {
+    NONE,
+    AUTH_REQUIRED,
+    NETWORK_ERROR,
+    SERVER_ERROR,
+    UNKNOWN
+}
+
 data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
     val categories: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val errorType: ErrorType = ErrorType.NONE,
     val selectedCategory: String? = null,
     // HomeScreen: Featured & Recently Watched
     val featuredChannels: List<ChannelUiModel> = emptyList(),

@@ -61,6 +61,7 @@ fun FireVisionNavGraph(
                     delay(1500) // Show success message briefly
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Pairing.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             }
@@ -76,11 +77,6 @@ fun FireVisionNavGraph(
                 qrCodeBitmap = uiState.qrCodeBitmap,
                 serverUrl = uiState.serverUrl,
                 onRetryClick = { viewModel.requestNewPairing() },
-                onPairManuallyClick = {
-                    navController.navigate(Screen.Settings.route) {
-                        popUpTo(Screen.Pairing.route) { inclusive = true }
-                    }
-                },
                 onUseDefaultClick = { viewModel.useDefaultChannelList() }
             )
         }
@@ -114,6 +110,9 @@ fun FireVisionNavGraph(
                 },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 }
             )
         }
@@ -185,6 +184,11 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onResetPairing = {
+                    navController.navigate(Screen.Pairing.route) {
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                    }
                 }
             )
         }

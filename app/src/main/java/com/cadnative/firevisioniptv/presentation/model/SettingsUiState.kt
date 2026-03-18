@@ -20,7 +20,6 @@ data class SettingsUiState(
     // Server configuration
     val serverUrl: String = "",
     val tvCode: String = "",
-    val autoloadChannelName: String = "",
     val appVersion: String = "1.0.0",
     val qrCodeBitmap: Bitmap? = null,
     val isPaired: Boolean = false,
@@ -28,7 +27,9 @@ data class SettingsUiState(
     // App update
     val isCheckingForUpdate: Boolean = false,
     val updateInfo: UpdateInfo? = null,
-    val updateChecked: Boolean = false
+    val updateChecked: Boolean = false,
+    val isDownloadingUpdate: Boolean = false,
+    val downloadError: String? = null
 )
 
 data class UpdateInfo(

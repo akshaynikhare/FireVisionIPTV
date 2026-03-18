@@ -22,8 +22,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 
 @Composable
@@ -52,7 +51,6 @@ fun PairingScreen(
     qrCodeBitmap: Bitmap?,
     serverUrl: String,
     onRetryClick: () -> Unit,
-    onPairManuallyClick: () -> Unit,
     onUseDefaultClick: () -> Unit
 ) {
     Box(
@@ -77,7 +75,7 @@ fun PairingScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Enter the PIN on your dashboard to connect",
+                text = "Enter the PIN on your dashboard or scan the QR code",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextDim,
                 textAlign = TextAlign.Center
@@ -154,32 +152,20 @@ fun PairingScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Action buttons
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = onPairManuallyClick,
-                            border = BorderStroke(1.dp, SubtleBorder),
+                    if (showRetryButton) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onRetryClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Amber,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "Pair Manually",
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = onUseDefaultClick,
-                            border = BorderStroke(1.dp, SubtleBorder),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Use Default",
-                                style = MaterialTheme.typography.labelLarge
+                                text = "Generate New PIN",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -202,7 +188,7 @@ fun PairingScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Don't have an account?",
+                        text = "Scan with your phone",
                         color = TextDim,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -210,7 +196,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Scan to Create Account",
+                        text = "Scan to Pair",
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -232,7 +218,7 @@ fun PairingScreen(
                         ) {
                             Image(
                                 bitmap = qrCodeBitmap.asImageBitmap(),
-                                contentDescription = "QR Code for Signup",
+                                contentDescription = "QR Code for Pairing",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
@@ -258,7 +244,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "$serverUrl/user/register.html",
+                        text = "Sign in or register to pair",
                         color = SteelBlue,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
@@ -272,32 +258,13 @@ fun PairingScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (showRetryButton) {
-                    Button(
-                        onClick = onRetryClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Amber,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Generate New PIN",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-                }
-
                 Text(
-                    text = "Visit your dashboard to enter this PIN",
+                    text = "Visit",
                     color = TextDim,
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Text(
                     text = serverUrl,
@@ -305,6 +272,24 @@ fun PairingScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Text(
+                    text = "to enter this PIN",
+                    color = TextDim,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                TextButton(onClick = onUseDefaultClick) {
+                    Text(
+                        text = "Skip \u2014 Use Default Channels",
+                        color = TextDim.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 

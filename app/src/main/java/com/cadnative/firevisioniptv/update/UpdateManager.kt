@@ -195,7 +195,7 @@ class UpdateManager(activity: Activity) {
                 activity.registerReceiver(
                     downloadReceiver,
                     IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                    Context.RECEIVER_NOT_EXPORTED
+                    Context.RECEIVER_EXPORTED
                 )
             } else {
                 activity.registerReceiver(

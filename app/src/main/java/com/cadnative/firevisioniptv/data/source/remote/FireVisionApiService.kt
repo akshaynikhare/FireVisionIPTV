@@ -66,6 +66,6 @@ interface FireVisionApiService {
      * 
      * @return Response containing ResponseBody with the M3U playlist content
      */
-    @GET("api/v1/playlist.m3u")
+    @GET("api/v1/channels/playlist.m3u")
     suspend fun getPlaylist(): Response<ResponseBody>
 }

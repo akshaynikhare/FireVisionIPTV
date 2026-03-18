@@ -1,6 +1,10 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,23 +21,31 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
+import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
-import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,6 +53,7 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onPairDevice: () -> Unit,
+    onResetPairing: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -70,296 +83,334 @@ fun SettingsScreen(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Pairing Status — stagger index 0
-            PairingStatusCard(
-                isPaired = uiState.isPaired,
-                tvCode = uiState.tvCode,
-                onPairDevice = onPairDevice,
-                modifier = Modifier.animateItemEntrance(index = 0)
-            )
-
-            // Server Configuration — stagger index 1
-            ServerConfigCard(
-                serverUrl = uiState.serverUrl,
-                tvCode = uiState.tvCode,
-                settingsSaved = uiState.settingsSaved,
-                onServerUrlChange = { viewModel.onServerUrlChange(it) },
-                onTvCodeChange = { viewModel.onTvCodeChange(it) },
-                onSave = { viewModel.saveServerSettings() },
-                modifier = Modifier.animateItemEntrance(index = 1)
-            )
-
-            // Account Registration QR — stagger index 2
-            uiState.qrCodeBitmap?.let { bitmap ->
-                SettingsCard(
-                    title = "Account Registration",
-                    modifier = Modifier.animateItemEntrance(index = 2)
-                ) {
-                    Text(
-                        text = "Scan with your phone to register",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(6.dp))
-                            .padding(8.dp)
-                    ) {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "Registration QR Code",
-                            modifier = Modifier.size(160.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
+            // Section 1: Pairing (state-dependent) — stagger index 0
+            if (uiState.isPaired) {
+                PairedStatusBanner(
+                    tvCode = uiState.tvCode,
+                    onResetPairing = {
+                        viewModel.resetPairing()
+                        onResetPairing()
+                    },
+                    modifier = Modifier.animateItemEntrance(index = 0)
+                )
+            } else {
+                UnpairedSetupCard(
+                    serverUrl = uiState.serverUrl,
+                    tvCode = uiState.tvCode,
+                    settingsSaved = uiState.settingsSaved,
+                    qrCodeBitmap = uiState.qrCodeBitmap,
+                    onServerUrlChange = { viewModel.onServerUrlChange(it) },
+                    onTvCodeChange = { viewModel.onTvCodeChange(it) },
+                    onSave = { viewModel.saveServerSettings() },
+                    onPairDevice = onPairDevice,
+                    modifier = Modifier.animateItemEntrance(index = 0)
+                )
             }
 
-            // Auto-Load Channel — stagger index 3
-            SettingsCard(
-                title = "Auto-Load Channel",
-                modifier = Modifier.animateItemEntrance(index = 3)
+            // Section 2: Two-column content
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Hold OK button on any channel to set it as auto-load on startup",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
+                // Left column: Channels
+                ChannelsCard(
+                    scanProgress = scanProgress,
+                    onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .animateItemEntrance(index = 1)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (uiState.autoloadChannelName.isNotEmpty())
-                        "Auto-load: ${uiState.autoloadChannelName}"
-                    else
-                        "No channel set",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                if (uiState.autoloadChannelName.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { viewModel.clearAutoloadChannel() },
-                        border = BorderStroke(1.dp, SubtleBorder),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Clear Auto-Load", fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
 
-            // Check Liveliness — stagger index 4
-            CheckLivelinessCard(
-                scanProgress = scanProgress,
-                onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
-                modifier = Modifier.animateItemEntrance(index = 4)
-            )
-
-            // Display — stagger index 5
-            SettingsCard(
-                title = "Display",
-                modifier = Modifier.animateItemEntrance(index = 5)
-            ) {
-                SettingsRow(
-                    title = "Grid Size",
-                    subtitle = "Channel grid columns",
-                    value = uiState.gridSize.toString()
-                )
-                SettingsRow(
-                    title = "Font Size",
-                    subtitle = "Text size scale",
-                    value = "${uiState.fontSize}x"
+                // Right column: About
+                AboutCard(
+                    appVersion = uiState.appVersion,
+                    isChecking = uiState.isCheckingForUpdate,
+                    updateInfo = uiState.updateInfo,
+                    updateChecked = uiState.updateChecked,
+                    isDownloading = uiState.isDownloadingUpdate,
+                    downloadError = uiState.downloadError,
+                    onCheckForUpdate = { viewModel.checkForUpdate() },
+                    onUpdateNow = { viewModel.downloadAndInstallUpdate() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .animateItemEntrance(index = 2)
                 )
             }
-
-            // About & Update — stagger index 6
-            AppUpdateCard(
-                appVersion = uiState.appVersion,
-                isChecking = uiState.isCheckingForUpdate,
-                updateInfo = uiState.updateInfo,
-                updateChecked = uiState.updateChecked,
-                onCheckForUpdate = { viewModel.checkForUpdate() },
-                modifier = Modifier.animateItemEntrance(index = 6)
-            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
 
+// ── Section 1: Pairing ──────────────────────────────────────────────────────
+
 @Composable
-private fun PairingStatusCard(
-    isPaired: Boolean,
+private fun PairedStatusBanner(
     tvCode: String,
-    onPairDevice: () -> Unit,
+    onResetPairing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var hasFocus by remember { mutableStateOf(false) }
+
+    val borderColor by animateColorAsState(
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "bannerBorder"
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (hasFocus) 2.dp else 1.dp,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "bannerBorderWidth"
+    )
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { hasFocus = it.hasFocus },
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, SubtleBorder)
+        border = BorderStroke(borderWidth, borderColor)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Status dot
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isPaired) Success else Warning)
+                    .background(Success)
             )
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isPaired) "Paired" else "Not Paired",
+                    text = "Paired",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = if (isPaired) "TV Code: $tvCode" else "No TV code configured",
+                    text = "TV Code: $tvCode",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isPaired) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-            if (!isPaired) {
-                Button(
-                    onClick = onPairDevice,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Pair Now", fontWeight = FontWeight.SemiBold)
-                }
+            FocusAwareOutlinedButton(
+                onClick = onResetPairing,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            ) {
+                Text(
+                    "Reset Pairing",
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ServerConfigCard(
+private fun UnpairedSetupCard(
     serverUrl: String,
     tvCode: String,
     settingsSaved: Boolean,
+    qrCodeBitmap: Bitmap?,
     onServerUrlChange: (String) -> Unit,
     onTvCodeChange: (String) -> Unit,
     onSave: () -> Boolean,
+    onPairDevice: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var validationError by remember { mutableStateOf<String?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var serverUrlEditing by remember { mutableStateOf(false) }
+    var tvCodeEditing by remember { mutableStateOf(false) }
 
-    SettingsCard(title = "Server Configuration", modifier = modifier) {
-        Text(
-            text = "Server URL",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelMedium
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        TextField(
-            value = serverUrl,
-            onValueChange = {
-                onServerUrlChange(it)
-                validationError = null
-            },
-            placeholder = { Text("https://tv.cadnative.com") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Text(
-            text = "TV Pairing Code",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelMedium
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        TextField(
-            value = tvCode,
-            onValueChange = {
-                onTvCodeChange(it)
-                validationError = null
-            },
-            placeholder = { Text("Enter TV code") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = Color.Transparent
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+    SettingsCard(title = "Device Setup", modifier = modifier) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Button(
-                onClick = {
-                    val saved = onSave()
-                    if (!saved) {
-                        validationError = when {
-                            serverUrl.isBlank() || tvCode.isBlank() -> "Server URL and TV code are required"
-                            !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://") ->
-                                "URL must start with http:// or https://"
-                            else -> "Invalid settings"
-                        }
-                    } else {
-                        validationError = null
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Save Settings", fontWeight = FontWeight.SemiBold)
-            }
-            // Animated "Saved" confirmation
-            AnimatedVisibility(
-                visible = settingsSaved,
-                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-            ) {
+            // Left: Form fields
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Saved",
-                    color = Success,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Server URL",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium
                 )
-            }
-        }
+                Spacer(modifier = Modifier.height(6.dp))
+                TextField(
+                    value = serverUrl,
+                    onValueChange = {
+                        onServerUrlChange(it)
+                        validationError = null
+                    },
+                    placeholder = { Text("https://tv.cadnative.com") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged {
+                            if (it.hasFocus && !serverUrlEditing) keyboardController?.hide()
+                            if (!it.hasFocus) serverUrlEditing = false
+                        }
+                        .onKeyEvent { event ->
+                            if (!serverUrlEditing &&
+                                event.type == KeyEventType.KeyDown &&
+                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                            ) {
+                                serverUrlEditing = true
+                                keyboardController?.show()
+                                true
+                            } else false
+                        },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
 
-        // Animated validation error
-        AnimatedVisibility(
-            visible = validationError != null,
-            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-        ) {
-            validationError?.let { error ->
-                Column {
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "TV Pairing Code",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                TextField(
+                    value = tvCode,
+                    onValueChange = {
+                        onTvCodeChange(it)
+                        validationError = null
+                    },
+                    placeholder = { Text("Enter TV code") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged {
+                            if (it.hasFocus && !tvCodeEditing) keyboardController?.hide()
+                            if (!it.hasFocus) tvCodeEditing = false
+                        }
+                        .onKeyEvent { event ->
+                            if (!tvCodeEditing &&
+                                event.type == KeyEventType.KeyDown &&
+                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                            ) {
+                                tvCodeEditing = true
+                                keyboardController?.show()
+                                true
+                            } else false
+                        },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FocusAwareButton(
+                        onClick = {
+                            val saved = onSave()
+                            if (!saved) {
+                                validationError = when {
+                                    serverUrl.isBlank() || tvCode.isBlank() -> "Server URL and TV code are required"
+                                    !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://") ->
+                                        "URL must start with http:// or https://"
+                                    else -> "Invalid settings"
+                                }
+                            } else {
+                                validationError = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("Save Settings", fontWeight = FontWeight.SemiBold)
+                    }
+
+                    FocusAwareOutlinedButton(
+                        onClick = onPairDevice,
+                        border = BorderStroke(1.dp, SubtleBorder)
+                    ) {
+                        Text("Pair with PIN", fontWeight = FontWeight.Medium)
+                    }
+
+                    AnimatedVisibility(
+                        visible = settingsSaved,
+                        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                        exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+                    ) {
+                        Text(
+                            text = "Saved",
+                            color = Success,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = validationError != null,
+                    enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                    exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+                ) {
+                    validationError?.let { error ->
+                        Column {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = error,
+                                color = Warning,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Right: QR code
+            if (qrCodeBitmap != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
                     Text(
-                        text = error,
-                        color = Warning,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
+                        text = "Scan to pair",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White, RoundedCornerShape(6.dp))
+                            .padding(8.dp)
+                    ) {
+                        Image(
+                            bitmap = qrCodeBitmap.asImageBitmap(),
+                            contentDescription = "Pairing QR Code",
+                            modifier = Modifier.size(160.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "or enter PIN on dashboard",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -367,13 +418,23 @@ private fun ServerConfigCard(
     }
 }
 
+// ── Section 2: Two-column cards ─────────────────────────────────────────────
+
 @Composable
-private fun CheckLivelinessCard(
+private fun ChannelsCard(
     scanProgress: ScanProgress,
     onCheckLiveliness: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    SettingsCard(title = "Check Liveliness", modifier = modifier) {
+    SettingsCard(title = "Channels", modifier = modifier) {
+        // Stream Health
+        Text(
+            text = "Stream Health",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Scan all channels to check if their streams are online or offline.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -421,14 +482,13 @@ private fun CheckLivelinessCard(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            Button(
+            FocusAwareButton(
                 onClick = onCheckLiveliness,
                 enabled = !scanProgress.isScanning,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(8.dp)
+                )
             ) {
                 Text("Check Liveliness", fontWeight = FontWeight.SemiBold)
             }
@@ -437,20 +497,19 @@ private fun CheckLivelinessCard(
 }
 
 @Composable
-private fun AppUpdateCard(
+private fun AboutCard(
     appVersion: String,
     isChecking: Boolean,
     updateInfo: UpdateInfo?,
     updateChecked: Boolean,
+    isDownloading: Boolean,
+    downloadError: String?,
     onCheckForUpdate: () -> Unit,
+    onUpdateNow: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SettingsCard(title = "About", modifier = modifier) {
-        SettingsRow(
-            title = "Version",
-            subtitle = appVersion,
-            value = ""
-        )
+        SettingsRow(title = "Version", subtitle = appVersion, value = "")
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -512,15 +571,45 @@ private fun AppUpdateCard(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onCheckForUpdate,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Check Again", fontWeight = FontWeight.SemiBold)
+
+            if (isDownloading) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Downloading update...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                if (updateInfo.downloadUrl.isNotEmpty()) {
+                    FocusAwareButton(
+                        onClick = onUpdateNow,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("Update Now", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            downloadError?.let { error ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    color = Warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
             }
         } else {
             if (updateChecked) {
@@ -531,10 +620,9 @@ private fun AppUpdateCard(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            OutlinedButton(
+            FocusAwareOutlinedButton(
                 onClick = onCheckForUpdate,
-                border = BorderStroke(1.dp, SubtleBorder),
-                shape = RoundedCornerShape(8.dp)
+                border = BorderStroke(1.dp, SubtleBorder)
             ) {
                 Text("Check for Updates", fontWeight = FontWeight.Medium)
             }
@@ -542,17 +630,34 @@ private fun AppUpdateCard(
     }
 }
 
+// ── Shared UI components ────────────────────────────────────────────────────
+
 @Composable
 private fun SettingsCard(
     title: String,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    var hasFocus by remember { mutableStateOf(false) }
+
+    val borderColor by animateColorAsState(
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "cardBorder"
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (hasFocus) 2.dp else 1.dp,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "cardBorderWidth"
+    )
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { hasFocus = it.hasFocus },
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, SubtleBorder)
+        border = BorderStroke(borderWidth, borderColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -601,4 +706,63 @@ private fun SettingsRow(
             )
         }
     }
+}
+
+// ── Focus-aware button wrappers ─────────────────────────────────────────────
+
+@Composable
+private fun FocusAwareButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    content: @Composable RowScope.() -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "btnScale"
+    )
+
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = colors,
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { isFocused = it.isFocused },
+        content = content
+    )
+}
+
+@Composable
+private fun FocusAwareOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    border: BorderStroke = BorderStroke(1.dp, SubtleBorder),
+    content: @Composable RowScope.() -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "outlinedBtnScale"
+    )
+    val animatedBorder = if (isFocused) {
+        BorderStroke(2.dp, FocusBorder.copy(alpha = 0.5f))
+    } else {
+        border
+    }
+
+    OutlinedButton(
+        onClick = onClick,
+        border = animatedBorder,
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { isFocused = it.isFocused },
+        content = content
+    )
 }

@@ -51,12 +51,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Settings (legacy, kept for static helpers and settings UI) -->
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="Settings" />
-
         <!-- Device Pairing -->
         <activity
             android:name=".PairingActivity"
