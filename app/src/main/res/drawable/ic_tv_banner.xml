@@ -1,7 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background: same blue used by the adaptive icon -->
-    <item android:drawable="@color/ic_banner_background" />
-    <!-- Foreground: 320x180dp vector with logo + text -->
-    <item android:drawable="@drawable/ic_banner_foreground" />
-</layer-list>
+<!-- Fire TV banner: single vector 320x180dp with baked-in background.
+     Intrinsic size is reported correctly so Fire TV launcher renders it
+     as a full-width rectangular banner instead of falling back to a
+     small square icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <!-- Background fill — matches ic_banner_background #FF1565C0 -->
+    <path
+        android:pathData="M0,0 L320,0 L320,180 L0,180 Z"
+        android:fillColor="#FF1565C0" />
+
+    <!-- TV Icon (left side) -->
+    <group
+        android:translateX="30"
+        android:translateY="35">
+
+        <!-- TV Screen -->
+        <path
+            android:pathData="M0,0 L80,0 Q84,0 84,4 L84,56 Q84,60 80,60 L0,60 Q-4,60 -4,56 L-4,4 Q-4,0 0,0 Z"
+            android:strokeWidth="3.5"
+            android:strokeColor="#FFFFFF"
+            android:fillColor="#0D47A1" />
+
+        <!-- TV Stand -->
+        <path
+            android:pathData="M24,60 L24,70 M56,60 L56,70 M16,70 L64,70"
+            android:strokeWidth="3.5"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round" />
+
+        <!-- Streaming arrow -->
+        <path
+            android:pathData="M24,30 L56,30 M48,20 L58,30 L48,40"
+            android:strokeWidth="4"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+
+        <!-- Signal waves -->
+        <path
+            android:pathData="M64,14 Q70,20 64,26"
+            android:strokeWidth="2.5"
+            android:strokeColor="#42A5F5"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent" />
+
+        <path
+            android:pathData="M69,10 Q77,20 69,30"
+            android:strokeWidth="2.5"
+            android:strokeColor="#42A5F5"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent"
+            android:alpha="0.7" />
+    </group>
+
+    <!-- "Fire" text -->
+    <!-- F -->
+    <path
+        android:pathData="M140,55 L140,105 M140,55 L162,55 M140,76 L158,76"
+        android:strokeWidth="5"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+
+    <!-- i -->
+    <path
+        android:pathData="M172,68 L172,105"
+        android:strokeWidth="5"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M172,57 L172,58"
+        android:strokeWidth="6"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+
+    <!-- r -->
+    <path
+        android:pathData="M185,68 L185,105 M185,78 Q192,66 202,68"
+        android:strokeWidth="5"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- e -->
+    <path
+        android:pathData="M210,86 L230,86 Q230,68 220,68 Q210,68 210,86 Q210,105 225,105"
+        android:strokeWidth="4.5"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- "IPTV" text below -->
+    <!-- I -->
+    <path
+        android:pathData="M140,120 L140,145"
+        android:strokeWidth="4"
+        android:strokeColor="#42A5F5"
+        android:strokeLineCap="round" />
+
+    <!-- P -->
+    <path
+        android:pathData="M152,120 L152,145 M152,120 L164,120 Q170,120 170,128 Q170,132 164,132 L152,132"
+        android:strokeWidth="4"
+        android:strokeColor="#42A5F5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- T -->
+    <path
+        android:pathData="M178,120 L196,120 M187,120 L187,145"
+        android:strokeWidth="4"
+        android:strokeColor="#42A5F5"
+        android:strokeLineCap="round" />
+
+    <!-- V -->
+    <path
+        android:pathData="M204,120 L212,145 L220,120"
+        android:strokeWidth="4"
+        android:strokeColor="#42A5F5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+</vector>
