@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.3] - 2026-03-18
+
+### Added
+- expand Makefile with emulator, device, and app lifecycle commands
+
+### Changed
+- remove legacy SettingsActivity, autoload channel feature, and extract CategoryCard component
+
+### Fixed
+- update playlist endpoint path to /api/v1/channels/playlist.m3u
+- rename auth header from X-Session-ID to X-TV-Code to match server API
+- defer keyboard popup on TV text inputs until explicit OK press
+- improve error handling with auth-aware states and redesign settings layout
+- overhaul pairing flow with PIN-based QR codes, reset support, and race condition fixes
+
+### Other
+- Fix Fire TV launcher banner and increase card sizes for TV viewing
+
+---
+
 ## [2.0.2] - 2026-03-18
 
 _(No notable changes recorded)_
