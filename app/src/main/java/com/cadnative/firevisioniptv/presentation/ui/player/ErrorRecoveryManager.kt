@@ -46,7 +46,8 @@ class ErrorRecoveryManager(
             }
 
             // Track buffering for unresponsive detection
-            if (playbackState == Player.STATE_BUFFERING) {
+            // Skip during error recovery — recovery already handles retries
+            if (playbackState == Player.STATE_BUFFERING && !isRecoveringState) {
                 startBufferWatch()
             } else {
                 bufferWatchJob?.cancel()
