@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background: same blue used by the adaptive icon -->
+    <item android:drawable="@color/ic_banner_background" />
+    <!-- Foreground: 320x180dp vector with logo + text -->
+    <item android:drawable="@drawable/ic_banner_foreground" />
+</layer-list>
