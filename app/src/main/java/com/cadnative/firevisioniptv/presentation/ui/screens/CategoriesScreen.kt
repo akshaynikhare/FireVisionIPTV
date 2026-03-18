@@ -101,7 +101,7 @@ fun CategoriesScreen(
                         }
 
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 200.dp),
+                            columns = GridCells.Adaptive(minSize = 240.dp),
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(24.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -155,7 +155,7 @@ private fun CategoryCard(
         },
         modifier = modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height(150.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
             .onKeyEvent { keyEvent ->

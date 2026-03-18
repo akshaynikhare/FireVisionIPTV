@@ -98,8 +98,8 @@ fun ChannelCard(
 
     Box(
         modifier = modifier
-            .width(200.dp)
-            .height(120.dp)
+            .width(260.dp)
+            .height(150.dp)
     ) {
         // Ambient glow layer (behind the card) — always rendered, alpha drives visibility
         Box(
