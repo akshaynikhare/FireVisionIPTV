@@ -22,7 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -216,6 +222,9 @@ private fun UnpairedSetupCard(
     modifier: Modifier = Modifier
 ) {
     var validationError by remember { mutableStateOf<String?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var serverUrlEditing by remember { mutableStateOf(false) }
+    var tvCodeEditing by remember { mutableStateOf(false) }
 
     SettingsCard(title = "Device Setup", modifier = modifier) {
         Row(
@@ -238,7 +247,22 @@ private fun UnpairedSetupCard(
                     },
                     placeholder = { Text("https://tv.cadnative.com") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged {
+                            if (it.hasFocus && !serverUrlEditing) keyboardController?.hide()
+                            if (!it.hasFocus) serverUrlEditing = false
+                        }
+                        .onKeyEvent { event ->
+                            if (!serverUrlEditing &&
+                                event.type == KeyEventType.KeyDown &&
+                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                            ) {
+                                serverUrlEditing = true
+                                keyboardController?.show()
+                                true
+                            } else false
+                        },
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -264,7 +288,22 @@ private fun UnpairedSetupCard(
                     },
                     placeholder = { Text("Enter TV code") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged {
+                            if (it.hasFocus && !tvCodeEditing) keyboardController?.hide()
+                            if (!it.hasFocus) tvCodeEditing = false
+                        }
+                        .onKeyEvent { event ->
+                            if (!tvCodeEditing &&
+                                event.type == KeyEventType.KeyDown &&
+                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                            ) {
+                                tvCodeEditing = true
+                                keyboardController?.show()
+                                true
+                            } else false
+                        },
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
