@@ -52,7 +52,8 @@ fun ChannelOverlay(
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
     onInteraction: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    overlayFocusRequester: FocusRequester = remember { FocusRequester() }
 ) {
     Box(
         modifier = modifier
@@ -126,6 +127,7 @@ fun ChannelOverlay(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 isLoading = isLoadingChannels,
+                isVisible = isVisible,
                 onChannelClick = onChannelClick,
                 onCategorySelected = onCategorySelected,
                 onFavoriteClick = onFavoriteClick
@@ -222,6 +224,7 @@ private fun BottomChannelPanel(
     categories: List<String>,
     selectedCategory: String?,
     isLoading: Boolean,
+    isVisible: Boolean,
     onChannelClick: (String) -> Unit,
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
@@ -242,8 +245,11 @@ private fun BottomChannelPanel(
         }
     }
 
-    // Request focus on the category chips first (TV-friendly)
-    LaunchedEffect(categories, channels) {
+    // Request focus on the category chips when overlay data arrives or visibility changes
+    LaunchedEffect(categories, channels, isVisible) {
+        if (!isVisible) return@LaunchedEffect
+        // Small delay to let the overlay animation begin and attach focus nodes
+        kotlinx.coroutines.delay(100)
         try {
             if (categories.isNotEmpty()) {
                 categoryFocusRequester.requestFocus()
