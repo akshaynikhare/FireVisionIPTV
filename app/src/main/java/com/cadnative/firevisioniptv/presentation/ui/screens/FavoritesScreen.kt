@@ -95,11 +95,11 @@ private fun FavoritesGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
+        columns = GridCells.Fixed(3),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         itemsIndexed(favorites, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(

@@ -199,11 +199,11 @@ private fun ChannelsGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 200.dp),
+        columns = GridCells.Adaptive(minSize = 260.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         itemsIndexed(channels, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(

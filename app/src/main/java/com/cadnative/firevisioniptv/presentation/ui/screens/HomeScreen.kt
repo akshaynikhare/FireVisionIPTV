@@ -182,8 +182,8 @@ private fun HeroBanner(
     if (channels.isEmpty()) return
 
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val cardWidth = (screenWidth * 0.28f).coerceIn(200.dp, 400.dp)
-    val cardHeight = (cardWidth * 0.56f).coerceIn(110.dp, 224.dp)
+    val cardWidth = (screenWidth * 0.35f).coerceIn(280.dp, 500.dp)
+    val cardHeight = (cardWidth * 0.56f).coerceIn(160.dp, 280.dp)
 
     Column(modifier = modifier.padding(horizontal = 40.dp)) {
         Text(
@@ -193,7 +193,7 @@ private fun HeroBanner(
         )
         Spacer(modifier = Modifier.height(20.dp))
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             items(channels, key = { it.id }) { channel ->
                 ChannelCard(
@@ -277,9 +277,9 @@ private fun ChannelRow(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             items(channels, key = { it.id }) { channel ->
                 ChannelCard(

@@ -187,11 +187,11 @@ fun SearchScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 200.dp),
+                            columns = GridCells.Adaptive(minSize = 260.dp),
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             itemsIndexed(uiState.results, key = { _, channel -> channel.id }) { index, channel ->
                                 ChannelCard(
