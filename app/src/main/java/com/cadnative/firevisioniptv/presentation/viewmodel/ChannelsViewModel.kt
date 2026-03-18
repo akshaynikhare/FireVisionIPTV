@@ -4,6 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
+import com.cadnative.firevisioniptv.data.source.remote.NetworkException
+import com.cadnative.firevisioniptv.data.source.remote.ServerException
+import com.cadnative.firevisioniptv.data.source.remote.ServiceUnavailableException
+import com.cadnative.firevisioniptv.data.source.remote.UnauthorizedException
+import com.cadnative.firevisioniptv.data.source.remote.ForbiddenException
+import com.cadnative.firevisioniptv.presentation.model.ErrorType
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
@@ -111,10 +117,12 @@ class ChannelsViewModel @Inject constructor(
                         }
                     }
                     is Result.Error -> {
+                        val (msg, type) = classifyError(result.exception)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = result.exception.message ?: "Unknown error"
+                                error = msg,
+                                errorType = type
                             )
                         }
                     }
@@ -267,10 +275,12 @@ class ChannelsViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false) }
                 }
                 is Result.Error -> {
+                    val (msg, type) = classifyError(result.exception)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = result.exception.message ?: "Failed to refresh"
+                            error = msg,
+                            errorType = type
                         )
                     }
                 }
@@ -279,6 +289,22 @@ class ChannelsViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _uiState.update { it.copy(error = null) }
+        _uiState.update { it.copy(error = null, errorType = ErrorType.NONE) }
+    }
+
+    private fun classifyError(exception: Exception): Pair<String, ErrorType> {
+        return when (exception) {
+            is UnauthorizedException, is ForbiddenException ->
+                "Device not paired — please pair your TV" to ErrorType.AUTH_REQUIRED
+            is NetworkException, is java.net.ConnectException,
+            is java.net.UnknownHostException, is java.net.SocketTimeoutException ->
+                "Cannot connect to server" to ErrorType.NETWORK_ERROR
+            is ServerException ->
+                "Server error — please try again later" to ErrorType.SERVER_ERROR
+            is ServiceUnavailableException ->
+                "Server is offline — please try again later" to ErrorType.SERVER_ERROR
+            else ->
+                (exception.message ?: "Something went wrong") to ErrorType.UNKNOWN
+        }
     }
 }

@@ -84,10 +84,6 @@ class PairingActivity : ComponentActivity() {
                     qrCodeBitmap = qrCodeBitmap,
                     serverUrl = serverUrl,
                     onRetryClick = { requestNewPairing() },
-                    onPairManuallyClick = {
-                        startActivity(Intent(this, SettingsActivity::class.java))
-                        finish()
-                    },
                     onUseDefaultClick = { useDefaultChannelList() }
                 )
             }

@@ -1,11 +1,19 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
 import android.app.Application
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
@@ -45,11 +53,16 @@ class SettingsViewModel @Inject constructor(
 
     private var updateCheckJob: Job? = null
 
+    private var downloadId: Long = -1
+    private var downloadReceiver: BroadcastReceiver? = null
+
     companion object {
+        private const val TAG = "SettingsViewModel"
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
         private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
         private const val UPDATE_CHECK_TIMEOUT = 15_000
+        private const val APK_FILENAME = "FireVisionIPTV.apk"
         private const val GITHUB_RELEASES_API = "https://api.github.com/repos/akshaynikhare/FireVisionIPTV/releases/latest"
     }
 
@@ -196,10 +209,6 @@ class SettingsViewModel @Inject constructor(
             }
             _uiState.update { it.copy(qrCodeBitmap = bitmap) }
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
     }
 
     private fun getAppVersion(): String {
@@ -355,7 +364,8 @@ class SettingsViewModel @Inject constructor(
                         val fileBytes = latest?.optLong("apkFileSize", 0) ?: 0
                         UpdateInfo(
                             versionName = latest?.optString("versionName", "") ?: "",
-                            releaseNotes = latest?.optString("releaseNotes", "") ?: "",
+                            releaseNotes = latest?.optString("releaseNotes", "")
+                                ?.takeIf { it != "null" } ?: "",
                             fileSize = formatFileSize(fileBytes),
                             downloadUrl = latest?.optString("downloadUrl", "") ?: "",
                             isMandatory = json.optBoolean("isMandatory", false)
@@ -414,7 +424,8 @@ class SettingsViewModel @Inject constructor(
 
                     UpdateInfo(
                         versionName = latestVersion,
-                        releaseNotes = json.optString("body", "").take(500),
+                        releaseNotes = json.optString("body", "")
+                            .takeIf { it != "null" }?.take(500) ?: "",
                         fileSize = formatFileSize(fileSize),
                         downloadUrl = downloadUrl,
                         isMandatory = false
@@ -472,7 +483,120 @@ class SettingsViewModel @Inject constructor(
         return "%.1f %sB".format(bytes / 1024.0.pow(exp.toDouble()), pre)
     }
 
+    fun downloadAndInstallUpdate() {
+        val downloadUrl = _uiState.value.updateInfo?.downloadUrl
+        if (downloadUrl.isNullOrEmpty()) return
+        if (_uiState.value.isDownloadingUpdate) return
+
+        _uiState.update { it.copy(isDownloadingUpdate = true, downloadError = null) }
+
+        try {
+            val ctx = application.applicationContext
+
+            // Cleanup previous receiver
+            downloadReceiver?.let { receiver ->
+                try { ctx.unregisterReceiver(receiver) } catch (_: Exception) {}
+            }
+
+            // Delete old APK
+            val oldFile = java.io.File(
+                ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                APK_FILENAME
+            )
+            if (oldFile.exists()) oldFile.delete()
+
+            val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
+                setTitle("FireVision IPTV Update")
+                setDescription("Downloading update...")
+                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, APK_FILENAME)
+                setAllowedOverMetered(true)
+                setAllowedOverRoaming(true)
+            }
+
+            val downloadManager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            downloadId = downloadManager.enqueue(request)
+
+            downloadReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                    if (id != downloadId) return
+
+                    val query = DownloadManager.Query().apply { setFilterById(downloadId) }
+                    val cursor = downloadManager.query(query)
+                    try {
+                        if (cursor.moveToFirst()) {
+                            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                            val status = cursor.getInt(statusIdx)
+                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                _uiState.update { it.copy(isDownloadingUpdate = false) }
+                                installUpdate(context)
+                            } else {
+                                _uiState.update {
+                                    it.copy(isDownloadingUpdate = false, downloadError = "Download failed")
+                                }
+                            }
+                        }
+                    } finally {
+                        cursor.close()
+                    }
+                }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ctx.registerReceiver(
+                    downloadReceiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                    Context.RECEIVER_EXPORTED
+                )
+            } else {
+                ctx.registerReceiver(
+                    downloadReceiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error downloading update", e)
+            _uiState.update {
+                it.copy(isDownloadingUpdate = false, downloadError = "Failed to start download")
+            }
+        }
+    }
+
+    private fun installUpdate(context: Context) {
+        try {
+            val file = java.io.File(
+                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                APK_FILENAME
+            )
+            if (!file.exists()) return
+
+            val apkUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error installing update", e)
+            _uiState.update { it.copy(downloadError = "Failed to install update") }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        downloadReceiver?.let { receiver ->
+            try { application.applicationContext.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+        downloadReceiver = null
+    }
+
     fun clearError() {
-        _uiState.update { it.copy(error = null) }
+        _uiState.update { it.copy(error = null, downloadError = null) }
     }
 }

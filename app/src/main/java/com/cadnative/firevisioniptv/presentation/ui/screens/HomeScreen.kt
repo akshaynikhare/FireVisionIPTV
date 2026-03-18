@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
+import com.cadnative.firevisioniptv.presentation.model.ErrorType
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -44,6 +45,7 @@ fun HomeScreen(
     onNavigateToFavorites: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onChannelClick: (String) -> Unit,
+    onPairDevice: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
@@ -68,7 +70,9 @@ fun HomeScreen(
                 "loading" -> LoadingIndicator(message = "Loading channels...")
                 "error" -> ErrorState(
                     message = uiState.error ?: "Unknown error",
-                    onRetry = { viewModel.refresh() }
+                    onRetry = { viewModel.refresh() },
+                    errorType = uiState.errorType,
+                    onPairDevice = onPairDevice
                 )
                 "empty" -> EmptyState(message = "No channels available")
                 else -> HomeContent(

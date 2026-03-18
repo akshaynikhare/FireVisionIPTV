@@ -28,7 +28,9 @@ data class SettingsUiState(
     // App update
     val isCheckingForUpdate: Boolean = false,
     val updateInfo: UpdateInfo? = null,
-    val updateChecked: Boolean = false
+    val updateChecked: Boolean = false,
+    val isDownloadingUpdate: Boolean = false,
+    val downloadError: String? = null
 )
 
 data class UpdateInfo(
