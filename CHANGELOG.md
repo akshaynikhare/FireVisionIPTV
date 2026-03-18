@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.2] - 2026-03-18
+
+_(No notable changes recorded)_
+
+---
+
 All notable changes to FireVision IPTV are documented in this file.
 
 ## [2.0] - 2026-03-15
