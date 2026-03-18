@@ -217,8 +217,8 @@ fun PlayerScreen(
                 }
 
                 // Settings button: navigate to settings
-                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_SETTINGS) {
-                    onNavigateToSettings?.invoke()
+                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
+                    onNavigateToSettings.invoke()
                     return@onKeyEvent true
                 }
 

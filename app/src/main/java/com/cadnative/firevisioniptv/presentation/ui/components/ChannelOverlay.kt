@@ -52,8 +52,7 @@ fun ChannelOverlay(
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
     onInteraction: () -> Unit,
-    modifier: Modifier = Modifier,
-    overlayFocusRequester: FocusRequester = remember { FocusRequester() }
+    modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
