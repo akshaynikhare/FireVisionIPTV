@@ -11,6 +11,8 @@ import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetPlaybackPositionUseCase
+import com.cadnative.firevisioniptv.domain.usecase.ReportStreamPlayUseCase
+import com.cadnative.firevisioniptv.domain.usecase.ReportStreamStatusUseCase
 import com.cadnative.firevisioniptv.domain.usecase.SavePlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
@@ -34,6 +36,7 @@ private const val POSITION_SAVE_INTERVAL_MS = 5_000L
 private const val DEAD_STREAM_COUNTDOWN_SECONDS = 5
 private const val COUNTDOWN_TICK_MS = 1_000L
 private const val FINAL_SAVE_TIMEOUT_MS = 3_000L
+private const val PLAY_REPORT_THRESHOLD_MS = 10_000L
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
@@ -43,6 +46,8 @@ class PlayerViewModel @Inject constructor(
     private val savePlaybackPositionUseCase: SavePlaybackPositionUseCase,
     private val getPlaybackPositionUseCase: GetPlaybackPositionUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
+    private val reportStreamStatusUseCase: ReportStreamStatusUseCase,
+    private val reportStreamPlayUseCase: ReportStreamPlayUseCase,
     private val channelUiMapper: ChannelUiMapper,
     private val channelHealthDao: ChannelHealthDao,
     private val thumbnailExtractor: ChannelThumbnailExtractor
@@ -57,6 +62,8 @@ class PlayerViewModel @Inject constructor(
     private var channelListJob: Job? = null
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
+    private var playReportJob: Job? = null
+    private var playReportedForChannel: String? = null
 
     fun loadChannel(channelId: String) {
         loadJob?.cancel()
@@ -116,9 +123,24 @@ class PlayerViewModel @Inject constructor(
         }
         if (isPlaying) {
             startPeriodicPositionSaving()
+            startPlayReportTimer()
         } else {
             stopPeriodicPositionSaving()
             saveCurrentPosition()
+            playReportJob?.cancel()
+        }
+    }
+
+    private fun startPlayReportTimer() {
+        val channelId = _uiState.value.channel?.id ?: return
+        if (playReportedForChannel == channelId) return
+        playReportJob?.cancel()
+        playReportJob = viewModelScope.launch {
+            delay(PLAY_REPORT_THRESHOLD_MS)
+            if (_uiState.value.isPlaying) {
+                playReportedForChannel = channelId
+                reportStreamPlayUseCase(channelId)
+            }
         }
     }
 
@@ -278,6 +300,8 @@ class PlayerViewModel @Inject constructor(
             return
         }
         countdownJob?.cancel()
+        playReportJob?.cancel()
+        playReportedForChannel = null
         _uiState.update {
             it.copy(
                 isRecovering = false,
@@ -407,8 +431,34 @@ class PlayerViewModel @Inject constructor(
                 responseTimeMs = null,
                 errorMessage = errorMessage
             )
+            reportStreamStatusUseCase(
+                ReportStreamStatusUseCase.Params(
+                    channelId = channelId,
+                    status = ReportStreamStatusUseCase.Status.DEAD,
+                    errorMessage = errorMessage
+                )
+            )
         }
         startDeadStreamCountdown()
+    }
+
+    fun onStreamUnresponsive() {
+        val channelId = _uiState.value.channel?.id ?: return
+        viewModelScope.launch {
+            channelHealthDao.upsertPreservingThumbnail(
+                channelId = channelId,
+                status = ChannelHealthStatus.UNRESPONSIVE.name,
+                lastCheckedAt = System.currentTimeMillis(),
+                responseTimeMs = null,
+                errorMessage = "Stream unresponsive (buffering timeout)"
+            )
+            reportStreamStatusUseCase(
+                ReportStreamStatusUseCase.Params(
+                    channelId = channelId,
+                    status = ReportStreamStatusUseCase.Status.UNRESPONSIVE
+                )
+            )
+        }
     }
 
     private fun startDeadStreamCountdown() {
@@ -443,6 +493,7 @@ class PlayerViewModel @Inject constructor(
         channelListJob?.cancel()
         autoHideJob?.cancel()
         countdownJob?.cancel()
+        playReportJob?.cancel()
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
         val job = SupervisorJob()

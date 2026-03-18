@@ -10,6 +10,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.dao.SearchHistoryDao
+import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,7 +44,8 @@ object DatabaseModule {
                 FireVisionDatabase.MIGRATION_1_2,
                 FireVisionDatabase.MIGRATION_2_3,
                 FireVisionDatabase.MIGRATION_3_4,
-                FireVisionDatabase.MIGRATION_4_5
+                FireVisionDatabase.MIGRATION_4_5,
+                FireVisionDatabase.MIGRATION_5_6
             )
             .build()
     }
@@ -111,5 +113,10 @@ object DatabaseModule {
     @Provides
     fun provideFavoriteCategoryDao(database: FireVisionDatabase): FavoriteCategoryDao {
         return database.favoriteCategoryDao()
+    }
+
+    @Provides
+    fun provideStreamMetricsDao(database: FireVisionDatabase): StreamMetricsDao {
+        return database.streamMetricsDao()
     }
 }

@@ -4,6 +4,10 @@ import com.cadnative.firevisioniptv.data.model.dto.CategoriesResponse
 import com.cadnative.firevisioniptv.data.model.dto.ChannelDto
 import com.cadnative.firevisioniptv.data.model.dto.ChannelsResponse
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
+import com.cadnative.firevisioniptv.data.model.dto.FavoritesResponse
+import com.cadnative.firevisioniptv.data.model.dto.HealthSyncRequest
+import com.cadnative.firevisioniptv.data.model.dto.StreamPlayReport
+import com.cadnative.firevisioniptv.data.model.dto.StreamStatusReport
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -68,4 +72,24 @@ interface FireVisionApiService {
      */
     @GET("api/v1/channels/playlist.m3u")
     suspend fun getPlaylist(): Response<ResponseBody>
+
+    @GET("api/v1/favorites")
+    suspend fun getFavorites(): Response<FavoritesResponse>
+
+    @POST("api/v1/channels/{channelId}/report-status")
+    suspend fun reportStreamStatus(
+        @Path("channelId") channelId: String,
+        @Body report: StreamStatusReport
+    ): Response<Unit>
+
+    @POST("api/v1/channels/{channelId}/report-play")
+    suspend fun reportStreamPlay(
+        @Path("channelId") channelId: String,
+        @Body report: StreamPlayReport
+    ): Response<Unit>
+
+    @POST("api/v1/channels/health-sync")
+    suspend fun syncHealthResults(
+        @Body request: HealthSyncRequest
+    ): Response<Unit>
 }

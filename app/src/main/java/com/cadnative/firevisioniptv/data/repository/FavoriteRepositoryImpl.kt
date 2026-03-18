@@ -243,14 +243,36 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
     
-    /**
-     * Get device identifier for sync operations.
-     * 
-     * In a production app, this would use Android ID or a generated UUID
-     * stored in SharedPreferences. For now, returns a placeholder.
-     * 
-     * @return Device identifier string
-     */
+    override suspend fun pullFavoritesFromServer(): Result<Unit> = withContext(dispatcher) {
+        try {
+            val response = apiService.getFavorites()
+            if (response.isSuccessful) {
+                val serverChannelIds = response.body()?.channelIds ?: emptyList()
+                val localFavorites = localDataSource.getAllFavorites().first()
+                val localChannelIds = localFavorites.map { it.channelId }.toSet()
+
+                // Add server favorites that don't exist locally
+                for (channelId in serverChannelIds) {
+                    if (channelId !in localChannelIds) {
+                        val favorite = FavoriteEntity(
+                            channelId = channelId,
+                            addedAt = System.currentTimeMillis(),
+                            displayOrder = 0
+                        )
+                        localDataSource.addFavorite(favorite)
+                    }
+                }
+
+                Result.Success(Unit)
+            } else {
+                Result.Error(Exception("Pull favorites failed: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Pull favorites from server failed: ${e.message}")
+            Result.Error(e)
+        }
+    }
+
     private fun getDeviceId(): String {
         return Settings.Secure.getString(
             application.contentResolver,

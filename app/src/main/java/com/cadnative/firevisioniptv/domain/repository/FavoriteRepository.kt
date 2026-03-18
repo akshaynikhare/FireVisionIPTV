@@ -65,11 +65,18 @@ interface FavoriteRepository {
     
     /**
      * Synchronize favorites with the server.
-     * 
+     *
      * This uploads local favorite changes to the server and downloads
      * any server-side changes.
-     * 
+     *
      * @return Result indicating success or failure of synchronization
      */
     suspend fun syncFavorites(): Result<Unit>
+
+    /**
+     * Pull favorites from the server and merge with local data.
+     * Server favorites that don't exist locally are added.
+     * Local favorites that don't exist on server are kept.
+     */
+    suspend fun pullFavoritesFromServer(): Result<Unit>
 }

@@ -21,13 +21,16 @@ class ErrorRecoveryManager(
     private val onError: (String) -> Unit,
     private val onRecovering: (attempt: Int) -> Unit,
     private val onRecovered: () -> Unit,
-    private val onStreamDead: (errorMessage: String) -> Unit
+    private val onStreamDead: (errorMessage: String) -> Unit,
+    private val onStreamUnresponsive: (() -> Unit)? = null
 ) {
     private var reconnectJob: Job? = null
+    private var bufferWatchJob: Job? = null
     private var reconnectAttempts = 0
     private var isRecoveringState = false
     private val maxReconnectAttempts = 5
     private val reconnectDelayMs = 2000L
+    private val unresponsiveThresholdMs = 30_000L
 
     private val playerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -41,11 +44,30 @@ class ErrorRecoveryManager(
                 reconnectJob?.cancel()
                 onRecovered()
             }
+
+            // Track buffering for unresponsive detection
+            if (playbackState == Player.STATE_BUFFERING) {
+                startBufferWatch()
+            } else {
+                bufferWatchJob?.cancel()
+                bufferWatchJob = null
+            }
         }
     }
 
     init {
         player.addListener(playerListener)
+    }
+
+    private fun startBufferWatch() {
+        bufferWatchJob?.cancel()
+        bufferWatchJob = scope.launch {
+            delay(unresponsiveThresholdMs)
+            // Still buffering after threshold — stream is unresponsive
+            if (player.playbackState == Player.STATE_BUFFERING) {
+                onStreamUnresponsive?.invoke()
+            }
+        }
     }
 
     private fun handleError(error: PlaybackException) {
@@ -103,6 +125,7 @@ class ErrorRecoveryManager(
         reconnectAttempts = 0
         isRecoveringState = false
         reconnectJob?.cancel()
+        bufferWatchJob?.cancel()
     }
 
     fun retry() {
@@ -114,6 +137,7 @@ class ErrorRecoveryManager(
 
     fun release() {
         reconnectJob?.cancel()
+        bufferWatchJob?.cancel()
         player.removeListener(playerListener)
     }
 }
