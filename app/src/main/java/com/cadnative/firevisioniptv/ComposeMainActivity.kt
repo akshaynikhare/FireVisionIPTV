@@ -69,11 +69,7 @@ class ComposeMainActivity : ComponentActivity() {
             } else null
         }
 
-        // Check for autoload channel
-        val autoloadChannelId = AppPreferences.getAutoloadChannelId(this)
-            .takeIf { it.isNotEmpty() }
-
-        val targetChannelId = deepLinkChannelId ?: autoloadChannelId
+        val targetChannelId = deepLinkChannelId
         val showSplashOnStart = savedInstanceState == null
 
         setContent {
@@ -95,7 +91,7 @@ class ComposeMainActivity : ComponentActivity() {
                             startDestination = startDestination
                         )
 
-                        // Navigate to player if deep link or autoload channel is set (once only)
+                        // Navigate to player if deep link channel is set (once only)
                         if (targetChannelId != null && savedInstanceState == null && !needsPairing) {
                             LaunchedEffect(targetChannelId) {
                                 navController.navigate(Screen.Player.createRoute(targetChannelId))

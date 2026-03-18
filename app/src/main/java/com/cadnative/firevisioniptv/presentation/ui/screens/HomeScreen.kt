@@ -1,33 +1,22 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.ErrorType
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
@@ -238,123 +227,16 @@ private fun PopularCategoriesSlider(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(categories, key = { it.name }) { category ->
-                PopularCategoryCard(
-                    category = category,
-                    onClick = { onCategoryClick(category.name) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PopularCategoryCard(
-    category: PopularCategoryUiModel,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
-        animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
-        label = "popularCatScale"
-    )
-    val catColor = categoryColor(category.name)
-    val catIcon = categoryIcon(category.name)
-
-    Card(
-        onClick = onClick,
-        modifier = modifier
-            .width(180.dp)
-            .height(100.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .onFocusChanged { isFocused = it.isFocused },
-        shape = MaterialTheme.shapes.medium,
-        border = when {
-            isFocused -> BorderStroke(2.dp, FocusBorder)
-            else -> BorderStroke(1.dp, SubtleBorder)
-        },
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Color gradient background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                catColor.copy(alpha = 0.18f),
-                                catColor.copy(alpha = 0.04f)
-                            )
-                        )
-                    )
-            )
-
-            // Background image overlay if available
-            if (category.imageUrl != null) {
-                AsyncImage(
-                    model = category.imageUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                CategoryCard(
+                    name = category.name,
+                    channelCount = category.channelCount,
+                    imageUrl = category.imageUrl,
+                    isFavorite = category.isFavorite,
+                    onClick = { onCategoryClick(category.name) },
+                    subtitle = "${category.channelCount} live",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(0.25f)
-                )
-            }
-
-            // Category icon — top-right, decorative
-            Icon(
-                imageVector = catIcon,
-                contentDescription = null,
-                tint = catColor.copy(alpha = 0.4f),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp)
-                    .size(24.dp)
-            )
-
-            // Category accent line at top
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(catColor.copy(alpha = 0.8f))
-            )
-
-            // Favorite badge
-            if (category.isFavorite) {
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = "Favorite",
-                    tint = Amber,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .size(16.dp)
-                )
-            }
-
-            // Text content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = catColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "${category.channelCount} live",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextPrimary.copy(alpha = EmphasisMedium)
+                        .width(180.dp)
+                        .height(100.dp)
                 )
             }
         }

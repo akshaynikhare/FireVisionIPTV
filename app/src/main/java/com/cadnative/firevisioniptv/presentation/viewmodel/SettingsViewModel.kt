@@ -60,7 +60,6 @@ class SettingsViewModel @Inject constructor(
         private const val TAG = "SettingsViewModel"
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
         private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
-        private const val AUTOLOAD_CHANNEL_NAME_KEY = "autoload_channel_name"
         private const val UPDATE_CHECK_TIMEOUT = 15_000
         private const val APK_FILENAME = "FireVisionIPTV.apk"
         private const val GITHUB_RELEASES_API = "https://api.github.com/repos/akshaynikhare/FireVisionIPTV/releases/latest"
@@ -96,7 +95,6 @@ class SettingsViewModel @Inject constructor(
                     state.copy(
                         serverUrl = current.serverUrl,
                         tvCode = current.tvCode,
-                        autoloadChannelName = current.autoloadChannelName,
                         appVersion = current.appVersion,
                         qrCodeBitmap = current.qrCodeBitmap,
                         isPaired = current.isPaired,
@@ -114,15 +112,12 @@ class SettingsViewModel @Inject constructor(
         val ctx = application.applicationContext
         val serverUrl = AppPreferences.getServerUrl(ctx)
         val tvCode = AppPreferences.getTvCode(ctx)
-        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val autoloadName = prefs.getString(AUTOLOAD_CHANNEL_NAME_KEY, "") ?: ""
         val isPaired = tvCode.isNotEmpty() && tvCode != DEFAULT_TV_CODE
 
         _uiState.update {
             it.copy(
                 serverUrl = serverUrl,
                 tvCode = tvCode,
-                autoloadChannelName = autoloadName,
                 isPaired = isPaired,
                 appVersion = getAppVersion()
             )
@@ -173,18 +168,6 @@ class SettingsViewModel @Inject constructor(
     fun resetPairing() {
         AppPreferences.clearPairing(application.applicationContext)
         _uiState.update { it.copy(tvCode = "", isPaired = false) }
-    }
-
-    fun clearAutoloadChannel() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .remove("autoload_channel_id")
-                .remove(AUTOLOAD_CHANNEL_NAME_KEY)
-                .apply()
-        }
-
-        _uiState.update { it.copy(autoloadChannelName = "") }
     }
 
     private fun generateQRCode(serverUrl: String) {

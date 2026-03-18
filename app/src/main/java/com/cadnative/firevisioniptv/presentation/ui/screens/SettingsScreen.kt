@@ -108,9 +108,7 @@ fun SettingsScreen(
             ) {
                 // Left column: Channels
                 ChannelsCard(
-                    autoloadChannelName = uiState.autoloadChannelName,
                     scanProgress = scanProgress,
-                    onClearAutoload = { viewModel.clearAutoloadChannel() },
                     onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
                     modifier = Modifier
                         .weight(1f)
@@ -149,7 +147,7 @@ private fun PairedStatusBanner(
     var hasFocus by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (hasFocus) FocusBorder else SubtleBorder,
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
         animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "bannerBorder"
     )
@@ -385,45 +383,11 @@ private fun UnpairedSetupCard(
 
 @Composable
 private fun ChannelsCard(
-    autoloadChannelName: String,
     scanProgress: ScanProgress,
-    onClearAutoload: () -> Unit,
     onCheckLiveliness: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SettingsCard(title = "Channels", modifier = modifier) {
-        // Auto-Load Channel
-        Text(
-            text = "Hold OK button on any channel to set it as auto-load on startup",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = if (autoloadChannelName.isNotEmpty())
-                "Auto-load: $autoloadChannelName"
-            else
-                "No channel set",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall
-        )
-        if (autoloadChannelName.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            FocusAwareOutlinedButton(
-                onClick = onClearAutoload,
-                border = BorderStroke(1.dp, SubtleBorder)
-            ) {
-                Text("Clear Auto-Load", fontWeight = FontWeight.Medium)
-            }
-        }
-
-        // Divider
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 14.dp),
-            thickness = 1.dp,
-            color = SubtleBorder
-        )
-
         // Stream Health
         Text(
             text = "Stream Health",
@@ -638,7 +602,7 @@ private fun SettingsCard(
     var hasFocus by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (hasFocus) FocusBorder else SubtleBorder,
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
         animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "cardBorder"
     )
@@ -748,7 +712,7 @@ private fun FocusAwareOutlinedButton(
         label = "outlinedBtnScale"
     )
     val animatedBorder = if (isFocused) {
-        BorderStroke(2.dp, FocusBorder)
+        BorderStroke(2.dp, FocusBorder.copy(alpha = 0.5f))
     } else {
         border
     }

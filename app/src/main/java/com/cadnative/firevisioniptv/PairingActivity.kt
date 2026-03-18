@@ -69,7 +69,7 @@ class PairingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        serverUrl = SettingsActivity.getServerUrl(this)
+        serverUrl = AppPreferences.getServerUrl(this)
 
         setContent {
             FireVisionTheme {
@@ -135,7 +135,7 @@ class PairingActivity : ComponentActivity() {
         Thread {
             var connection: HttpURLConnection? = null
             try {
-                val baseUrl = SettingsActivity.getServerUrl(this)
+                val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
                 val url = URL("$baseUrl/api/v1/tv/pairing/request")
                 connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = CONNECT_TIMEOUT_MS
@@ -211,7 +211,7 @@ class PairingActivity : ComponentActivity() {
         Thread {
             var connection: HttpURLConnection? = null
             try {
-                val baseUrl = SettingsActivity.getServerUrl(this)
+                val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
                 val url = URL("$baseUrl/api/v1/tv/pairing/status/$currentPin")
                 connection = url.openConnection() as HttpURLConnection
                 connection.connectTimeout = CONNECT_TIMEOUT_MS
