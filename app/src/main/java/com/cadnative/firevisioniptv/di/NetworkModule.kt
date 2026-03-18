@@ -68,7 +68,7 @@ object NetworkModule {
                 val original = chain.request()
                 val builder = original.newBuilder()
                     .addHeader("Accept", "application/json")
-                    .addHeader("X-Session-ID", tvCode)
+                    .addHeader("X-TV-Code", tvCode)
                 if (original.body != null) {
                     builder.addHeader("Content-Type", "application/json")
                 }
