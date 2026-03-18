@@ -67,6 +67,8 @@ class PlayerViewModel @Inject constructor(
 
     fun loadChannel(channelId: String) {
         loadJob?.cancel()
+        playReportJob?.cancel()
+        playReportedForChannel = null
         loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             getChannelByIdUseCase(channelId).collect { result ->
