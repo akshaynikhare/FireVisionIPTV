@@ -90,6 +90,11 @@ jobs:
           printf "%b" "$ENTRY" > /tmp/new_entry.md
           echo "Generated entry for $TAG"
 
+      - name: Checkout main branch
+        run: |
+          git checkout main
+          git pull origin main
+
       - name: Prepend entry to CHANGELOG.md
         run: |
           TAG="${{ steps.tag_info.outputs.tag }}"
@@ -120,4 +125,4 @@ jobs:
           fi
 
           git commit -m "docs: update CHANGELOG.md for ${{ steps.tag_info.outputs.tag }}"
-          git push origin HEAD:refs/heads/main
+          git push origin main
