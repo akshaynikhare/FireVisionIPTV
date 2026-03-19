@@ -207,7 +207,12 @@ fun FireVisionNavGraph(
             } else {
                 PlayerScreen(
                     channelId = channelId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }

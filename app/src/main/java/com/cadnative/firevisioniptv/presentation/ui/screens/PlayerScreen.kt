@@ -59,12 +59,14 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
 private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
+private const val CHANNEL_SWITCH_DEBOUNCE_MS = 250L
 
 @Composable
 fun PlayerScreen(
     channelId: String,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToSettings: (() -> Unit)? = null,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -198,31 +200,68 @@ fun PlayerScreen(
         }
     }
 
+    // Debounce state for channel switching
+    var lastChannelSwitchTime by remember { mutableLongStateOf(0L) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim)
             .onKeyEvent { keyEvent ->
-                // Only handle key-down events when overlay is NOT visible
                 if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+
+                // Menu button: toggle channel overlay (works regardless of overlay state)
+                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_MENU) {
+                    if (uiState.showChannelOverlay) viewModel.hideOverlay() else viewModel.showOverlay()
+                    return@onKeyEvent true
+                }
+
+                // Settings button: navigate to settings
+                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
+                    onNavigateToSettings.invoke()
+                    return@onKeyEvent true
+                }
+
+                // Remaining keys only apply when overlay is NOT visible
                 if (uiState.showChannelOverlay) return@onKeyEvent false
 
+                val now = System.currentTimeMillis()
                 when (keyEvent.nativeKeyEvent.keyCode) {
                     KeyEvent.KEYCODE_DPAD_RIGHT,
                     KeyEvent.KEYCODE_MEDIA_NEXT,
                     KeyEvent.KEYCODE_CHANNEL_UP -> {
-                        viewModel.nextChannel()
+                        if (now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
+                            lastChannelSwitchTime = now
+                            viewModel.nextChannel()
+                        }
                         true
                     }
                     KeyEvent.KEYCODE_DPAD_LEFT,
                     KeyEvent.KEYCODE_MEDIA_PREVIOUS,
                     KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                        viewModel.previousChannel()
+                        if (now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
+                            lastChannelSwitchTime = now
+                            viewModel.previousChannel()
+                        }
                         true
                     }
                     KeyEvent.KEYCODE_DPAD_CENTER,
                     KeyEvent.KEYCODE_ENTER -> {
+                        // Toggle play/pause and show favorite button
+                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                         showFavButton = true
+                        true
+                    }
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                        true
+                    }
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                        exoPlayer.play()
+                        true
+                    }
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                        exoPlayer.pause()
                         true
                     }
                     else -> false
