@@ -1,0 +1,105 @@
+name: Remote / D-pad Navigation Issue
+description: Report a problem with Fire TV remote control or D-pad navigation
+title: "[Remote]: "
+labels: ["bug", "remote-control", "focus-management"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for issues specifically related to remote control buttons, D-pad navigation, or focus management on Fire TV / Android TV.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the navigation or focus issue you encountered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Navigate to …
+        2. Press D-pad …
+        3. Focus jumps to wrong element / nothing happens
+    validations:
+      required: true
+
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Affected Screen(s)
+      multiple: true
+      options:
+        - Home / Channel List
+        - Player / Overlay
+        - Favorites
+        - Search
+        - Settings
+        - EPG Guide
+        - Pairing Screen
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: button
+    attributes:
+      label: Remote Button(s) Involved
+      multiple: true
+      options:
+        - D-pad Up
+        - D-pad Down
+        - D-pad Left
+        - D-pad Right
+        - OK / Select (center)
+        - Back
+        - Home
+        - Options / Menu (☰)
+        - Settings (⚙️)
+        - Play / Pause
+        - Fast Forward
+        - Rewind
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device & Fire OS Version
+      placeholder: "e.g. Fire TV Stick 4K Max, Fire OS 8"
+    validations:
+      required: false
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      placeholder: "e.g. 2.0.3"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
