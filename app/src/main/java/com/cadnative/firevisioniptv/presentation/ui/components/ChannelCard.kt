@@ -1,21 +1,13 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -24,20 +16,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.view.KeyEvent
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +39,6 @@ import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
-import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
@@ -55,10 +47,10 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceElevated
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
+import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChannelCard(
     channel: ChannelUiModel,
@@ -67,98 +59,85 @@ fun ChannelCard(
     modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    var longPressHandled by remember { mutableStateOf(false) }
 
-    // Scale up on focus — cinematic lift effect
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.08f else 1f,
+        targetValue = if (isFocused) 1.06f else 1f,
         animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
         label = "cardScale"
     )
 
-    // Subtle image zoom on focus — intentionally slower for Ken Burns-lite drift
-    val imageScale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
-        animationSpec = tween(durationMillis = DURATION_NORMAL * 2, easing = EaseOutQuart),
-        label = "imageScale"
-    )
+    val catColor = categoryColor(channel.category)
+    val catIcon = categoryIcon(channel.category)
 
-    // Gradient intensifies on focus for better text readability
-    val gradientAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 0.95f else 0.9f,
-        animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
-        label = "gradientAlpha"
-    )
-
-    // Subtle glow behind card on focus
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 0.15f else 0f,
-        animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
-        label = "cardGlow"
-    )
-
-    Box(
+    Card(
+        onClick = {
+            if (!longPressHandled) onClick()
+            longPressHandled = false
+        },
         modifier = modifier
-            .width(260.dp)
-            .height(150.dp)
-    ) {
-        // Ambient glow layer (behind the card) — always rendered, alpha drives visibility
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .graphicsLayer {
-                    this.alpha = glowAlpha
-                    scaleX = 1.12f
-                    scaleY = 1.12f
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { isFocused = it.isFocused }
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+                when (keyEvent.nativeKeyEvent.keyCode) {
+                    KeyEvent.KEYCODE_MENU,
+                    KeyEvent.KEYCODE_BOOKMARK -> {
+                        onFavoriteClick()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER -> {
+                        if (keyEvent.nativeKeyEvent.isLongPress) {
+                            longPressHandled = true
+                            onFavoriteClick()
+                            true
+                        } else false
+                    }
+                    else -> false
                 }
-                .background(
-                    FocusGlow,
-                    MaterialTheme.shapes.medium
-                )
-        )
-
-        Card(
-            modifier = Modifier
-                .matchParentSize()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .onFocusChanged { isFocused = it.isFocused }
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onFavoriteClick
-                ),
-            shape = MaterialTheme.shapes.medium,
-            border = when {
-                isFocused -> BorderStroke(2.dp, FocusBorder)
-                else -> BorderStroke(1.dp, SubtleBorder)
             },
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            ChannelCardContent(
-                channel = channel,
-                isFocused = isFocused,
-                imageScale = imageScale,
-                gradientAlpha = gradientAlpha
-            )
-        }
+        shape = MaterialTheme.shapes.medium,
+        border = when {
+            isFocused -> BorderStroke(2.dp, FocusBorder)
+            else -> BorderStroke(1.dp, SubtleBorder)
+        },
+        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+    ) {
+        ChannelCardContent(
+            channel = channel,
+            isFocused = isFocused,
+            catColor = catColor,
+            catIcon = catIcon
+        )
     }
 }
 
-/** Extracted from Card's ColumnScope to avoid AnimatedVisibility receiver conflict. */
 @Composable
 private fun ChannelCardContent(
     channel: ChannelUiModel,
     isFocused: Boolean,
-    imageScale: Float,
-    gradientAlpha: Float
+    catColor: androidx.compose.ui.graphics.Color,
+    catIcon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
-    val catColor = categoryColor(channel.category)
-
     Box(modifier = Modifier.fillMaxSize()) {
-        // Resolve thumbnail file on IO thread
+
+        // ── Layer 1: Logo / image as full-bleed background ──────────
+        // Category gradient base (always visible behind logo)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            catColor.copy(alpha = 0.18f),
+                            catColor.copy(alpha = 0.04f)
+                        )
+                    )
+                )
+        )
+
+        // Logo or thumbnail fills the card
         var thumbnailFile by remember(channel.thumbnailPath) { mutableStateOf<File?>(null) }
         LaunchedEffect(channel.thumbnailPath) {
             thumbnailFile = withContext(Dispatchers.IO) {
@@ -168,122 +147,34 @@ private fun ChannelCardContent(
             }
         }
 
-        val hasThumbnail = thumbnailFile != null
-        val hasLogo = channel.logoUrl != null
-
-        // ── Background layers based on available assets ──────────────
-
-        when {
-            // Case 2: Both logo + thumbnail → thumbnail bg + tint + logo overlay
-            hasLogo && hasThumbnail -> {
-                AsyncImage(
-                    model = thumbnailFile,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { scaleX = imageScale; scaleY = imageScale },
-                    contentScale = ContentScale.Crop
-                )
-                // Dark tint so logo pops
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.45f))
-                )
-                // Logo overlay — centered, slightly above bottom text
-                Card(
-                    shape = MaterialTheme.shapes.small,
-                    colors = CardDefaults.cardColors(containerColor = SurfaceElevated.copy(alpha = 0.75f)),
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = (-8).dp)
-                        .size(40.dp)
-                ) {
-                    AsyncImage(
-                        model = channel.logoUrl,
-                        contentDescription = channel.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(4.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
-
-            // Case 1: Logo only → category gradient bg + logo centered
-            hasLogo -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(catColor.copy(alpha = 0.15f), catColor.copy(alpha = 0.03f))
-                            )
-                        )
-                )
-                AsyncImage(
-                    model = channel.logoUrl,
-                    contentDescription = channel.name,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = (-8).dp)
-                        .size(48.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-
-            // Case 3: Thumbnail only → thumbnail bg + darker tint (name is sole identifier)
-            hasThumbnail -> {
-                AsyncImage(
-                    model = thumbnailFile,
-                    contentDescription = channel.name,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { scaleX = imageScale; scaleY = imageScale },
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                )
-            }
-
-            // Case 4: Neither → category gradient + category icon as placeholder
-            else -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(catColor.copy(alpha = 0.2f), catColor.copy(alpha = 0.05f))
-                            )
-                        )
-                )
-                Icon(
-                    imageVector = categoryIcon(channel.category),
-                    contentDescription = null,
-                    tint = catColor.copy(alpha = 0.3f),
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = (-8).dp)
-                        .size(36.dp)
-                )
-            }
+        if (channel.logoUrl != null) {
+            AsyncImage(
+                model = channel.logoUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentScale = ContentScale.Fit
+            )
+        } else if (thumbnailFile != null) {
+            AsyncImage(
+                model = thumbnailFile,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = catIcon,
+                contentDescription = null,
+                tint = catColor.copy(alpha = 0.3f),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(48.dp)
+            )
         }
 
-        // ── Common overlays (all states) ─────────────────────────────
-
-        // Category accent line at top
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .height(3.dp)
-                .background(catColor.copy(alpha = 0.8f))
-        )
-
-        // Bottom gradient for text readability
+        // ── Layer 2: Translucent scrim for text readability ─────────
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -292,71 +183,77 @@ private fun ChannelCardContent(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.scrim.copy(alpha = gradientAlpha)
+                            SurfaceElevated.copy(alpha = 0f),
+                            SurfaceElevated.copy(alpha = 0.85f)
                         )
                     )
                 )
         )
 
-        // Channel name — bottom-left
-        Text(
-            text = channel.name,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        // ── Layer 3: Text, badges, accent line ──────────────────────
+        // Accent line at top
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(catColor.copy(alpha = 0.8f))
         )
 
-        // Top-right row: favorite star + health indicator
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AnimatedVisibility(
-                visible = channel.isFavorite,
-                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)) + scaleIn(
-                    initialScale = 0.6f,
-                    animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart)
-                ),
-                exit = fadeOut(tween(DURATION_FAST)) + scaleOut(
-                    targetScale = 0.6f,
-                    animationSpec = tween(DURATION_FAST)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Favorite",
-                    tint = Amber,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            if (channel.healthStatus != ChannelHealthStatus.UNKNOWN) {
-                HealthIndicatorDot(status = channel.healthStatus)
-            }
+        // Health indicator — top-right
+        if (channel.healthStatus != ChannelHealthStatus.UNKNOWN) {
+            HealthIndicatorDot(
+                status = channel.healthStatus,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            )
         }
 
-        // Long-press hint when focused
-        AnimatedVisibility(
-            visible = isFocused,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_FAST))
-        ) {
+        // Favorite badge — top-left
+        if (channel.isFavorite) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "Favorite",
+                tint = Amber,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+                    .size(16.dp)
+            )
+        }
+
+        // "Hold to favorite" hint when focused
+        if (isFocused && !channel.isFavorite) {
             Text(
                 text = "Hold to favorite",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextDim
+                color = TextDim,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+            )
+        }
+
+        // Channel name + category — bottom
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = catColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = channel.category,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextPrimary.copy(alpha = EmphasisMedium)
             )
         }
     }
@@ -383,7 +280,6 @@ private fun HealthIndicatorDot(
         ChannelHealthStatus.UNKNOWN -> "Stream status unknown"
     }
 
-    // Pulse animation for CHECKING state
     val alpha = if (status == ChannelHealthStatus.CHECKING) {
         val infiniteTransition = rememberInfiniteTransition(label = "healthPulse")
         infiniteTransition.animateFloat(
@@ -401,10 +297,9 @@ private fun HealthIndicatorDot(
 
     Box(
         modifier = modifier
-            .size(10.dp)
+            .size(8.dp)
             .clip(CircleShape)
             .background(dotColor.copy(alpha = alpha))
-            .border(1.dp, MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f), CircleShape)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) { }

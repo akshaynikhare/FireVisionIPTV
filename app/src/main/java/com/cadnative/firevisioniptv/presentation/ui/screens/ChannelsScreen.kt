@@ -199,7 +199,7 @@ private fun ChannelsGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 260.dp),
+        columns = GridCells.Adaptive(minSize = 200.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -210,7 +210,10 @@ private fun ChannelsGrid(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },
                 onFavoriteClick = { onToggleFavorite(channel.id) },
-                modifier = Modifier.animateItemEntrance(index)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .animateItemEntrance(index)
             )
         }
     }

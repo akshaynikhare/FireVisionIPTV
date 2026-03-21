@@ -182,8 +182,8 @@ private fun HeroBanner(
     if (channels.isEmpty()) return
 
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val cardWidth = (screenWidth * 0.35f).coerceIn(280.dp, 500.dp)
-    val cardHeight = (cardWidth * 0.56f).coerceIn(160.dp, 280.dp)
+    val cardWidth = (screenWidth * 0.22f).coerceIn(200.dp, 320.dp)
+    val cardHeight = (cardWidth * 0.6f).coerceIn(120.dp, 192.dp)
 
     Column(modifier = modifier.padding(horizontal = 40.dp)) {
         Text(
@@ -285,7 +285,10 @@ private fun ChannelRow(
                 ChannelCard(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
-                    onFavoriteClick = { onToggleFavorite(channel.id) }
+                    onFavoriteClick = { onToggleFavorite(channel.id) },
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(110.dp)
                 )
             }
         }

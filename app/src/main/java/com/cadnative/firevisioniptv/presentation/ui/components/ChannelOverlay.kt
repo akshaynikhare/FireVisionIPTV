@@ -427,11 +427,12 @@ private fun OverlayChannelItem(
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
+    Box(modifier = modifier.width(180.dp).height(110.dp)) {
         ChannelCard(
             channel = channel,
             onClick = onClick,
-            onFavoriteClick = onFavoriteClick
+            onFavoriteClick = onFavoriteClick,
+            modifier = Modifier.fillMaxSize()
         )
 
         // "NOW" badge for the currently playing channel
