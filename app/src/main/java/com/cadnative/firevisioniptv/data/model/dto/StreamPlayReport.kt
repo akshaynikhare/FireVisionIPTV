@@ -10,5 +10,8 @@ data class StreamPlayReport(
     val timestamp: Long,
 
     @SerializedName("proxyPlay")
-    val proxyPlay: Boolean = false
+    val proxyPlay: Boolean = false,
+
+    @SerializedName("streamUrl")
+    val streamUrl: String? = null
 )

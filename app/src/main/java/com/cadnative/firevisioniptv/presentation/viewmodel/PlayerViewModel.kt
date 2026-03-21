@@ -144,7 +144,8 @@ class PlayerViewModel @Inject constructor(
                 reportStreamPlayUseCase(
                     ReportStreamPlayUseCase.Params(
                         channelId = channelId,
-                        proxyPlay = _uiState.value.isUsingProxy
+                        proxyPlay = _uiState.value.isUsingProxy,
+                        streamUrl = _uiState.value.activeStreamUrl
                     )
                 )
             }
@@ -314,6 +315,7 @@ class PlayerViewModel @Inject constructor(
                 isRecovering = false,
                 isStreamDead = false,
                 isUsingProxy = false,
+                activeStreamUrl = null,
                 deadStreamCountdown = 0,
                 shouldNavigateBack = false,
                 error = null
@@ -422,6 +424,10 @@ class PlayerViewModel @Inject constructor(
 
     fun onProxyFallback() {
         _uiState.update { it.copy(isUsingProxy = true) }
+    }
+
+    fun onAlternateFallback(streamUrl: String) {
+        _uiState.update { it.copy(activeStreamUrl = streamUrl, isUsingProxy = false) }
     }
 
     fun onStreamDead(errorMessage: String) {

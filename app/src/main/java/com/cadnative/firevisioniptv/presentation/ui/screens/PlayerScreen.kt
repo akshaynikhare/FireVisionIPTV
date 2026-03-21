@@ -129,7 +129,7 @@ fun PlayerScreen(
     // Keep a ref to PlayerView for thumbnail capture
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
 
-    // Wire ErrorRecoveryManager with proxy fallback
+    // Wire ErrorRecoveryManager with proxy and alternate fallback
     val errorRecoveryManager = remember(exoPlayer) {
         ErrorRecoveryManager(
             player = exoPlayer,
@@ -139,7 +139,8 @@ fun PlayerScreen(
             onRecovered = { viewModel.onRecovered() },
             onStreamDead = { message -> viewModel.onStreamDead(message) },
             onStreamUnresponsive = { viewModel.onStreamUnresponsive() },
-            onProxyFallback = { viewModel.onProxyFallback() }
+            onProxyFallback = { viewModel.onProxyFallback() },
+            onAlternateFallback = { streamUrl -> viewModel.onAlternateFallback(streamUrl) }
         )
     }
 
@@ -158,15 +159,22 @@ fun PlayerScreen(
             }
             errorRecoveryManager.reset()
 
-            // Construct proxy fallback URL using server URL + TV code
+            // Build stream slots: primary + alternates, each with optional proxy
             val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
             val tvCode = AppPreferences.getTvCode(context)
-            if (tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE) {
-                val encodedUrl = URLEncoder.encode(url, "UTF-8")
-                errorRecoveryManager.setProxyUrl("$serverUrl/api/v1/tv/stream/$tvCode?url=$encodedUrl")
-            } else {
-                errorRecoveryManager.setProxyUrl(null)
+            val canProxy = tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+
+            fun buildProxyUrl(streamUrl: String): String? {
+                if (!canProxy) return null
+                return "$serverUrl/api/v1/tv/stream/$tvCode?url=${URLEncoder.encode(streamUrl, "UTF-8")}"
             }
+
+            val slots = mutableListOf<ErrorRecoveryManager.StreamSlot>()
+            slots.add(ErrorRecoveryManager.StreamSlot(url, buildProxyUrl(url), isPrimary = true))
+            channel.alternateStreamUrls.take(3).forEach { altUrl ->
+                slots.add(ErrorRecoveryManager.StreamSlot(altUrl, buildProxyUrl(altUrl), isPrimary = false))
+            }
+            errorRecoveryManager.setStreamSlots(slots)
 
             val mediaItem = MediaItem.Builder()
                 .setUri(url)
@@ -323,7 +331,7 @@ fun PlayerScreen(
             enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
             exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
         ) {
-            RecoveringOverlay(attempt = uiState.recoveryAttempt, maxAttempts = 5)
+            RecoveringOverlay(attempt = uiState.recoveryAttempt, maxAttempts = errorRecoveryManager.maxTotalAttempts)
         }
 
         // Dead stream overlay

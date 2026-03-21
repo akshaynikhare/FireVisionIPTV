@@ -10,7 +10,7 @@ interface StreamMetricsRepository {
 
     suspend fun reportStreamUnresponsive(channelId: String): Result<Unit>
 
-    suspend fun reportStreamPlay(channelId: String, proxyPlay: Boolean = false): Result<Unit>
+    suspend fun reportStreamPlay(channelId: String, proxyPlay: Boolean = false, streamUrl: String? = null): Result<Unit>
 
     suspend fun syncHealthResults(results: List<HealthSyncEntry>): Result<Unit>
 }

@@ -36,7 +36,8 @@ data class ChannelDto(
     val tvgId: String? = null,
     val tvgName: String? = null,
     val isActive: Boolean = true,
-    val metadata: ChannelMetadataDto? = null
+    val metadata: ChannelMetadataDto? = null,
+    val alternateStreams: List<AlternateStreamDto>? = null
 ) {
     /** Resolved logo URL: prefers tvgLogo, falls back to channelImg */
     val logoUrl: String?
@@ -46,4 +47,11 @@ data class ChannelDto(
 data class ChannelMetadataDto(
     @SerializedName("language")
     val language: String? = null
+)
+
+data class AlternateStreamDto(
+    @SerializedName("streamUrl")
+    val streamUrl: String,
+    @SerializedName("quality")
+    val quality: String? = null
 )

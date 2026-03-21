@@ -41,10 +41,13 @@ class ChannelRepositoryImpl @Inject constructor(
     private val channelMapper: ChannelMapper,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : ChannelRepository {
-    
+
+    // In-memory cache of alternate stream URLs per channel (populated during sync)
+    private val alternatesCache = mutableMapOf<String, List<String>>()
+
     /**
      * Get all channels with offline-first strategy.
-     * 
+     *
      * Emits local data immediately, then fetches from remote in background.
      * The Flow will automatically emit updated data when remote fetch completes.
      */
@@ -53,7 +56,11 @@ class ChannelRepositoryImpl @Inject constructor(
             .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
                 val favoriteIds = favorites.map { it.channelId }.toSet()
                 channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    channelMapper.toDomain(
+                        entity,
+                        isFavorite = favoriteIds.contains(entity.id),
+                        alternateStreamUrls = alternatesCache[entity.id] ?: emptyList()
+                    )
                 }
             }
             .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
@@ -67,7 +74,11 @@ class ChannelRepositoryImpl @Inject constructor(
         localDataSource.getChannelById(id)
             .combine(favoriteDao.isFavorite(id)) { entity, isFavorite ->
                 if (entity != null) {
-                    Result.Success(channelMapper.toDomain(entity, isFavorite))
+                    Result.Success(channelMapper.toDomain(
+                        entity,
+                        isFavorite,
+                        alternateStreamUrls = alternatesCache[entity.id] ?: emptyList()
+                    ))
                 } else {
                     Result.Error(Exception("Channel not found: $id"))
                 }
@@ -83,7 +94,11 @@ class ChannelRepositoryImpl @Inject constructor(
             .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
                 val favoriteIds = favorites.map { it.channelId }.toSet()
                 channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    channelMapper.toDomain(
+                        entity,
+                        isFavorite = favoriteIds.contains(entity.id),
+                        alternateStreamUrls = alternatesCache[entity.id] ?: emptyList()
+                    )
                 }
             }
             .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
@@ -98,7 +113,11 @@ class ChannelRepositoryImpl @Inject constructor(
             .combine(favoriteDao.getAllFavorites()) { channels, favorites ->
                 val favoriteIds = favorites.map { it.channelId }.toSet()
                 channels.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = favoriteIds.contains(entity.id))
+                    channelMapper.toDomain(
+                        entity,
+                        isFavorite = favoriteIds.contains(entity.id),
+                        alternateStreamUrls = alternatesCache[entity.id] ?: emptyList()
+                    )
                 }
             }
             .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }
@@ -118,6 +137,13 @@ class ChannelRepositoryImpl @Inject constructor(
             
             when (result) {
                 is Result.Success -> {
+                    // Populate in-memory alternates cache from DTOs
+                    alternatesCache.clear()
+                    result.data.forEach { dto ->
+                        val alts = dto.alternateStreams?.map { it.streamUrl } ?: emptyList()
+                        if (alts.isNotEmpty()) alternatesCache[dto.id] = alts
+                    }
+
                     val entities = result.data.map { dto ->
                         channelMapper.toEntity(dto)
                     }
@@ -169,7 +195,11 @@ class ChannelRepositoryImpl @Inject constructor(
         favoriteDao.getFavoriteChannels()
             .map { entities ->
                 entities.map { entity ->
-                    channelMapper.toDomain(entity, isFavorite = true)
+                    channelMapper.toDomain(
+                        entity,
+                        isFavorite = true,
+                        alternateStreamUrls = alternatesCache[entity.id] ?: emptyList()
+                    )
                 }
             }
             .map<List<Channel>, Result<List<Channel>>> { Result.Success(it) }

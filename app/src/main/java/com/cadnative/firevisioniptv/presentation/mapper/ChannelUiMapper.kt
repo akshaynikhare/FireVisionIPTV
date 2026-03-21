@@ -23,7 +23,8 @@ class ChannelUiMapper @Inject constructor() {
             category = channel.category,
             isFavorite = channel.isFavorite,
             healthStatus = healthStatus,
-            thumbnailPath = thumbnailPath
+            thumbnailPath = thumbnailPath,
+            alternateStreamUrls = channel.alternateStreamUrls
         )
     }
 

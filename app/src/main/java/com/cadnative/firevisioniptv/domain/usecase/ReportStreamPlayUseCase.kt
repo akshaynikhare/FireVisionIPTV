@@ -10,10 +10,11 @@ class ReportStreamPlayUseCase @Inject constructor(
 
     data class Params(
         val channelId: String,
-        val proxyPlay: Boolean = false
+        val proxyPlay: Boolean = false,
+        val streamUrl: String? = null
     )
 
     override suspend fun execute(params: Params): Result<Unit> {
-        return repository.reportStreamPlay(params.channelId, params.proxyPlay)
+        return repository.reportStreamPlay(params.channelId, params.proxyPlay, params.streamUrl)
     }
 }
