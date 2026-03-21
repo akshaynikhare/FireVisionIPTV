@@ -53,10 +53,12 @@ import com.cadnative.firevisioniptv.presentation.ui.components.DeadStreamOverlay
 import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
+import java.net.URLEncoder
 
 private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
 
@@ -125,7 +127,7 @@ fun PlayerScreen(
     // Keep a ref to PlayerView for thumbnail capture
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
 
-    // Wire ErrorRecoveryManager
+    // Wire ErrorRecoveryManager with proxy fallback
     val errorRecoveryManager = remember(exoPlayer) {
         ErrorRecoveryManager(
             player = exoPlayer,
@@ -134,7 +136,8 @@ fun PlayerScreen(
             onRecovering = { attempt -> viewModel.onRecovering(attempt) },
             onRecovered = { viewModel.onRecovered() },
             onStreamDead = { message -> viewModel.onStreamDead(message) },
-            onStreamUnresponsive = { viewModel.onStreamUnresponsive() }
+            onStreamUnresponsive = { viewModel.onStreamUnresponsive() },
+            onProxyFallback = { viewModel.onProxyFallback() }
         )
     }
 
@@ -152,6 +155,17 @@ fun PlayerScreen(
                 return@let
             }
             errorRecoveryManager.reset()
+
+            // Construct proxy fallback URL using server URL + TV code
+            val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
+            val tvCode = AppPreferences.getTvCode(context)
+            if (tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE) {
+                val encodedUrl = URLEncoder.encode(url, "UTF-8")
+                errorRecoveryManager.setProxyUrl("$serverUrl/api/v1/tv/stream/$tvCode?url=$encodedUrl")
+            } else {
+                errorRecoveryManager.setProxyUrl(null)
+            }
+
             val mediaItem = MediaItem.Builder()
                 .setUri(url)
                 .build()

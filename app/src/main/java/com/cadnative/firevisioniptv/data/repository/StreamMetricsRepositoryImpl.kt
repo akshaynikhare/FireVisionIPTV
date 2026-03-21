@@ -111,7 +111,7 @@ class StreamMetricsRepositoryImpl @Inject constructor(
             }
         }
 
-    override suspend fun reportStreamPlay(channelId: String): Result<Unit> =
+    override suspend fun reportStreamPlay(channelId: String, proxyPlay: Boolean): Result<Unit> =
         withContext(dispatcher) {
             try {
                 ensureMetricsRow(channelId)
@@ -123,7 +123,8 @@ class StreamMetricsRepositoryImpl @Inject constructor(
                         channelId,
                         StreamPlayReport(
                             deviceId = getDeviceId(),
-                            timestamp = now
+                            timestamp = now,
+                            proxyPlay = proxyPlay
                         )
                     )
                 } catch (e: Exception) {

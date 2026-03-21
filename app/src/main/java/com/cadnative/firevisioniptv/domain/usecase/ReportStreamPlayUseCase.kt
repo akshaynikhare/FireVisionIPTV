@@ -6,9 +6,14 @@ import javax.inject.Inject
 
 class ReportStreamPlayUseCase @Inject constructor(
     private val repository: StreamMetricsRepository
-) : UseCase<String, Result<Unit>>() {
+) : UseCase<ReportStreamPlayUseCase.Params, Result<Unit>>() {
 
-    override suspend fun execute(params: String): Result<Unit> {
-        return repository.reportStreamPlay(params)
+    data class Params(
+        val channelId: String,
+        val proxyPlay: Boolean = false
+    )
+
+    override suspend fun execute(params: Params): Result<Unit> {
+        return repository.reportStreamPlay(params.channelId, params.proxyPlay)
     }
 }

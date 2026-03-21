@@ -6,12 +6,12 @@ data class StreamStatusReport(
     @SerializedName("status")
     val status: String,
 
-    @SerializedName("device_id")
+    @SerializedName("deviceId")
     val deviceId: String,
 
     @SerializedName("timestamp")
     val timestamp: Long,
 
-    @SerializedName("error_message")
+    @SerializedName("errorMessage")
     val errorMessage: String? = null
 )

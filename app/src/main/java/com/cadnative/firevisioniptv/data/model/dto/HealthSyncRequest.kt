@@ -3,7 +3,7 @@ package com.cadnative.firevisioniptv.data.model.dto
 import com.google.gson.annotations.SerializedName
 
 data class HealthSyncRequest(
-    @SerializedName("device_id")
+    @SerializedName("deviceId")
     val deviceId: String,
 
     @SerializedName("results")
@@ -11,13 +11,13 @@ data class HealthSyncRequest(
 )
 
 data class HealthSyncItem(
-    @SerializedName("channel_id")
+    @SerializedName("channelId")
     val channelId: String,
 
     @SerializedName("status")
     val status: String,
 
-    @SerializedName("response_time_ms")
+    @SerializedName("responseTimeMs")
     val responseTimeMs: Long? = null,
 
     @SerializedName("timestamp")

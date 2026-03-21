@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.player
 
+import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -9,11 +10,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Manages error recovery for playback with automatic reconnection.
+ * Manages error recovery for playback with automatic reconnection
+ * and proxy fallback.
  *
- * When a network error occurs, retries up to [maxReconnectAttempts] times
- * with exponential backoff. Non-recoverable errors (bad manifest, server
- * error) immediately signal the stream as dead.
+ * Recovery strategy:
+ * 1. Try direct URL up to [maxDirectAttempts] times with exponential backoff
+ * 2. If a proxy URL is available, switch to it and retry [maxProxyAttempts] times
+ * 3. If all retries exhausted, signal the stream as dead
  */
 class ErrorRecoveryManager(
     private val player: ExoPlayer,
@@ -22,15 +25,23 @@ class ErrorRecoveryManager(
     private val onRecovering: (attempt: Int) -> Unit,
     private val onRecovered: () -> Unit,
     private val onStreamDead: (errorMessage: String) -> Unit,
-    private val onStreamUnresponsive: (() -> Unit)? = null
+    private val onStreamUnresponsive: (() -> Unit)? = null,
+    private val onProxyFallback: (() -> Unit)? = null
 ) {
     private var reconnectJob: Job? = null
     private var bufferWatchJob: Job? = null
     private var reconnectAttempts = 0
     private var isRecoveringState = false
-    private val maxReconnectAttempts = 5
+    private var isUsingProxy = false
+    private var proxyUrl: String? = null
+
+    private val maxDirectAttempts = 3
+    private val maxProxyAttempts = 2
     private val reconnectDelayMs = 2000L
     private val unresponsiveThresholdMs = 30_000L
+
+    private val maxReconnectAttempts: Int
+        get() = if (proxyUrl != null) maxDirectAttempts + maxProxyAttempts else maxDirectAttempts
 
     private val playerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -71,6 +82,13 @@ class ErrorRecoveryManager(
         }
     }
 
+    /**
+     * Set the proxy URL to use as fallback when direct playback fails.
+     */
+    fun setProxyUrl(url: String?) {
+        proxyUrl = url
+    }
+
     private fun handleError(error: PlaybackException) {
         val errorMessage = when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
@@ -93,7 +111,6 @@ class ErrorRecoveryManager(
             onError(errorMessage)
             attemptReconnect()
         } else {
-            // Non-recoverable or retries exhausted
             onStreamDead(errorMessage)
         }
     }
@@ -109,7 +126,19 @@ class ErrorRecoveryManager(
         isRecoveringState = true
         reconnectJob = scope.launch {
             reconnectAttempts++
-            val delayTime = reconnectDelayMs * reconnectAttempts
+
+            // Switch to proxy after exhausting direct attempts
+            if (!isUsingProxy && reconnectAttempts > maxDirectAttempts && proxyUrl != null) {
+                isUsingProxy = true
+                onProxyFallback?.invoke()
+                val mediaItem = MediaItem.Builder()
+                    .setUri(proxyUrl!!)
+                    .build()
+                player.setMediaItem(mediaItem)
+            }
+
+            val attemptInPhase = if (isUsingProxy) reconnectAttempts - maxDirectAttempts else reconnectAttempts
+            val delayTime = reconnectDelayMs * attemptInPhase
 
             onRecovering(reconnectAttempts)
             delay(delayTime)
@@ -125,6 +154,7 @@ class ErrorRecoveryManager(
     fun reset() {
         reconnectAttempts = 0
         isRecoveringState = false
+        isUsingProxy = false
         reconnectJob?.cancel()
         bufferWatchJob?.cancel()
     }
@@ -132,6 +162,7 @@ class ErrorRecoveryManager(
     fun retry() {
         reconnectAttempts = 0
         isRecoveringState = true
+        isUsingProxy = false
         player.prepare()
         player.play()
     }

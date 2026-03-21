@@ -141,7 +141,12 @@ class PlayerViewModel @Inject constructor(
             delay(PLAY_REPORT_THRESHOLD_MS)
             if (_uiState.value.isPlaying) {
                 playReportedForChannel = channelId
-                reportStreamPlayUseCase(channelId)
+                reportStreamPlayUseCase(
+                    ReportStreamPlayUseCase.Params(
+                        channelId = channelId,
+                        proxyPlay = _uiState.value.isUsingProxy
+                    )
+                )
             }
         }
     }
@@ -308,6 +313,7 @@ class PlayerViewModel @Inject constructor(
             it.copy(
                 isRecovering = false,
                 isStreamDead = false,
+                isUsingProxy = false,
                 deadStreamCountdown = 0,
                 shouldNavigateBack = false,
                 error = null
@@ -412,6 +418,10 @@ class PlayerViewModel @Inject constructor(
                 deadStreamCountdown = 0
             )
         }
+    }
+
+    fun onProxyFallback() {
+        _uiState.update { it.copy(isUsingProxy = true) }
     }
 
     fun onStreamDead(errorMessage: String) {
