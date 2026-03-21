@@ -15,5 +15,6 @@ data class Channel(
     val category: String,
     val language: String?,
     val country: String?,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val alternateStreamUrls: List<String> = emptyList()
 )

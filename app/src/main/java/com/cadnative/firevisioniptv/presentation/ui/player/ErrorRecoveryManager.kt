@@ -10,13 +10,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Manages error recovery for playback with automatic reconnection
- * and proxy fallback.
+ * Manages error recovery for playback with automatic reconnection,
+ * proxy fallback, and alternate stream fallback.
  *
  * Recovery strategy:
- * 1. Try direct URL up to [maxDirectAttempts] times with exponential backoff
- * 2. If a proxy URL is available, switch to it and retry [maxProxyAttempts] times
- * 3. If all retries exhausted, signal the stream as dead
+ * 1. Primary direct URL: up to 2 attempts with exponential backoff
+ * 2. Primary proxy URL: 1 attempt (if proxy available)
+ * 3. For each alternate (up to 3): 1 direct attempt, then 1 proxy attempt
+ * 4. If all retries exhausted, signal the stream as dead
  */
 class ErrorRecoveryManager(
     private val player: ExoPlayer,
@@ -26,22 +27,54 @@ class ErrorRecoveryManager(
     private val onRecovered: () -> Unit,
     private val onStreamDead: (errorMessage: String) -> Unit,
     private val onStreamUnresponsive: (() -> Unit)? = null,
-    private val onProxyFallback: (() -> Unit)? = null
+    private val onProxyFallback: (() -> Unit)? = null,
+    private val onAlternateFallback: ((streamUrl: String) -> Unit)? = null
 ) {
+    data class StreamSlot(
+        val directUrl: String,
+        val proxyUrl: String?,
+        val isPrimary: Boolean
+    )
+
     private var reconnectJob: Job? = null
     private var bufferWatchJob: Job? = null
-    private var reconnectAttempts = 0
     private var isRecoveringState = false
-    private var isUsingProxy = false
-    private var proxyUrl: String? = null
 
-    private val maxDirectAttempts = 3
-    private val maxProxyAttempts = 2
+    private var streamSlots: List<StreamSlot> = emptyList()
+    private var currentSlotIndex = 0
+    private var attemptInSlot = 0
+    private var totalAttempts = 0
+
     private val reconnectDelayMs = 2000L
     private val unresponsiveThresholdMs = 30_000L
 
-    private val maxReconnectAttempts: Int
-        get() = if (proxyUrl != null) maxDirectAttempts + maxProxyAttempts else maxDirectAttempts
+    /** The stream URL that is currently being played (direct or proxy). */
+    val activeStreamUrl: String?
+        get() {
+            val slot = streamSlots.getOrNull(currentSlotIndex) ?: return null
+            return slot.directUrl
+        }
+
+    val maxTotalAttempts: Int
+        get() = streamSlots.sumOf { maxAttemptsForSlot(streamSlots.indexOf(it)) }
+
+    private fun maxAttemptsForSlot(slotIndex: Int): Int {
+        val slot = streamSlots.getOrNull(slotIndex) ?: return 0
+        val directAttempts = if (slotIndex == 0) 2 else 1
+        val proxyAttempts = if (slot.proxyUrl != null) 1 else 0
+        return directAttempts + proxyAttempts
+    }
+
+    private fun isProxyAttempt(): Boolean {
+        val slot = streamSlots.getOrNull(currentSlotIndex) ?: return false
+        val directAttempts = if (currentSlotIndex == 0) 2 else 1
+        return attemptInSlot > directAttempts && slot.proxyUrl != null
+    }
+
+    private fun currentUrl(): String? {
+        val slot = streamSlots.getOrNull(currentSlotIndex) ?: return null
+        return if (isProxyAttempt()) slot.proxyUrl else slot.directUrl
+    }
 
     private val playerListener = object : Player.Listener {
         override fun onPlayerError(error: PlaybackException) {
@@ -50,7 +83,6 @@ class ErrorRecoveryManager(
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY && isRecoveringState) {
-                reconnectAttempts = 0
                 isRecoveringState = false
                 reconnectJob?.cancel()
                 onRecovered()
@@ -75,7 +107,6 @@ class ErrorRecoveryManager(
         bufferWatchJob?.cancel()
         bufferWatchJob = scope.launch {
             delay(unresponsiveThresholdMs)
-            // Still buffering after threshold — stream is unresponsive
             if (player.playbackState == Player.STATE_BUFFERING) {
                 onStreamUnresponsive?.invoke()
             }
@@ -83,10 +114,14 @@ class ErrorRecoveryManager(
     }
 
     /**
-     * Set the proxy URL to use as fallback when direct playback fails.
+     * Set the stream slots to use for fallback. The first slot is the primary stream.
+     * Replaces the old setProxyUrl() API.
      */
-    fun setProxyUrl(url: String?) {
-        proxyUrl = url
+    fun setStreamSlots(slots: List<StreamSlot>) {
+        streamSlots = slots
+        currentSlotIndex = 0
+        attemptInSlot = 0
+        totalAttempts = 0
     }
 
     private fun handleError(error: PlaybackException) {
@@ -107,7 +142,7 @@ class ErrorRecoveryManager(
             }
         }
 
-        if (isNetworkError(error) && reconnectAttempts < maxReconnectAttempts) {
+        if (isNetworkError(error) && totalAttempts < maxTotalAttempts) {
             onError(errorMessage)
             attemptReconnect()
         } else {
@@ -125,22 +160,40 @@ class ErrorRecoveryManager(
         reconnectJob?.cancel()
         isRecoveringState = true
         reconnectJob = scope.launch {
-            reconnectAttempts++
+            attemptInSlot++
+            totalAttempts++
 
-            // Switch to proxy after exhausting direct attempts
-            if (!isUsingProxy && reconnectAttempts > maxDirectAttempts && proxyUrl != null) {
-                isUsingProxy = true
+            // Check if we've exhausted attempts for the current slot
+            val maxForSlot = maxAttemptsForSlot(currentSlotIndex)
+            if (attemptInSlot > maxForSlot) {
+                // Move to next slot
+                currentSlotIndex++
+                attemptInSlot = 1
+
+                if (currentSlotIndex >= streamSlots.size) {
+                    onStreamDead("All streams exhausted")
+                    return@launch
+                }
+
+                val newSlot = streamSlots[currentSlotIndex]
+                onAlternateFallback?.invoke(newSlot.directUrl)
+
+                val mediaItem = MediaItem.Builder()
+                    .setUri(newSlot.directUrl)
+                    .build()
+                player.setMediaItem(mediaItem)
+            } else if (isProxyAttempt()) {
+                // Switch to proxy for current slot
+                val proxyUrl = streamSlots[currentSlotIndex].proxyUrl!!
                 onProxyFallback?.invoke()
                 val mediaItem = MediaItem.Builder()
-                    .setUri(proxyUrl!!)
+                    .setUri(proxyUrl)
                     .build()
                 player.setMediaItem(mediaItem)
             }
 
-            val attemptInPhase = if (isUsingProxy) reconnectAttempts - maxDirectAttempts else reconnectAttempts
-            val delayTime = reconnectDelayMs * attemptInPhase
-
-            onRecovering(reconnectAttempts)
+            val delayTime = reconnectDelayMs * attemptInSlot
+            onRecovering(totalAttempts)
             delay(delayTime)
 
             player.prepare()
@@ -152,17 +205,19 @@ class ErrorRecoveryManager(
      * Reset reconnection state. Call when switching to a new channel.
      */
     fun reset() {
-        reconnectAttempts = 0
+        currentSlotIndex = 0
+        attemptInSlot = 0
+        totalAttempts = 0
         isRecoveringState = false
-        isUsingProxy = false
         reconnectJob?.cancel()
         bufferWatchJob?.cancel()
     }
 
     fun retry() {
-        reconnectAttempts = 0
+        currentSlotIndex = 0
+        attemptInSlot = 0
+        totalAttempts = 0
         isRecoveringState = true
-        isUsingProxy = false
         player.prepare()
         player.play()
     }

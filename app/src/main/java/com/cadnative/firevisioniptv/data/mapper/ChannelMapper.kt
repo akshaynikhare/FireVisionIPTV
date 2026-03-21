@@ -26,7 +26,11 @@ class ChannelMapper @Inject constructor() {
      * @param isFavorite Whether this channel is marked as favorite
      * @return Domain model representation
      */
-    fun toDomain(entity: ChannelEntity, isFavorite: Boolean = false): Channel {
+    fun toDomain(
+        entity: ChannelEntity,
+        isFavorite: Boolean = false,
+        alternateStreamUrls: List<String> = emptyList()
+    ): Channel {
         return Channel(
             id = entity.id,
             name = entity.name,
@@ -35,7 +39,8 @@ class ChannelMapper @Inject constructor() {
             category = entity.categoryId,
             language = entity.language,
             country = entity.country,
-            isFavorite = isFavorite
+            isFavorite = isFavorite,
+            alternateStreamUrls = alternateStreamUrls
         )
     }
     

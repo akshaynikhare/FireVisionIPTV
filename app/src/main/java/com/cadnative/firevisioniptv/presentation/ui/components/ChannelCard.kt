@@ -371,6 +371,7 @@ private fun HealthIndicatorDot(
         ChannelHealthStatus.ONLINE -> HealthOnline
         ChannelHealthStatus.CHECKING -> HealthChecking
         ChannelHealthStatus.OFFLINE -> HealthOffline
+        ChannelHealthStatus.UNRESPONSIVE -> HealthChecking
         ChannelHealthStatus.UNKNOWN -> HealthUnknown
     }
 
@@ -378,6 +379,7 @@ private fun HealthIndicatorDot(
         ChannelHealthStatus.ONLINE -> "Stream online"
         ChannelHealthStatus.CHECKING -> "Checking stream"
         ChannelHealthStatus.OFFLINE -> "Stream offline"
+        ChannelHealthStatus.UNRESPONSIVE -> "Stream unresponsive"
         ChannelHealthStatus.UNKNOWN -> "Stream status unknown"
     }
 
