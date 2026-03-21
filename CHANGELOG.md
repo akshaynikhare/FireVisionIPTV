@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.4] - 2026-03-21
+
+### Added
+- implement alternate stream fallback and enhance stream reporting
+- enhance stream reporting with proxy support and update serialized names
+- add stream metrics reporting and bidirectional favorites sync
+
+### Changed
+- add server-side implementation context for stream metrics
+
+### Fixed
+- adjust card dimensions and improve layout responsiveness across screens
+- prevent FK crash in pullFavorites and suppress buffer watch during recovery
+- wire onStreamUnresponsive callback and reset play tracker on load
+
+### Other
+- Add GitHub issue drafts for stream metrics feature
+
+---
+
 ## [2.0.3] - 2026-03-18
 
 ### Added
