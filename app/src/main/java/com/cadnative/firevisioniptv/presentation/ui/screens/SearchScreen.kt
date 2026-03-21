@@ -187,7 +187,7 @@ fun SearchScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 260.dp),
+                            columns = GridCells.Adaptive(minSize = 200.dp),
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -198,7 +198,10 @@ fun SearchScreen(
                                     channel = channel,
                                     onClick = { onChannelClick(channel.id) },
                                     onFavoriteClick = { viewModel.toggleFavorite(channel.id) },
-                                    modifier = Modifier.animateItemEntrance(index)
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(120.dp)
+                                        .animateItemEntrance(index)
                                 )
                             }
                         }

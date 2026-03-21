@@ -106,7 +106,10 @@ private fun FavoritesGrid(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },
                 onFavoriteClick = { onRemoveFavorite(channel.id) },
-                modifier = Modifier.animateItemEntrance(index)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .animateItemEntrance(index)
             )
         }
     }
