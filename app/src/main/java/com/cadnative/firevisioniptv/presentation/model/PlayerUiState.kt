@@ -27,5 +27,6 @@ data class PlayerUiState(
     val overlayCategories: List<String> = emptyList(),
     val overlaySelectedCategory: String? = null,
     val overlayIsLoadingChannels: Boolean = false,
-    val isSwitchingChannel: Boolean = false
+    val isSwitchingChannel: Boolean = false,
+    val isUsingProxy: Boolean = false
 )

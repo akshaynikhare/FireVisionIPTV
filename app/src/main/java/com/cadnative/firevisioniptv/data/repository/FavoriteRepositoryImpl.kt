@@ -7,6 +7,7 @@ import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
 import com.cadnative.firevisioniptv.data.source.local.FavoriteLocalDataSource
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
 import com.cadnative.firevisioniptv.di.IoDispatcher
@@ -45,6 +46,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val localDataSource: FavoriteLocalDataSource,
     private val apiService: FireVisionApiService,
     private val channelMapper: ChannelMapper,
+    private val channelDao: ChannelDao,
     private val application: Application,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : FavoriteRepository {
@@ -243,14 +245,40 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
     
-    /**
-     * Get device identifier for sync operations.
-     * 
-     * In a production app, this would use Android ID or a generated UUID
-     * stored in SharedPreferences. For now, returns a placeholder.
-     * 
-     * @return Device identifier string
-     */
+    override suspend fun pullFavoritesFromServer(): Result<Unit> = withContext(dispatcher) {
+        try {
+            val response = apiService.getFavorites()
+            if (response.isSuccessful) {
+                val serverChannelIds = response.body()?.channelIds ?: emptyList()
+                val localFavorites = localDataSource.getAllFavorites().first()
+                val localChannelIds = localFavorites.map { it.channelId }.toSet()
+
+                // Add server favorites that don't exist locally
+                // Skip channelIds not in local channels table (FK constraint)
+                for (channelId in serverChannelIds) {
+                    if (channelId !in localChannelIds) {
+                        val channelExists = channelDao.getChannelByIdSync(channelId) != null
+                        if (channelExists) {
+                            val favorite = FavoriteEntity(
+                                channelId = channelId,
+                                addedAt = System.currentTimeMillis(),
+                                displayOrder = 0
+                            )
+                            localDataSource.addFavorite(favorite)
+                        }
+                    }
+                }
+
+                Result.Success(Unit)
+            } else {
+                Result.Error(Exception("Pull favorites failed: ${response.code()} ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Pull favorites from server failed: ${e.message}")
+            Result.Error(e)
+        }
+    }
+
     private fun getDeviceId(): String {
         return Settings.Secure.getString(
             application.contentResolver,

@@ -4,5 +4,6 @@ enum class ChannelHealthStatus {
     UNKNOWN,
     CHECKING,
     ONLINE,
-    OFFLINE
+    OFFLINE,
+    UNRESPONSIVE
 }

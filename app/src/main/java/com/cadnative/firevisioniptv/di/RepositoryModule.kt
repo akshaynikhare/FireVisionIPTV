@@ -5,12 +5,14 @@ import com.cadnative.firevisioniptv.data.repository.ChannelRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.FavoriteRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.PlaybackRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.SearchHistoryRepositoryImpl
+import com.cadnative.firevisioniptv.data.repository.StreamMetricsRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.UserPreferencesRepositoryImpl
 import com.cadnative.firevisioniptv.domain.repository.CategoryRepository
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
 import com.cadnative.firevisioniptv.domain.repository.FavoriteRepository
 import com.cadnative.firevisioniptv.domain.repository.PlaybackRepository
 import com.cadnative.firevisioniptv.domain.repository.SearchHistoryRepository
+import com.cadnative.firevisioniptv.domain.repository.StreamMetricsRepository
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import dagger.Binds
 import dagger.Module
@@ -96,4 +98,10 @@ abstract class RepositoryModule {
     abstract fun bindUserPreferencesRepository(
         impl: UserPreferencesRepositoryImpl
     ): UserPreferencesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStreamMetricsRepository(
+        impl: StreamMetricsRepositoryImpl
+    ): StreamMetricsRepository
 }

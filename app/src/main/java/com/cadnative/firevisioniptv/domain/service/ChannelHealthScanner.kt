@@ -6,6 +6,8 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import com.cadnative.firevisioniptv.domain.repository.HealthSyncEntry
+import com.cadnative.firevisioniptv.domain.repository.StreamMetricsRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -40,6 +42,7 @@ class ChannelHealthScanner @Inject constructor(
     private val channelHealthDao: ChannelHealthDao,
     private val channelDao: ChannelDao,
     private val thumbnailExtractor: ChannelThumbnailExtractor,
+    private val streamMetricsRepository: StreamMetricsRepository,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) {
     companion object {
@@ -157,6 +160,7 @@ class ChannelHealthScanner @Inject constructor(
 
         var scannedCount = 0
         val batches = allChannelIds.chunked(BATCH_SIZE)
+        val allResults = mutableListOf<ChannelHealthEntity>()
 
         for (batch in batches) {
             if (scanJob?.isActive != true) break
@@ -198,6 +202,7 @@ class ChannelHealthScanner @Inject constructor(
                 )
             }
 
+            allResults.addAll(healthResults)
             scannedCount += batch.size
             _scanProgress.value = ScanProgress(
                 scanned = scannedCount.coerceAtMost(total),
@@ -208,6 +213,32 @@ class ChannelHealthScanner @Inject constructor(
 
         _scanProgress.value = _scanProgress.value.copy(isScanning = false)
         Log.d(TAG, "Scan complete: $scannedCount/$total channels checked")
+
+        // Bulk sync health results to server
+        if (allResults.isNotEmpty()) {
+            try {
+                val syncEntries = allResults
+                    .filter { it.status != ChannelHealthStatus.CHECKING.name }
+                    .map { result ->
+                        val status = when (result.status) {
+                            ChannelHealthStatus.ONLINE.name -> "alive"
+                            ChannelHealthStatus.OFFLINE.name -> "dead"
+                            ChannelHealthStatus.UNRESPONSIVE.name -> "unresponsive"
+                            else -> "unknown"
+                        }
+                        HealthSyncEntry(
+                            channelId = result.channelId,
+                            status = status,
+                            responseTimeMs = result.responseTimeMs,
+                            timestamp = result.lastCheckedAt
+                        )
+                    }
+                streamMetricsRepository.syncHealthResults(syncEntries)
+                Log.d(TAG, "Synced ${syncEntries.size} health results to server")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to sync health results to server: ${e.message}")
+            }
+        }
     }
 
     private suspend fun checkStream(channelId: String, streamUrl: String): ChannelHealthEntity {

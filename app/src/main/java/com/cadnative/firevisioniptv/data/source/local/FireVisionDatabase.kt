@@ -11,6 +11,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.dao.SearchHistoryDao
+import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
 import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
@@ -18,6 +19,7 @@ import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEnt
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.PlaybackPositionEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
+import com.cadnative.firevisioniptv.data.source.local.entity.StreamMetricsEntity
 
 /**
  * Room database for FireVision IPTV application.
@@ -44,9 +46,10 @@ import com.cadnative.firevisioniptv.data.source.local.entity.SearchHistoryEntity
         SearchHistoryEntity::class,
         PlaybackPositionEntity::class,
         ChannelHealthEntity::class,
-        FavoriteCategoryEntity::class
+        FavoriteCategoryEntity::class,
+        StreamMetricsEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -105,6 +108,28 @@ abstract class FireVisionDatabase : RoomDatabase() {
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_favorite_categories_categoryName` ON `favorite_categories` (`categoryName`)")
             }
         }
+
+        /** v5→v6: Add stream_metrics table for tracking play/health counters */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `stream_metrics` (
+                        `channelId` TEXT NOT NULL,
+                        `playCount` INTEGER NOT NULL DEFAULT 0,
+                        `aliveCount` INTEGER NOT NULL DEFAULT 0,
+                        `deadCount` INTEGER NOT NULL DEFAULT 0,
+                        `unresponsiveCount` INTEGER NOT NULL DEFAULT 0,
+                        `lastPlayedAt` INTEGER,
+                        `lastDeadAt` INTEGER,
+                        `lastAliveAt` INTEGER,
+                        `lastUnresponsiveAt` INTEGER,
+                        PRIMARY KEY(`channelId`),
+                        FOREIGN KEY(`channelId`) REFERENCES `channels`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stream_metrics_channelId` ON `stream_metrics` (`channelId`)")
+            }
+        }
     }
 
     /**
@@ -138,4 +163,6 @@ abstract class FireVisionDatabase : RoomDatabase() {
     abstract fun channelHealthDao(): ChannelHealthDao
 
     abstract fun favoriteCategoryDao(): FavoriteCategoryDao
+
+    abstract fun streamMetricsDao(): StreamMetricsDao
 }
