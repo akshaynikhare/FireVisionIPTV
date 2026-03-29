@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IPTV Player</string>
+    <string name="title_sources">My Channels</string>
+    <string name="title_settings">Settings</string>
+    <string name="msg_no_sources">No channel sources added yet.\nGo to Settings to add an M3U URL.</string>
+</resources>
