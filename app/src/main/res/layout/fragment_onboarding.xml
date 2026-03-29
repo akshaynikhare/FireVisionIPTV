@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1C1C1E"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="48dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/msg_no_sources"
+        android:textColor="#AAAAAA"
+        android:textSize="16sp"
+        android:gravity="center" />
+
+    <EditText
+        android:id="@+id/source_name"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:hint="Playlist name"
+        android:inputType="text"
+        android:textColorHint="#888888"
+        android:textColor="#FFFFFF"
+        android:background="#333333"
+        android:padding="12dp" />
+
+    <EditText
+        android:id="@+id/source_url"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="M3U URL (http://...)"
+        android:inputType="textUri"
+        android:textColorHint="#888888"
+        android:textColor="#FFFFFF"
+        android:background="#333333"
+        android:padding="12dp" />
+
+    <Button
+        android:id="@+id/add_source_button"
+        android:layout_width="400dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:backgroundTint="#FF6200EE"
+        android:text="Add Source"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
