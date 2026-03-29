@@ -24,4 +24,24 @@
         android:textColor="#FFFFFF"
         android:textSize="12sp" />
 
+    <TextView
+        android:id="@+id/epg_now"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#AAFFFFFF"
+        android:textSize="10sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/epg_next"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#88FFFFFF"
+        android:textSize="10sp"
+        android:visibility="gone" />
+
 </LinearLayout>
