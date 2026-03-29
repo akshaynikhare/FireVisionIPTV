@@ -1,5 +1,8 @@
 package com.cabletech.iptvplayer.core.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 /**
  * Domain model for a single IPTV channel parsed from an M3U playlist or EPG source.
  *
@@ -10,6 +13,7 @@ package com.cabletech.iptvplayer.core.model
  * @param groupTitle  Playlist group/category label.
  * @param tvgId       tvg-id used to match EPG programme data.
  */
+@Parcelize
 data class Channel(
     val id: String,
     val name: String,
@@ -17,4 +21,4 @@ data class Channel(
     val logoUrl: String? = null,
     val groupTitle: String? = null,
     val tvgId: String? = null,
-)
+) : Parcelable
