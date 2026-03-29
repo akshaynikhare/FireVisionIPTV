@@ -23,7 +23,8 @@ class MainActivity : FragmentActivity() {
                 .commit()
         }
 
-        // Schedule background sync (no-op if already scheduled)
+        // Schedule background syncs (no-op if already scheduled)
         PlaylistSyncWorker.schedule(this)
+        com.cabletech.iptvplayer.epg.sync.EpgSyncWorker.schedule(this)
     }
 }
