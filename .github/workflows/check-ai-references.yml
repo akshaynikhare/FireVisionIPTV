@@ -1,0 +1,66 @@
+name: Check for AI Tool References
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-ai-references:
+    name: Reject AI tool references in PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title and body
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          FORBIDDEN='paperclip|claude|codex|generated with|ai agent|noreply@paperclip'
+
+          TITLE_MATCH=$(echo "$PR_TITLE" | grep -iE "$FORBIDDEN" || true)
+          BODY_MATCH=$(echo "$PR_BODY" | grep -iE "$FORBIDDEN" || true)
+
+          FAILED=0
+          if [ -n "$TITLE_MATCH" ]; then
+            echo "ERROR: PR title contains a reference to AI tooling:"
+            echo "  $TITLE_MATCH"
+            FAILED=1
+          fi
+
+          if [ -n "$BODY_MATCH" ]; then
+            echo "ERROR: PR body contains a reference to AI tooling:"
+            echo "$BODY_MATCH"
+            FAILED=1
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo ""
+            echo "Policy: no PR title, body, or commit message may reference internal AI tooling"
+            echo "(paperclip, claude, codex, 'generated with', 'ai agent')."
+            echo "See CONTRIBUTING.md for details."
+            exit 1
+          fi
+
+          echo "PR title and body are clean."
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages in PR
+        run: |
+          FORBIDDEN='paperclip|claude|codex|generated with|ai agent|noreply@paperclip'
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          VIOLATIONS=$(git log --format="%H %s%n%b" "$BASE".."$HEAD" | grep -iE "$FORBIDDEN" || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "ERROR: One or more commit messages contain AI tool references:"
+            echo "$VIOLATIONS"
+            echo ""
+            echo "Policy: no commit message may reference internal AI tooling."
+            echo "See CONTRIBUTING.md for details."
+            exit 1
+          fi
+
+          echo "All commit messages are clean."
