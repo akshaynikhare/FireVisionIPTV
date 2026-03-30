@@ -26,7 +26,7 @@
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
--keepattributes EnclosingMethod
+-keepattributes EnclosingMethod,InnerClasses
 -keep class * extends com.google.gson.reflect.TypeToken
 
 # ---- Room ----
