@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -60,6 +60,17 @@ jobs:
         with:
           name: test-results
           path: '**/build/test-results/**/*.xml'
+
+      - name: Generate coverage report
+        run: ./gradlew jacocoTestReport
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: '**/build/reports/jacoco/**/*.xml'
+          flags: android
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   assemble-debug:
     name: Assemble Debug APK

@@ -1,6 +1,7 @@
 [versions]
 agp = "8.3.2"
 kotlin = "1.9.23"
+sentry = "7.14.0"
 ksp = "1.9.23-1.0.20"
 coreKtx = "1.13.1"
 appcompat = "1.7.0"
@@ -53,6 +54,9 @@ room-testing = { group = "androidx.room", name = "room-testing", version.ref = "
 
 # WorkManager
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
+
+# Sentry
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

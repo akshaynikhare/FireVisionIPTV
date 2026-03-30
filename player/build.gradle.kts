@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    id("jacoco")
 }
 
 android {
@@ -36,4 +37,34 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
+}
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("testDebugUnitTest"))
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*"
+    )
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+            exclude(fileFilter)
+        }
+    )
+    sourceDirectories.setFrom(files("${projectDir}/src/main/kotlin", "${projectDir}/src/main/java"))
+    executionData.setFrom(fileTree(layout.buildDirectory.get()) {
+        include("jacoco/testDebugUnitTest.exec")
+    })
 }

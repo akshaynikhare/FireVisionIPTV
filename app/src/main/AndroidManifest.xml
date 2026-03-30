@@ -21,6 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.IPTVPlayer">
 
+        <meta-data android:name="io.sentry.dsn" android:value="${sentryDsn}" />
+        <meta-data android:name="io.sentry.traces-sample-rate" android:value="0.1" />
+        <meta-data android:name="io.sentry.environment" android:value="production" />
+
         <!-- Main TV launcher activity -->
         <activity
             android:name=".MainActivity"
