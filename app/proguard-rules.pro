@@ -26,6 +26,8 @@
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
+-keepattributes EnclosingMethod
+-keep class * extends com.google.gson.reflect.TypeToken
 
 # ---- Room ----
 -keep class * extends androidx.room.RoomDatabase
