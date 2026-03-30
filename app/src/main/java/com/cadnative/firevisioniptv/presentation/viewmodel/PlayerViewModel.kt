@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
@@ -50,7 +51,8 @@ class PlayerViewModel @Inject constructor(
     private val reportStreamPlayUseCase: ReportStreamPlayUseCase,
     private val channelUiMapper: ChannelUiMapper,
     private val channelHealthDao: ChannelHealthDao,
-    private val thumbnailExtractor: ChannelThumbnailExtractor
+    private val thumbnailExtractor: ChannelThumbnailExtractor,
+    private val epgRepository: EpgRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -63,6 +65,7 @@ class PlayerViewModel @Inject constructor(
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
     private var playReportJob: Job? = null
+    private var epgJob: Job? = null
     private var playReportedForChannel: String? = null
 
     fun loadChannel(channelId: String) {
@@ -74,16 +77,21 @@ class PlayerViewModel @Inject constructor(
             getChannelByIdUseCase(channelId).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        val channel = result.data
                         _uiState.update {
                             it.copy(
-                                channel = channelUiMapper.toUiModel(result.data),
+                                channel = channelUiMapper.toUiModel(channel),
                                 isLoading = false,
-                                error = null
+                                error = null,
+                                nowPlaying = null,
+                                nextProgram = null
                             )
                         }
                         loadPlaybackPosition(channelId)
                         // Preload channel list for next/prev navigation
                         preloadChannelList()
+                        // Fetch EPG now/next non-blocking
+                        fetchEpg(channel.tvgId)
                     }
                     is Result.Error -> {
                         _uiState.update {
@@ -115,6 +123,19 @@ class PlayerViewModel @Inject constructor(
                     }
                     is Result.Error -> { /* Start from beginning */ }
                 }
+            }
+        }
+    }
+
+    private fun fetchEpg(tvgId: String?) {
+        if (tvgId.isNullOrBlank()) return
+        epgJob?.cancel()
+        epgJob = viewModelScope.launch {
+            try {
+                val (now, next) = epgRepository.getNowNext(tvgId)
+                _uiState.update { it.copy(nowPlaying = now, nextProgram = next) }
+            } catch (_: Exception) {
+                // EPG failure is non-fatal; overlay shows channel info only
             }
         }
     }
@@ -328,16 +349,20 @@ class PlayerViewModel @Inject constructor(
             getChannelByIdUseCase(channelId).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        val channel = result.data
                         _uiState.update {
                             it.copy(
-                                channel = channelUiMapper.toUiModel(result.data),
+                                channel = channelUiMapper.toUiModel(channel),
                                 isSwitchingChannel = false,
                                 showChannelOverlay = false,
                                 position = 0L,
-                                duration = 0L
+                                duration = 0L,
+                                nowPlaying = null,
+                                nextProgram = null
                             )
                         }
                         loadPlaybackPosition(channelId)
+                        fetchEpg(channel.tvgId)
                     }
                     is Result.Error -> {
                         _uiState.update {
@@ -512,6 +537,7 @@ class PlayerViewModel @Inject constructor(
         autoHideJob?.cancel()
         countdownJob?.cancel()
         playReportJob?.cancel()
+        epgJob?.cancel()
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
         val job = SupervisorJob()

@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv.di
 
 import com.cadnative.firevisioniptv.data.repository.CategoryRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.ChannelRepositoryImpl
+import com.cadnative.firevisioniptv.data.repository.EpgRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.FavoriteRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.PlaybackRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.SearchHistoryRepositoryImpl
@@ -9,6 +10,7 @@ import com.cadnative.firevisioniptv.data.repository.StreamMetricsRepositoryImpl
 import com.cadnative.firevisioniptv.data.repository.UserPreferencesRepositoryImpl
 import com.cadnative.firevisioniptv.domain.repository.CategoryRepository
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.repository.FavoriteRepository
 import com.cadnative.firevisioniptv.domain.repository.PlaybackRepository
 import com.cadnative.firevisioniptv.domain.repository.SearchHistoryRepository
@@ -104,4 +106,10 @@ abstract class RepositoryModule {
     abstract fun bindStreamMetricsRepository(
         impl: StreamMetricsRepositoryImpl
     ): StreamMetricsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindEpgRepository(
+        impl: EpgRepositoryImpl
+    ): EpgRepository
 }

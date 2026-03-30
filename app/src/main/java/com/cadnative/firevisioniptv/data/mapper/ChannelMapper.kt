@@ -39,6 +39,7 @@ class ChannelMapper @Inject constructor() {
             category = entity.categoryId,
             language = entity.language,
             country = entity.country,
+            tvgId = entity.tvgId,
             isFavorite = isFavorite,
             alternateStreamUrls = alternateStreamUrls
         )
