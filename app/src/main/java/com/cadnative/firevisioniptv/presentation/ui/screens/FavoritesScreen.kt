@@ -95,7 +95,7 @@ private fun FavoritesGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+        columns = GridCells.Adaptive(minSize = 140.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),

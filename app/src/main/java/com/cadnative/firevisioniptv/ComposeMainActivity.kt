@@ -1,13 +1,31 @@
 package com.cadnative.firevisioniptv
 
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +33,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -23,11 +43,16 @@ import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
+import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundDark
+import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
+import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -120,9 +145,12 @@ class ComposeMainActivity : ComponentActivity() {
 }
 
 /**
- * App shell composable that combines the left rail sidebar with the NavHost.
+ * App shell composable that combines the navigation chrome with the NavHost.
  *
- * The sidebar is only visible on top-level screens (Home, Channels, Search,
+ * In landscape (TV/tablet): left rail sidebar with SideNavRail.
+ * In portrait (phone): bottom navigation bar.
+ *
+ * Navigation chrome is only visible on top-level screens (Home, Channels, Search,
  * Favorites, Settings). It is hidden during Pairing and Player screens.
  */
 @Composable
@@ -133,27 +161,98 @@ private fun FireVisionAppShell(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
-    val showSidebar = currentRoute in Screen.sidebarRoutes
+    val showNav = currentRoute in Screen.sidebarRoutes
+    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+
+    val onNavigate: (Screen) -> Unit = { screen ->
+        navController.navigate(screen.route) {
+            popUpTo(Screen.Home.route) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     DiagonalGradientBackground {
-        Row(modifier = Modifier.fillMaxSize()) {
-            if (showSidebar) {
-                SideNavRail(
-                    currentRoute = currentRoute,
-                    onScreenSelected = { screen ->
-                        navController.navigate(screen.route) {
-                            popUpTo(Screen.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+        if (isPortrait) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    FireVisionNavGraph(
+                        navController = navController,
+                        startDestination = startDestination,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                if (showNav) {
+                    BottomNavBar(
+                        currentRoute = currentRoute,
+                        onScreenSelected = onNavigate
+                    )
+                }
+            }
+        } else {
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (showNav) {
+                    SideNavRail(
+                        currentRoute = currentRoute,
+                        onScreenSelected = onNavigate
+                    )
+                }
+                FireVisionNavGraph(
+                    navController = navController,
+                    startDestination = startDestination,
+                    modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+}
 
-            FireVisionNavGraph(
-                navController = navController,
-                startDestination = startDestination,
-                modifier = Modifier.weight(1f)
+private val bottomNavItems = listOf(
+    Triple(Screen.Home, Icons.Default.Home, "Home"),
+    Triple(Screen.Search, Icons.Default.Search, "Search"),
+    Triple(Screen.Channels, Icons.Default.LiveTv, "Channels"),
+    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
+    Triple(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
+    Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
+)
+
+@Composable
+private fun BottomNavBar(
+    currentRoute: String?,
+    onScreenSelected: (Screen) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    NavigationBar(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp),
+        containerColor = BackgroundDark,
+        contentColor = TextSecondary,
+        tonalElevation = 0.dp
+    ) {
+        bottomNavItems.forEach { (screen, icon, label) ->
+            val isSelected = currentRoute == screen.route
+            val iconTint by animateColorAsState(
+                targetValue = if (isSelected) Amber else TextSecondary,
+                animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
+                label = "bottomNavTint_$label"
+            )
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { onScreenSelected(screen) },
+                icon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Amber,
+                    unselectedIconColor = TextSecondary,
+                    indicatorColor = BackgroundMedium
+                )
             )
         }
     }

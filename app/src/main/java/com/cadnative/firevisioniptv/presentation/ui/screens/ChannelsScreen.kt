@@ -199,7 +199,7 @@ private fun ChannelsGrid(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 200.dp),
+        columns = GridCells.Adaptive(minSize = 140.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
