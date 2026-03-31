@@ -1,5 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.model
 
+import com.cadnative.firevisioniptv.domain.model.EpgProgram
+
 /**
  * UI state for the player screen.
  *
@@ -29,5 +31,8 @@ data class PlayerUiState(
     val overlayIsLoadingChannels: Boolean = false,
     val isSwitchingChannel: Boolean = false,
     val isUsingProxy: Boolean = false,
-    val activeStreamUrl: String? = null
+    val activeStreamUrl: String? = null,
+    // EPG now/next state
+    val nowPlaying: EpgProgram? = null,
+    val nextProgram: EpgProgram? = null
 )

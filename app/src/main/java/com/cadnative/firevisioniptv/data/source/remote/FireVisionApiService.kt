@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv.data.source.remote
 import com.cadnative.firevisioniptv.data.model.dto.CategoriesResponse
 import com.cadnative.firevisioniptv.data.model.dto.ChannelDto
 import com.cadnative.firevisioniptv.data.model.dto.ChannelsResponse
+import com.cadnative.firevisioniptv.data.model.dto.EpgGuideResponse
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesResponse
 import com.cadnative.firevisioniptv.data.model.dto.HealthSyncRequest
@@ -14,6 +15,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * Retrofit API service interface for FireVision IPTV backend.
@@ -92,4 +94,10 @@ interface FireVisionApiService {
     suspend fun syncHealthResults(
         @Body request: HealthSyncRequest
     ): Response<Unit>
+
+    @GET("tv/epg/{channelListCode}/json")
+    suspend fun getEpgGuide(
+        @Path("channelListCode") channelListCode: String,
+        @Query("hours") hours: Int = 12
+    ): Response<EpgGuideResponse>
 }

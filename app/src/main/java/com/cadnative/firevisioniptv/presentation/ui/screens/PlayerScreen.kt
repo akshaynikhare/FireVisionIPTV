@@ -378,6 +378,8 @@ fun PlayerScreen(
             selectedCategory = uiState.overlaySelectedCategory,
             isLoadingChannels = uiState.overlayIsLoadingChannels,
             isSwitchingChannel = uiState.isSwitchingChannel,
+            nowProgram = uiState.nowPlaying,
+            nextProgram = uiState.nextProgram,
             onChannelClick = { viewModel.switchChannel(it) },
             onCategorySelected = { viewModel.loadChannelList(it) },
             onFavoriteClick = { viewModel.toggleOverlayFavorite(it) },

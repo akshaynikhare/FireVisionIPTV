@@ -31,7 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -48,6 +51,8 @@ fun ChannelOverlay(
     selectedCategory: String?,
     isLoadingChannels: Boolean,
     isSwitchingChannel: Boolean,
+    nowProgram: EpgProgram? = null,
+    nextProgram: EpgProgram? = null,
     onChannelClick: (String) -> Unit,
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
@@ -89,7 +94,11 @@ fun ChannelOverlay(
             modifier = Modifier.align(Alignment.TopStart)
         ) {
             currentChannel?.let { channel ->
-                NowPlayingBar(channel = channel)
+                NowPlayingBar(
+                    channel = channel,
+                    nowProgram = nowProgram,
+                    nextProgram = nextProgram
+                )
             }
         }
 
@@ -135,9 +144,20 @@ fun ChannelOverlay(
     }
 }
 
+private val epgTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+private fun formatEpgTime(program: EpgProgram): String {
+    val zone = ZoneId.systemDefault()
+    val start = program.startTime.atZone(zone).format(epgTimeFormatter)
+    val end = program.endTime.atZone(zone).format(epgTimeFormatter)
+    return "$start-$end"
+}
+
 @Composable
 private fun NowPlayingBar(
     channel: ChannelUiModel,
+    nowProgram: EpgProgram?,
+    nextProgram: EpgProgram?,
     modifier: Modifier = Modifier
 ) {
     val catColor = categoryColor(channel.category)
@@ -155,61 +175,83 @@ private fun NowPlayingBar(
             )
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Channel logo
-            Card(
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceElevated),
-                modifier = Modifier.size(40.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                AsyncImage(
-                    model = channel.logoUrl,
-                    contentDescription = channel.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                // Channel logo
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceElevated),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    AsyncImage(
+                        model = channel.logoUrl,
+                        contentDescription = channel.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                // Channel name
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+
+                // Category pill
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = catColor.copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = channel.category,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = catColor,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+
+                // "LIVE" badge
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Error.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = "LIVE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
 
-            // Channel name
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-
-            // Category pill
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = catColor.copy(alpha = 0.2f),
-                border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
-            ) {
+            // EPG Now/Next rows
+            if (nowProgram != null) {
                 Text(
-                    text = channel.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = catColor,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    text = "Now: ${nowProgram.title}  ${formatEpgTime(nowProgram)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-
-            // "LIVE" badge
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = Error.copy(alpha = 0.9f)
-            ) {
+            if (nextProgram != null) {
                 Text(
-                    text = "LIVE",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onError,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    text = "Next: ${nextProgram.title}  ${formatEpgTime(nextProgram)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
