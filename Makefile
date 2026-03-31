@@ -4,9 +4,12 @@
 # ── Config ────────────────────────────────────────────────────────────────────
 
 ANDROID_HOME  ?= $(HOME)/Library/Android/sdk
+ANDROID_SDK_ROOT ?= $(ANDROID_HOME)
 ADB           := $(ANDROID_HOME)/platform-tools/adb
 EMULATOR      := $(ANDROID_HOME)/emulator/emulator
 JAVA_HOME     := /opt/homebrew/opt/openjdk@17
+export ANDROID_HOME
+export ANDROID_SDK_ROOT
 export JAVA_HOME
 export PATH   := $(JAVA_HOME)/bin:$(ANDROID_HOME)/platform-tools:$(ANDROID_HOME)/emulator:$(PATH)
 
