@@ -7,6 +7,7 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("com.google.firebase.firebase-perf")
+    id("io.sentry.android.gradle")
     id("jacoco")
 }
 
@@ -27,7 +28,7 @@ android {
         
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
-        manifestPlaceholders["sentryDsn"] = project.findProperty("SENTRY_DSN") as String? ?: ""
+        manifestPlaceholders["sentryDsn"] = System.getenv("SENTRY_DSN") ?: ""
         manifestPlaceholders["sentryEnvironment"] = "debug"
     }
 
@@ -169,6 +170,13 @@ dependencies {
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
+}
+
+sentry {
+    includeSourceContext = true
+    org = "cadnative-design-solution"
+    projectName = "firevisioniptv"
+    authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
 
 tasks.withType<Test> {
