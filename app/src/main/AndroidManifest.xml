@@ -30,7 +30,7 @@
 
         <meta-data android:name="io.sentry.dsn" android:value="${sentryDsn}" />
         <meta-data android:name="io.sentry.traces-sample-rate" android:value="0.1" />
-        <meta-data android:name="io.sentry.environment" android:value="production" />
+        <meta-data android:name="io.sentry.environment" android:value="${sentryEnvironment}" />
 
         <!-- Main Compose Activity (launcher) -->
         <activity
