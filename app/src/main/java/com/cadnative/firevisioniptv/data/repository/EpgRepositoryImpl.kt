@@ -9,6 +9,8 @@ import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
@@ -22,18 +24,27 @@ class EpgRepositoryImpl @Inject constructor(
 ) : EpgRepository {
 
     private val cache = mutableMapOf<String, List<EpgProgram>>()
-    private var cacheLoaded = false
+    @Volatile private var cacheLoaded = false
+    private val loadMutex = Mutex()
 
     override suspend fun ensureLoaded() = withContext(dispatcher) {
         if (!cacheLoaded) {
-            loadGuide()
+            loadMutex.withLock {
+                if (!cacheLoaded) {
+                    loadGuide()
+                }
+            }
         }
     }
 
     override suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?> =
         withContext(dispatcher) {
             if (!cacheLoaded) {
-                loadGuide()
+                loadMutex.withLock {
+                    if (!cacheLoaded) {
+                        loadGuide()
+                    }
+                }
             }
             val programs = cache[tvgId] ?: return@withContext Pair(null, null)
             val now = Instant.now()
