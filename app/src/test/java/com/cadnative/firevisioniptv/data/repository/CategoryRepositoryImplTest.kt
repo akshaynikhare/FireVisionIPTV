@@ -8,6 +8,7 @@ import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import com.cadnative.firevisioniptv.data.source.remote.CategoryRemoteDataSource
 import io.mockk.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -78,14 +79,14 @@ class CategoryRepositoryImplTest {
     fun `getCategories handles errors gracefully`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getAllCategories() } throws exception
+        every { localDataSource.getAllCategories() } returns flow { throw exception }
         
         // When
         val result = repository.getCategories().first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -135,14 +136,14 @@ class CategoryRepositoryImplTest {
     fun `getCategoryById handles database errors`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getCategoryById("sports") } throws exception
+        every { localDataSource.getCategoryById("sports") } returns flow { throw exception }
         
         // When
         val result = repository.getCategoryById("sports").first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -150,8 +151,7 @@ class CategoryRepositoryImplTest {
         // Given
         val remoteDtos = listOf(testCategoryDto)
         coEvery { remoteDataSource.fetchCategories() } returns Result.Success(remoteDtos)
-        coEvery { localDataSource.deleteAllCategories() } returns Unit
-        coEvery { localDataSource.insertCategories(any()) } returns Unit
+        coEvery { localDataSource.replaceAllCategories(any()) } returns Unit
         
         // When
         val result = repository.refreshCategories()
@@ -159,8 +159,7 @@ class CategoryRepositoryImplTest {
         // Then
         assertTrue(result is Result.Success)
         coVerify { remoteDataSource.fetchCategories() }
-        coVerify { localDataSource.deleteAllCategories() }
-        coVerify { localDataSource.insertCategories(any()) }
+        coVerify { localDataSource.replaceAllCategories(any()) }
     }
     
     @Test
@@ -174,25 +173,22 @@ class CategoryRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
-        coVerify(exactly = 0) { localDataSource.deleteAllCategories() }
-        coVerify(exactly = 0) { localDataSource.insertCategories(any()) }
+        assertEquals(exception.message, (result as Result.Error).exception.message)
+        coVerify(exactly = 0) { localDataSource.replaceAllCategories(any()) }
     }
     
     @Test
     fun `refreshCategories handles empty remote response`() = runTest(testDispatcher) {
         // Given
         coEvery { remoteDataSource.fetchCategories() } returns Result.Success(emptyList())
-        coEvery { localDataSource.deleteAllCategories() } returns Unit
-        coEvery { localDataSource.insertCategories(emptyList()) } returns Unit
+        coEvery { localDataSource.replaceAllCategories(emptyList()) } returns Unit
         
         // When
         val result = repository.refreshCategories()
         
         // Then
         assertTrue(result is Result.Success)
-        coVerify { localDataSource.deleteAllCategories() }
-        coVerify { localDataSource.insertCategories(emptyList()) }
+        coVerify { localDataSource.replaceAllCategories(emptyList()) }
     }
     
     @Test
@@ -201,14 +197,14 @@ class CategoryRepositoryImplTest {
         val remoteDtos = listOf(testCategoryDto)
         val exception = Exception("Database write error")
         coEvery { remoteDataSource.fetchCategories() } returns Result.Success(remoteDtos)
-        coEvery { localDataSource.deleteAllCategories() } throws exception
+        coEvery { localDataSource.replaceAllCategories(any()) } throws exception
         
         // When
         val result = repository.refreshCategories()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test

@@ -170,6 +170,11 @@ dependencies {
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
+
+    // Testing
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
 }
 
 sentry {

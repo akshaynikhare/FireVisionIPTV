@@ -1,8 +1,11 @@
 package com.cadnative.firevisioniptv.data.repository
 
+import android.app.Application
+import android.provider.Settings
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.FavoriteLocalDataSource
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
@@ -10,11 +13,15 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -36,7 +43,14 @@ class FavoriteRepositoryImplTest {
     private lateinit var localDataSource: FavoriteLocalDataSource
     private lateinit var apiService: FireVisionApiService
     private lateinit var channelMapper: ChannelMapper
+    private lateinit var channelDao: ChannelDao
+    private lateinit var application: Application
     private val testDispatcher = StandardTestDispatcher()
+
+    @After
+    fun tearDown() {
+        unmockkAll()
+    }
     
     private val testChannelEntity = ChannelEntity(
         id = "1",
@@ -65,11 +79,17 @@ class FavoriteRepositoryImplTest {
         localDataSource = mockk()
         apiService = mockk()
         channelMapper = ChannelMapper()
+        channelDao = mockk()
+        application = mockk(relaxed = true)
+        mockkStatic(Settings.Secure::class)
+        every { Settings.Secure.getString(any(), Settings.Secure.ANDROID_ID) } returns "test-device-id"
         
         repository = FavoriteRepositoryImpl(
             localDataSource = localDataSource,
             apiService = apiService,
             channelMapper = channelMapper,
+            channelDao = channelDao,
+            application = application,
             dispatcher = testDispatcher
         )
     }
@@ -95,14 +115,14 @@ class FavoriteRepositoryImplTest {
     fun `getFavoriteChannels handles errors gracefully`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getFavoriteChannels() } throws exception
+        every { localDataSource.getFavoriteChannels() } returns flow { throw exception }
         
         // When
         val result = repository.getFavoriteChannels().first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test

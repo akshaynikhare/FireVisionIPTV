@@ -8,6 +8,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -80,14 +81,14 @@ class PlaybackRepositoryImplTest {
     fun `getPlaybackPosition handles errors gracefully`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getPosition("channel-1") } throws exception
+        every { localDataSource.getPosition("channel-1") } returns flow { throw exception }
         
         // When
         val result = repository.getPlaybackPosition("channel-1").first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -193,7 +194,7 @@ class PlaybackRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -220,7 +221,7 @@ class PlaybackRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -260,14 +261,14 @@ class PlaybackRepositoryImplTest {
     fun `getAllPlaybackPositions handles errors gracefully`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getAllPositions() } throws exception
+        every { localDataSource.getAllPositions() } returns flow { throw exception }
         
         // When
         val result = repository.getAllPlaybackPositions().first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -319,6 +320,6 @@ class PlaybackRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
 }

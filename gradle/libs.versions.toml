@@ -17,6 +17,8 @@ coroutines = "1.8.0"
 workManager = "2.9.0"
 navigation = "2.7.7"
 lifecycle = "2.8.7"
+junit = "4.13.2"
+mockk = "1.13.12"
 
 [libraries]
 androidx-leanback = { group = "androidx.leanback", name = "leanback", version.ref = "leanback" }
@@ -85,6 +87,11 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 
 # Sentry
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
