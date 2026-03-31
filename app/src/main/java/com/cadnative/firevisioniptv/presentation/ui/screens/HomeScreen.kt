@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -185,7 +186,7 @@ private fun HeroBanner(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
-    horizontalPadding: androidx.compose.ui.unit.Dp = 40.dp,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
     if (channels.isEmpty()) return
@@ -222,7 +223,7 @@ private fun HeroBanner(
 private fun PopularCategoriesSlider(
     categories: List<PopularCategoryUiModel>,
     onCategoryClick: (String) -> Unit,
-    horizontalPadding: androidx.compose.ui.unit.Dp = 40.dp,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
@@ -261,7 +262,7 @@ private fun ChannelRow(
     onSeeAllClick: () -> Unit,
     onToggleFavorite: (String) -> Unit,
     showSeeAll: Boolean = true,
-    horizontalPadding: androidx.compose.ui.unit.Dp = 40.dp,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
     val catColor = categoryColor(title)

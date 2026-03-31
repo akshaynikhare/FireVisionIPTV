@@ -6,7 +6,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -43,7 +44,6 @@ import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
@@ -60,7 +60,8 @@ import javax.inject.Inject
 /**
  * Main entry point for the modernized FireVision IPTV app.
  *
- * Hosts the Compose navigation graph with a left rail sidebar.
+ * Hosts the Compose navigation graph with orientation-adaptive navigation:
+ * landscape uses a left rail sidebar, portrait uses a bottom navigation bar.
  * On first launch (no TV code), the Pairing screen is shown instead.
  */
 @AndroidEntryPoint
@@ -232,11 +233,6 @@ private fun BottomNavBar(
     ) {
         bottomNavItems.forEach { (screen, icon, label) ->
             val isSelected = currentRoute == screen.route
-            val iconTint by animateColorAsState(
-                targetValue = if (isSelected) Amber else TextSecondary,
-                animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
-                label = "bottomNavTint_$label"
-            )
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onScreenSelected(screen) },
@@ -244,13 +240,15 @@ private fun BottomNavBar(
                     Icon(
                         imageVector = icon,
                         contentDescription = label,
-                        tint = iconTint,
                         modifier = Modifier.size(22.dp)
                     )
                 },
+                label = { Text(text = label, maxLines = 1, fontSize = 10.sp) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Amber,
+                    selectedTextColor = Amber,
                     unselectedIconColor = TextSecondary,
+                    unselectedTextColor = TextSecondary,
                     indicatorColor = BackgroundMedium
                 )
             )
