@@ -250,6 +250,15 @@ private fun ChannelCardContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            if (channel.nowProgramTitle != null) {
+                Text(
+                    text = channel.nowProgramTitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextPrimary.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Text(
                 text = channel.category,
                 style = MaterialTheme.typography.labelSmall,

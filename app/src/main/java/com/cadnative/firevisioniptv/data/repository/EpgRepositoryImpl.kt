@@ -24,6 +24,12 @@ class EpgRepositoryImpl @Inject constructor(
     private val cache = mutableMapOf<String, List<EpgProgram>>()
     private var cacheLoaded = false
 
+    override suspend fun ensureLoaded() = withContext(dispatcher) {
+        if (!cacheLoaded) {
+            loadGuide()
+        }
+    }
+
     override suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?> =
         withContext(dispatcher) {
             if (!cacheLoaded) {
