@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -31,6 +32,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,13 +62,15 @@ fun SearchScreen(
     var searchEditing by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    val horizontalPadding = if (isPortrait) 16.dp else 32.dp
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp, vertical = 28.dp)
+            .padding(horizontal = horizontalPadding, vertical = 28.dp)
     ) {
         Text(
             text = "Search",
@@ -187,7 +191,7 @@ fun SearchScreen(
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 200.dp),
+                            columns = GridCells.Adaptive(minSize = 140.dp),
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),

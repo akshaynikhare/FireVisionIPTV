@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -89,6 +91,9 @@ private fun HomeContent(
     onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    val horizontalPadding = if (isPortrait) 16.dp else 40.dp
+
     val channelsByCategory = remember(channels) {
         channels.groupBy { it.category.ifBlank { "Other" } }
     }
@@ -117,6 +122,7 @@ private fun HomeContent(
                 channels = bannerChannels,
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
+                horizontalPadding = horizontalPadding,
                 modifier = Modifier
                     .padding(bottom = 40.dp)
                     .animateItemEntrance(index = 0)
@@ -133,6 +139,7 @@ private fun HomeContent(
                     onSeeAllClick = { },
                     onToggleFavorite = onToggleFavorite,
                     showSeeAll = false,
+                    horizontalPadding = horizontalPadding,
                     modifier = Modifier
                         .padding(bottom = 36.dp)
                         .animateItemEntrance(index = 1)
@@ -146,6 +153,7 @@ private fun HomeContent(
                 PopularCategoriesSlider(
                     categories = popularCategories,
                     onCategoryClick = onNavigateToChannels,
+                    horizontalPadding = horizontalPadding,
                     modifier = Modifier
                         .padding(bottom = 36.dp)
                         .animateItemEntrance(index = categoryRowOffset - 1)
@@ -164,6 +172,7 @@ private fun HomeContent(
                 onChannelClick = onChannelClick,
                 onSeeAllClick = { onNavigateToChannels(category) },
                 onToggleFavorite = onToggleFavorite,
+                horizontalPadding = horizontalPadding,
                 modifier = Modifier
                     .padding(bottom = 36.dp)
                     .animateItemEntrance(index = categoryRowOffset + index)
@@ -177,6 +186,7 @@ private fun HeroBanner(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
     if (channels.isEmpty()) return
@@ -185,7 +195,7 @@ private fun HeroBanner(
     val cardWidth = (screenWidth * 0.22f).coerceIn(200.dp, 320.dp)
     val cardHeight = (cardWidth * 0.6f).coerceIn(120.dp, 192.dp)
 
-    Column(modifier = modifier.padding(horizontal = 40.dp)) {
+    Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Text(
             text = "Featured",
             style = MaterialTheme.typography.headlineLarge,
@@ -213,9 +223,10 @@ private fun HeroBanner(
 private fun PopularCategoriesSlider(
     categories: List<PopularCategoryUiModel>,
     onCategoryClick: (String) -> Unit,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.padding(horizontal = 40.dp)) {
+    Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Text(
             text = "Popular Categories",
             style = MaterialTheme.typography.titleLarge,
@@ -251,11 +262,12 @@ private fun ChannelRow(
     onSeeAllClick: () -> Unit,
     onToggleFavorite: (String) -> Unit,
     showSeeAll: Boolean = true,
+    horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
     val catColor = categoryColor(title)
 
-    Column(modifier = modifier.padding(horizontal = 40.dp)) {
+    Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
