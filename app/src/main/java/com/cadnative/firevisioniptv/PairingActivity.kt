@@ -247,8 +247,7 @@ class PairingActivity : ComponentActivity() {
         pollRunnable?.let { pollHandler?.removeCallbacks(it) }
 
         runOnUiThread {
-            val prefs: SharedPreferences = getSharedPreferences("FireVisionSettings", MODE_PRIVATE)
-            prefs.edit().putString("tv_code", channelListCode).apply()
+            AppPreferences.setTvCode(this, channelListCode)
 
             statusMessage = "Paired successfully!"
             statusColor = androidx.compose.ui.graphics.Color(0xFF4CAF50)
@@ -310,8 +309,7 @@ class PairingActivity : ComponentActivity() {
             pollRunnable?.let { handler.removeCallbacks(it) }
         }
 
-        val prefs: SharedPreferences = getSharedPreferences("FireVisionSettings", MODE_PRIVATE)
-        prefs.edit().putString("tv_code", AppPreferences.DEFAULT_TV_CODE).apply()
+        AppPreferences.setTvCode(this, AppPreferences.DEFAULT_TV_CODE)
 
         Toast.makeText(this, "Using default channel list", Toast.LENGTH_SHORT).show()
 

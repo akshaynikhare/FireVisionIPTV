@@ -42,6 +42,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
@@ -449,6 +451,7 @@ private fun FavoriteButton(
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 private fun VideoPlayer(
     exoPlayer: ExoPlayer,
@@ -478,6 +481,7 @@ private fun VideoPlayer(
  * Checks that the TextureView is still available before attempting capture,
  * since the surface may already be released during dispose.
  */
+@OptIn(UnstableApi::class)
 private fun capturePlayerThumbnail(playerView: PlayerView?): Bitmap? {
     return try {
         val textureView = playerView?.videoSurfaceView as? TextureView

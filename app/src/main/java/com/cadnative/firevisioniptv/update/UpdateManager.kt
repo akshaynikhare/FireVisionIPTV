@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.cadnative.firevisioniptv.data.AppPreferences
 import org.json.JSONObject
@@ -191,18 +192,12 @@ class UpdateManager(activity: Activity) {
                 }
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                activity.registerReceiver(
-                    downloadReceiver,
-                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                    Context.RECEIVER_EXPORTED
-                )
-            } else {
-                activity.registerReceiver(
-                    downloadReceiver,
-                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-                )
-            }
+            ContextCompat.registerReceiver(
+                activity,
+                downloadReceiver,
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                ContextCompat.RECEIVER_EXPORTED
+            )
 
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading update", e)

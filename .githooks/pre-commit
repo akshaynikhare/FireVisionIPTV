@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+echo "Running Android lint check..."
+
+# Use gradlew.bat on Windows, gradlew on Unix
+if [ -f "gradlew.bat" ] && command -v cmd.exe >/dev/null 2>&1; then
+    ./gradlew.bat lintDebug --quiet
+else
+    ./gradlew lintDebug --quiet
+fi
+
+echo "Lint passed."

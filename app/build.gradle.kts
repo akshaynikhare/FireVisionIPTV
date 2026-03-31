@@ -7,6 +7,8 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("com.google.firebase.firebase-perf")
+    id("io.sentry.android.gradle")
+    id("jacoco")
 }
 
 android {
@@ -26,6 +28,8 @@ android {
         
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
+        manifestPlaceholders["sentryDsn"] = System.getenv("SENTRY_DSN") ?: ""
+        manifestPlaceholders["sentryEnvironment"] = "debug"
     }
 
     signingConfigs {
@@ -56,6 +60,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            manifestPlaceholders["sentryEnvironment"] = "production"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -152,6 +157,9 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // Sentry
+    implementation(libs.sentry.android)
+
     // Navigation Component (Compose only)
     implementation(libs.androidx.navigation.compose)
 
@@ -162,4 +170,41 @@ dependencies {
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
+}
+
+sentry {
+    includeSourceContext = true
+    org = "cadnative-design-solution"
+    projectName = "firevisioniptv"
+    authToken = System.getenv("SENTRY_AUTH_TOKEN")
+}
+
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("testDebugUnitTest"))
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*"
+    )
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+            exclude(fileFilter)
+        }
+    )
+    sourceDirectories.setFrom(files("${projectDir}/src/main/kotlin", "${projectDir}/src/main/java"))
+    executionData.setFrom(fileTree(layout.buildDirectory.get()) {
+        include("jacoco/testDebugUnitTest.exec")
+    })
 }

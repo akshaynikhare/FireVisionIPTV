@@ -23,6 +23,11 @@ object AppPreferences {
         return prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE) ?: DEFAULT_TV_CODE
     }
 
+    fun hasChannelSelection(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.contains(TV_CODE_KEY)
+    }
+
     fun setServerUrl(context: Context, url: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(SERVER_URL_KEY, url).apply()

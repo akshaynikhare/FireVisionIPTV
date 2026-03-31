@@ -154,8 +154,7 @@ class PairingViewModel @Inject constructor(
         pollingJob?.cancel()
         countdownJob?.cancel()
 
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString("tv_code", DEFAULT_TV_CODE).apply()
+        AppPreferences.setTvCode(context, DEFAULT_TV_CODE)
 
         _uiState.update {
             it.copy(
@@ -238,8 +237,7 @@ class PairingViewModel @Inject constructor(
         pollingJob?.cancel()
         countdownJob?.cancel()
 
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString("tv_code", channelListCode).apply()
+        AppPreferences.setTvCode(context, channelListCode)
 
         _uiState.update {
             it.copy(
@@ -316,7 +314,6 @@ class PairingViewModel @Inject constructor(
     }
 
     companion object {
-        private const val PREFS_NAME = AppPreferences.PREFS_NAME
         private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val POLL_INTERVAL_MS = 3000L
     }
