@@ -104,8 +104,7 @@ class ComposeMainActivity : ComponentActivity() {
     }
 
     private fun isTvCodeConfigured(): Boolean {
-        val tvCode = AppPreferences.getTvCode(this)
-        return tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+        return AppPreferences.hasChannelSelection(this)
     }
 
     private fun isFirstLaunch(): Boolean {
