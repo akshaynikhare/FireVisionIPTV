@@ -44,6 +44,7 @@ class ChannelRemoteDataSourceTest {
             id = "1",
             name = "Test Channel",
             url = "http://test.com/stream",
+            channelImg = null,
             tvgLogo = "http://test.com/logo.png",
             groupTitle = "Entertainment",
             tvgLanguage = "English",
@@ -52,7 +53,7 @@ class ChannelRemoteDataSourceTest {
             tvgName = "Test",
             isActive = true
         )
-        val response = ChannelsResponse(channels = listOf(channelDto))
+        val response = ChannelsResponse(data = listOf(channelDto))
         coEvery { apiService.getChannels() } returns Response.success(response)
         
         // When
@@ -131,6 +132,7 @@ class ChannelRemoteDataSourceTest {
             id = "1",
             name = "Test Channel",
             url = "http://test.com/stream",
+            channelImg = null,
             tvgLogo = null,
             groupTitle = null,
             tvgLanguage = null,

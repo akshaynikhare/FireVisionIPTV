@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+# Ensure Java 17 is used (Homebrew) — git hooks don't inherit shell profiles
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+export PATH="$JAVA_HOME/bin:$PATH"
+
 echo "Running Android lint check..."
 
 # Use gradlew.bat on Windows, gradlew on Unix

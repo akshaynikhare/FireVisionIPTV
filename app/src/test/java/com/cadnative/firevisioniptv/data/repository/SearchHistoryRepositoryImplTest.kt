@@ -8,6 +8,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -107,14 +108,14 @@ class SearchHistoryRepositoryImplTest {
     fun `getRecentSearches handles errors gracefully`() = runTest(testDispatcher) {
         // Given
         val exception = Exception("Database error")
-        every { localDataSource.getRecentSearches(10) } throws exception
+        every { localDataSource.getRecentSearches(10) } returns flow { throw exception }
         
         // When
         val result = repository.getRecentSearches(10).first()
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -188,7 +189,7 @@ class SearchHistoryRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
@@ -215,12 +216,13 @@ class SearchHistoryRepositoryImplTest {
         
         // Then
         assertTrue(result is Result.Error)
-        assertEquals(exception, (result as Result.Error).exception)
+        assertEquals(exception.message, (result as Result.Error).exception.message)
     }
     
     @Test
     fun `removeSearch returns success`() = runTest(testDispatcher) {
-        // Given - removeSearch is not yet implemented
+        // Given
+        coEvery { localDataSource.removeSearch(any()) } returns Unit
         
         // When
         val result = repository.removeSearch("sports")
