@@ -34,8 +34,8 @@ jobs:
       - name: Lint check
         run: ./gradlew lint
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+      - name: Run unit tests + generate coverage
+        run: ./gradlew testDebugUnitTest jacocoTestReport
 
       - name: Upload test results
         if: always()
@@ -43,9 +43,6 @@ jobs:
         with:
           name: test-results
           path: '**/build/test-results/**/*.xml'
-
-      - name: Generate coverage report
-        run: ./gradlew jacocoTestReport
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

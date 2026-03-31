@@ -28,6 +28,7 @@ android {
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
         manifestPlaceholders["sentryDsn"] = project.findProperty("SENTRY_DSN") as String? ?: ""
+        manifestPlaceholders["sentryEnvironment"] = "debug"
     }
 
     signingConfigs {
@@ -58,6 +59,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            manifestPlaceholders["sentryEnvironment"] = "production"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
