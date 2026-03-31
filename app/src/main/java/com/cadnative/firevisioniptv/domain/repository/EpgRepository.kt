@@ -4,4 +4,5 @@ import com.cadnative.firevisioniptv.domain.model.EpgProgram
 
 interface EpgRepository {
     suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?>
+    suspend fun ensureLoaded()
 }

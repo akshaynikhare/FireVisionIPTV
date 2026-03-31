@@ -12,5 +12,6 @@ data class ChannelUiModel(
     val tvgId: String? = null,
     val healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN,
     val thumbnailPath: String? = null,
-    val alternateStreamUrls: List<String> = emptyList()
+    val alternateStreamUrls: List<String> = emptyList(),
+    val nowProgramTitle: String? = null
 )

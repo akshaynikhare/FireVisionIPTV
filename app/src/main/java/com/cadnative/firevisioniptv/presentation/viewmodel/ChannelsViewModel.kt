@@ -17,6 +17,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
@@ -54,6 +55,7 @@ class ChannelsViewModel @Inject constructor(
     private val refreshChannelsUseCase: RefreshChannelsUseCase,
     private val channelUiMapper: ChannelUiMapper,
     private val channelMapper: ChannelMapper,
+    private val epgRepository: EpgRepository,
     private val channelHealthDao: ChannelHealthDao,
     private val channelDao: ChannelDao,
     private val favoriteDao: FavoriteDao,
@@ -67,6 +69,7 @@ class ChannelsViewModel @Inject constructor(
     private var loadJob: Job? = null
 
     init {
+        viewModelScope.launch { epgRepository.ensureLoaded() }
         loadChannels()
         loadHomeData()
         observeFavoriteCategories()
@@ -90,6 +93,7 @@ class ChannelsViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
+                            .map { enrichWithEpg(it) }
                         val allCategories = uiChannels
                             .map { it.category }
                             .filter { it.isNotBlank() }
@@ -154,7 +158,8 @@ class ChannelsViewModel @Inject constructor(
                                     val recentUi = channelUiMapper.toUiModelsWithHealth(
                                         recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
-                                    ).filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
+                                    ).map { enrichWithEpg(it) }
+                                     .filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
 
                                     // Preserve the order from recentIds
                                     val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
@@ -290,6 +295,12 @@ class ChannelsViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null, errorType = ErrorType.NONE) }
+    }
+
+    private suspend fun enrichWithEpg(channel: ChannelUiModel): ChannelUiModel {
+        val tvgId = channel.tvgId ?: return channel
+        val (now, _) = epgRepository.getNowNext(tvgId)
+        return if (now != null) channel.copy(nowProgramTitle = now.title) else channel
     }
 
     private fun classifyError(exception: Exception): Pair<String, ErrorType> {
