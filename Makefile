@@ -1,5 +1,5 @@
 .PHONY: help tag tags debug release install reinstall uninstall clean lint test \
-       emulators emu devices run launch restart stop logcat
+       emulators emu devices run launch restart stop logcat setup
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,9 @@ help:
 	@echo "Quality:"
 	@echo "  make lint                 Run Android lint checks"
 	@echo "  make test                 Run unit tests"
+	@echo ""
+	@echo "Setup:"
+	@echo "  make setup                Install git hooks (lint before commit)"
 	@echo ""
 	@echo "Logging:"
 	@echo "  make logcat               Show app logs (filtered to FireVision)"
@@ -140,3 +143,9 @@ tags:
 	@echo "-------------------------------------"
 	@git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -20 || echo "(no release tags found)"
 	@echo ""
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+setup:
+	git config core.hooksPath .githooks
+	@echo "Git hooks installed. Lint will run before each commit."
