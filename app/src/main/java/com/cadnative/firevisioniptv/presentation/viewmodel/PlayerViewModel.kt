@@ -249,11 +249,11 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Preload all channels so next/prev works even before overlay is opened.
+     * Always reloads ALL channels (no category filter) so category-based navigation
+     * in nextChannel()/previousChannel() works regardless of overlay filter state.
      */
     private fun preloadChannelList() {
-        if (_uiState.value.overlayChannels.isEmpty()) {
-            loadChannelListInternal(null, updateSelection = false)
-        }
+        loadChannelListInternal(null, updateSelection = false)
     }
 
     fun loadChannelList(category: String? = null) {
@@ -306,19 +306,28 @@ class PlayerViewModel @Inject constructor(
     // ── Next / Previous Channel (D-Pad & remote buttons) ───────────
 
     fun nextChannel() {
-        val channels = _uiState.value.overlayChannels
-        if (channels.isEmpty()) return
-        val currentId = _uiState.value.channel?.id
-        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val currentChannel = _uiState.value.channel ?: return
+        val allChannels = _uiState.value.overlayChannels
+        if (allChannels.isEmpty()) return
+        // Filter to same category, exclude offline, keep current channel in list
+        val channels = allChannels
+            .filter { it.category == currentChannel.category &&
+                    (it.id == currentChannel.id || it.healthStatus != ChannelHealthStatus.OFFLINE) }
+        if (channels.size <= 1) return // only current channel or empty — nowhere to go
+        val currentIndex = channels.indexOfFirst { it.id == currentChannel.id }
         val nextIndex = if (currentIndex < 0 || currentIndex >= channels.size - 1) 0 else currentIndex + 1
         switchChannel(channels[nextIndex].id)
     }
 
     fun previousChannel() {
-        val channels = _uiState.value.overlayChannels
-        if (channels.isEmpty()) return
-        val currentId = _uiState.value.channel?.id
-        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val currentChannel = _uiState.value.channel ?: return
+        val allChannels = _uiState.value.overlayChannels
+        if (allChannels.isEmpty()) return
+        val channels = allChannels
+            .filter { it.category == currentChannel.category &&
+                    (it.id == currentChannel.id || it.healthStatus != ChannelHealthStatus.OFFLINE) }
+        if (channels.size <= 1) return
+        val currentIndex = channels.indexOfFirst { it.id == currentChannel.id }
         val prevIndex = if (currentIndex <= 0) channels.size - 1 else currentIndex - 1
         switchChannel(channels[prevIndex].id)
     }
