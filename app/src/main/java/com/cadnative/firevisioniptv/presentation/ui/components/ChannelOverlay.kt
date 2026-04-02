@@ -419,27 +419,33 @@ private fun OverlayCategoryChips(
         item {
             var isFocused by remember { mutableStateOf(false) }
             val scale by animateFloatAsState(
-                targetValue = if (isFocused) 1.08f else 1f,
+                targetValue = if (isFocused) 1.12f else 1f,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
                 label = "allChipScale"
             )
+            val isSelected = selectedCategory == null
             val borderStroke: BorderStroke? = when {
-                isFocused -> BorderStroke(2.dp, FocusBorder)
-                selectedCategory != null -> BorderStroke(1.dp, SubtleBorder)
+                isFocused -> BorderStroke(2.5.dp, FocusBorder)
+                !isSelected -> BorderStroke(1.dp, SubtleBorder)
                 else -> null
             }
             FilterChip(
-                selected = selectedCategory == null,
+                selected = isSelected,
                 onClick = { onCategorySelected(null) },
                 label = {
                     Text(
                         text = "All",
-                        fontWeight = if (selectedCategory == null) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            isFocused && !isSelected -> Amber
+                            else -> Color.Unspecified
+                        }
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Amber,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
                 ),
                 border = borderStroke,
                 shape = RoundedCornerShape(8.dp),
@@ -452,14 +458,14 @@ private fun OverlayCategoryChips(
         items(categories) { category ->
             var isFocused by remember { mutableStateOf(false) }
             val scale by animateFloatAsState(
-                targetValue = if (isFocused) 1.08f else 1f,
+                targetValue = if (isFocused) 1.12f else 1f,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
                 label = "chipScale_$category"
             )
             val isSelected = selectedCategory == category
             val catColor = categoryColor(category)
             val borderStroke: BorderStroke? = when {
-                isFocused -> BorderStroke(2.dp, FocusBorder)
+                isFocused -> BorderStroke(2.5.dp, FocusBorder)
                 !isSelected -> BorderStroke(1.dp, SubtleBorder)
                 else -> null
             }
@@ -469,12 +475,17 @@ private fun OverlayCategoryChips(
                 label = {
                     Text(
                         text = category,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            isFocused && !isSelected -> Amber
+                            else -> Color.Unspecified
+                        }
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = catColor,
-                    selectedLabelColor = MaterialTheme.colorScheme.background
+                    selectedLabelColor = MaterialTheme.colorScheme.background,
+                    containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
                 ),
                 border = borderStroke,
                 shape = RoundedCornerShape(8.dp),
