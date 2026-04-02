@@ -138,8 +138,8 @@ private fun ChannelCardContent(
         )
 
         // Logo or thumbnail fills the card
-        var thumbnailFile by remember(channel.thumbnailPath) { mutableStateOf<File?>(null) }
-        LaunchedEffect(channel.thumbnailPath) {
+        var thumbnailFile by remember(channel.id, channel.thumbnailPath) { mutableStateOf<File?>(null) }
+        LaunchedEffect(channel.id, channel.thumbnailPath) {
             thumbnailFile = withContext(Dispatchers.IO) {
                 channel.thumbnailPath?.let { path ->
                     File(path).takeIf { it.exists() }

@@ -110,12 +110,14 @@ fun PlayerScreen(
         }
     }
 
-    // Favorite button auto-hide
-    var showFavButton by remember { mutableStateOf(true) }
-    LaunchedEffect(showFavButton) {
-        if (showFavButton) {
+    // Favorite button auto-hide — uses an incrementing token so the timer
+    // properly restarts even when the button is already visible.
+    var favButtonReveal by remember { mutableIntStateOf(1) }
+    val showFavButton = favButtonReveal > 0
+    LaunchedEffect(favButtonReveal) {
+        if (favButtonReveal > 0) {
             delay(FAV_BUTTON_AUTO_HIDE_MS)
-            showFavButton = false
+            favButtonReveal = 0
         }
     }
 
@@ -184,7 +186,7 @@ fun PlayerScreen(
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             // Reset fav button visibility on channel switch
-            showFavButton = true
+            favButtonReveal++
         }
     }
 
@@ -274,7 +276,7 @@ fun PlayerScreen(
                     KeyEvent.KEYCODE_ENTER -> {
                         // Toggle play/pause and show favorite button
                         if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                        showFavButton = true
+                        favButtonReveal++
                         true
                     }
                     KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
@@ -366,7 +368,7 @@ fun PlayerScreen(
                 isFavorite = uiState.channel?.isFavorite == true,
                 onClick = {
                     viewModel.toggleFavorite()
-                    showFavButton = true // reset auto-hide timer
+                    favButtonReveal++ // reset auto-hide timer
                 }
             )
         }

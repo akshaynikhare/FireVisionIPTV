@@ -1,7 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,7 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import android.view.KeyEvent
 import androidx.compose.ui.focus.focusProperties
@@ -415,11 +417,17 @@ private fun OverlayCategoryChips(
     ) {
         // "All" chip
         item {
-            val borderColor by animateColorAsState(
-                targetValue = if (selectedCategory != null) SubtleBorder else Color.Transparent,
+            var isFocused by remember { mutableStateOf(false) }
+            val scale by animateFloatAsState(
+                targetValue = if (isFocused) 1.08f else 1f,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "allChipBorder"
+                label = "allChipScale"
             )
+            val borderStroke: BorderStroke? = when {
+                isFocused -> BorderStroke(2.dp, FocusBorder)
+                selectedCategory != null -> BorderStroke(1.dp, SubtleBorder)
+                else -> null
+            }
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = { onCategorySelected(null) },
@@ -433,19 +441,28 @@ private fun OverlayCategoryChips(
                     selectedContainerColor = Amber,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                border = if (selectedCategory != null) BorderStroke(1.dp, borderColor) else null,
-                shape = RoundedCornerShape(8.dp)
+                border = borderStroke,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .onFocusChanged { isFocused = it.isFocused }
             )
         }
 
         items(categories) { category ->
+            var isFocused by remember { mutableStateOf(false) }
+            val scale by animateFloatAsState(
+                targetValue = if (isFocused) 1.08f else 1f,
+                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                label = "chipScale_$category"
+            )
             val isSelected = selectedCategory == category
             val catColor = categoryColor(category)
-            val borderColor by animateColorAsState(
-                targetValue = if (!isSelected) SubtleBorder else Color.Transparent,
-                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "chipBorder_$category"
-            )
+            val borderStroke: BorderStroke? = when {
+                isFocused -> BorderStroke(2.dp, FocusBorder)
+                !isSelected -> BorderStroke(1.dp, SubtleBorder)
+                else -> null
+            }
             FilterChip(
                 selected = isSelected,
                 onClick = { onCategorySelected(category) },
@@ -459,8 +476,11 @@ private fun OverlayCategoryChips(
                     selectedContainerColor = catColor,
                     selectedLabelColor = MaterialTheme.colorScheme.background
                 ),
-                border = if (!isSelected) BorderStroke(1.dp, borderColor) else null,
-                shape = RoundedCornerShape(8.dp)
+                border = borderStroke,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .onFocusChanged { isFocused = it.isFocused }
             )
         }
     }
