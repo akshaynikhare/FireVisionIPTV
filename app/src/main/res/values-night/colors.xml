@@ -1,0 +1,65 @@
+<resources>
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- FireVision Unified Palette — Night Mode Overrides              -->
+    <!-- These override res/values/colors.xml when dark mode is active  -->
+    <!-- Token reference: docs/COLOR_PALETTE.md                         -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Dark Mode Backgrounds — Void -->
+    <color name="background">#FF0A0A12</color>         <!-- void-950 -->
+    <color name="background_dark">#FF0A0A12</color>
+    <color name="default_background">#FF0A0A12</color>
+    <color name="background_gradient_start">#FF0A0A12</color>
+    <color name="background_gradient_end">#FF11111A</color>
+    <color name="fastlane_background">#FF0A0A12</color>
+    <color name="sidebar_background">#FF11111A</color>  <!-- void-900 -->
+    <color name="sidebar_item_selected">#FF21212C</color> <!-- void-700 -->
+
+    <!-- Dark Mode Cards — Void -->
+    <color name="card_background">#FF191921</color>       <!-- void-800 -->
+    <color name="card_background_startColor">#FF191921</color>
+    <color name="card_background_endColor">#FF11111A</color>
+    <color name="card_background_focused">#FF21212C</color>  <!-- void-700 -->
+    <color name="card_border_focused">#FFF7A93A</color>   <!-- flame-300 -->
+    <color name="card_text_primary">#FFF2EDE3</color>
+    <color name="card_text_secondary">#FFA8A0B2</color>
+
+    <!-- Dark Mode Selection — Flame300 -->
+    <color name="selected_background">#FFF7A93A</color>
+    <color name="selected_background_light">#FFE07818</color>
+    <color name="selected_border">#FFF7A93A</color>
+
+    <!-- Search — Flame300 -->
+    <color name="search_opaque">#FFF7A93A</color>
+    <color name="search_focused">#FFF7A93A</color>
+    <color name="search_result_background">#FF11111A</color>
+    <color name="search_orb_color">#FFF7A93A</color>
+    <color name="search_color">#FFF7A93A</color>
+    <color name="search_bright_color">#FFE07818</color>
+
+    <!-- Accent — Flame (dark mode) -->
+    <color name="accent_primary">#FFF7A93A</color>
+    <color name="accent_secondary">#FFE07818</color>
+    <color name="accent_tertiary">#FFFFD080</color>     <!-- flame-100 -->
+
+    <!-- Dark Mode Overlays -->
+    <color name="overlay_background">#E60A0A12</color>
+    <color name="overlay_card_background">#FF191921</color>
+    <color name="overlay_scrim">#990A0A12</color>
+
+    <!-- Dark Mode Text -->
+    <color name="text_primary">#FFF2EDE3</color>
+    <color name="text_secondary">#FFA8A0B2</color>
+    <color name="text_hint">#FF706880</color>
+    <color name="divider">#FF2A2B37</color>             <!-- void-600 -->
+
+    <!-- Dark Mode Gradients -->
+    <color name="gradient_start">#FF191921</color>
+    <color name="gradient_middle">#FF11111A</color>
+    <color name="gradient_end">#FF0A0A12</color>
+
+    <!-- Focus Animation — Flame300 -->
+    <color name="focus_glow_outer">#40F7A93A</color>   <!-- 25% Flame300 -->
+    <color name="focus_glow_inner">#60F7A93A</color>   <!-- 37% Flame300 -->
+    <color name="focus_border_bright">#FFF7A93A</color>
+</resources>

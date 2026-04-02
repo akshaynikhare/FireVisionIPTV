@@ -107,7 +107,14 @@ fun SettingsScreen(
                 )
             }
 
-            // Section 2: Two-column content
+            // Section 2: Appearance
+            AppearanceCard(
+                currentTheme = uiState.theme,
+                onThemeChange = { viewModel.setTheme(it) },
+                modifier = Modifier.animateItemEntrance(index = 1)
+            )
+
+            // Section 3: Two-column content
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -118,7 +125,7 @@ fun SettingsScreen(
                     onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
                     modifier = Modifier
                         .weight(1f)
-                        .animateItemEntrance(index = 1)
+                        .animateItemEntrance(index = 2)
                 )
 
                 // Right column: About
@@ -133,7 +140,7 @@ fun SettingsScreen(
                     onUpdateNow = { viewModel.downloadAndInstallUpdate() },
                     modifier = Modifier
                         .weight(1f)
-                        .animateItemEntrance(index = 2)
+                        .animateItemEntrance(index = 3)
                 )
             }
 
@@ -627,6 +634,81 @@ private fun AboutCard(
                 Text("Check for Updates", fontWeight = FontWeight.Medium)
             }
         }
+    }
+}
+
+// ── Section 2: Appearance ───────────────────────────────────────────────────
+
+@Composable
+private fun AppearanceCard(
+    currentTheme: String,
+    onThemeChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SettingsCard(title = "Appearance", modifier = modifier) {
+        Text(
+            text = "Theme",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ThemeOption(label = "Dark",   value = "dark",   currentTheme = currentTheme, onSelect = onThemeChange)
+            ThemeOption(label = "Light",  value = "light",  currentTheme = currentTheme, onSelect = onThemeChange)
+            ThemeOption(label = "System", value = "system", currentTheme = currentTheme, onSelect = onThemeChange)
+        }
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    label: String,
+    value: String,
+    currentTheme: String,
+    onSelect: (String) -> Unit
+) {
+    val isSelected = currentTheme == value
+    var isFocused by remember { mutableStateOf(false) }
+
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isFocused -> FocusBorder
+            isSelected -> MaterialTheme.colorScheme.primary
+            else -> SubtleBorder
+        },
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "themeOptionBorder"
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (isFocused || isSelected) 2.dp else 1.dp,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "themeOptionBorderWidth"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "themeOptionScale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { isFocused = it.isFocused },
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(borderWidth, borderColor),
+        onClick = { onSelect(value) }
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

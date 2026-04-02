@@ -32,11 +32,11 @@ const val STAGGER_DELAY_MS = 50L     // Between staggered items
 const val DURATION_OVERLAY = 300     // Overlay slide in/out
 const val AUTO_HIDE_DELAY_MS = 7000L // Channel overlay auto-hide timeout
 
-// ── Splash Animation ─────────────────────────────────────────────
-const val SPLASH_LOGO_FADE_DURATION = 400       // Phase 1: logo fades in
-const val SPLASH_GLOW_EXPAND_DURATION = 500     // Phase 2: amber glow expands
-const val SPLASH_REVEAL_DURATION = 400          // Phase 3: scale up + full reveal
-const val SPLASH_HOLD_DURATION_MS = 200L        // Brief hold before exit
+// ── Splash Animation — Signal Sweep ──────────────────────────────
+const val SPLASH_IGNITION_DURATION = 100        // Phase 1: point of light appears
+const val SPLASH_SWEEP_DURATION = 700           // Phase 2: scanline sweeps L→R revealing text
+const val SPLASH_BLOOM_DURATION = 400           // Phase 3: radial glow blooms behind logo
+const val SPLASH_HOLD_DURATION_MS = 300L        // Brief hold before exit
 
 // ── Navigation Transitions ──────────────────────────────────────────
 

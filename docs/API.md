@@ -73,6 +73,18 @@ Fetch all channel categories.
 
 ### Favorites
 
+#### GET /api/v1/favorites
+
+Pull server-stored favorites on app launch. Merged with local Room favorites (server timestamp wins on conflict).
+
+**Response:** `FavoritesResponse`
+```json
+{
+  "channel_ids": ["ch_123", "ch_456"],
+  "timestamp": 1710500000000
+}
+```
+
 #### POST /api/v1/favorites
 
 Sync local favorites to server.
@@ -87,6 +99,87 @@ Sync local favorites to server.
 ```
 
 **Response:** `204 No Content` on success
+
+### Stream Health Reporting
+
+#### POST /api/v1/channels/{id}/report-status
+
+Report a stream as dead, alive, or unresponsive. Called fire-and-forget from `PlayerViewModel` — never blocks playback.
+
+**Path parameter:** `id` — Channel identifier
+
+**Request body:** `StreamStatusReport`
+```json
+{
+  "status": "dead",
+  "deviceId": "device_abc",
+  "timestamp": "2026-04-02T10:00:00Z",
+  "errorMessage": "Connection refused"
+}
+```
+
+- `status`: `"dead"` (5 retries exhausted), `"alive"` (stream confirmed working), `"unresponsive"` (buffering >30 s)
+- Rate limited server-side: 1 report per channel per device per 5 minutes
+
+**Response:** `Response<Unit>` (body ignored)
+
+#### POST /api/v1/channels/{id}/report-play
+
+Report a successful play event (stream produced frames for ≥10 s). Also used when an alternate stream played — the `streamUrl` field triggers server-side auto-promotion of that alternate to primary.
+
+**Request body:** `StreamPlayReport`
+```json
+{
+  "deviceId": "device_abc",
+  "timestamp": "2026-04-02T10:05:00Z",
+  "proxyPlay": false,
+  "streamUrl": "https://alt-stream.example.com/live.m3u8"
+}
+```
+
+- `proxyPlay`: `true` when ExoPlayer fell back to the TV proxy
+- `streamUrl` (optional): actual stream URL played; if it matches an alternate, server auto-promotes it to primary
+- Rate limited server-side: 1 report per channel per device per minute
+
+**Response:** `Response<Unit>` (body ignored)
+
+#### POST /api/v1/channels/health-sync
+
+Bulk sync results from a `ChannelHealthScanner` batch. Called after each scan cycle.
+
+**Request body:** `HealthSyncRequest`
+```json
+{
+  "deviceId": "device_abc",
+  "results": [
+    {
+      "channelId": "ch_123",
+      "status": "alive",
+      "responseTimeMs": 320,
+      "timestamp": "2026-04-02T10:10:00Z"
+    }
+  ]
+}
+```
+
+- Up to 100 results per call; server uses MongoDB `bulkWrite` for efficiency
+- Rate limited: 1 sync per device per 5 minutes
+
+**Response:** `Response<Unit>` (body ignored)
+
+### Fallback Streams
+
+#### GET /api/v1/user-playlist/me/channels-with-fallbacks
+
+Returns the user's assigned channels, each including up to 3 alternate stream URLs. Dead and flagged alternates are filtered server-side before sending. Used by `ChannelRepositoryImpl` to populate the in-memory fallback slot queue in `ErrorRecoveryManager`.
+
+**Response:** same shape as `/me/channels` with an extra `alternateStreams` array on each channel:
+```json
+{
+  "streamUrl": "https://alt.example.com/live.m3u8",
+  "quality": "720p"
+}
+```
 
 ### Playlist
 
@@ -201,6 +294,7 @@ suspend fun removeFavorite(channelId: String): Result<Unit>
 suspend fun toggleFavorite(channelId: String): Result<Unit>
 suspend fun updateFavoriteOrder(channelId: String, newOrder: Int): Result<Unit>
 suspend fun syncFavorites(): Result<Unit>
+suspend fun pullFavoritesFromServer(): Result<Unit>  // pulls & merges server favorites on app launch
 ```
 
 ### PlaybackRepository
@@ -263,8 +357,12 @@ suspend fun clearCache(): Result<Unit>
 | `GetFavoriteChannelsUseCase` | Flow | `Unit` | `Flow<Result<List<Channel>>>` |
 | `ToggleFavoriteUseCase` | Suspend | `String` (channelId) | `Result<Unit>` |
 | `ReorderFavoritesUseCase` | Suspend | `Params(channelId, newOrder)` | `Result<Unit>` |
+| `PullFavoritesUseCase` | Suspend | `Unit` | `Result<Unit>` |
 | `GetPlaybackPositionUseCase` | Flow | `String` (channelId) | `Flow<Result<PlaybackState?>>` |
 | `SavePlaybackPositionUseCase` | Suspend | `Params(channelId, position, duration)` | `Result<Unit>` |
+| `ReportStreamStatusUseCase` | Suspend | `Params(channelId, status, deviceId, errorMessage?)` | `Result<Unit>` |
+| `ReportStreamPlayUseCase` | Suspend | `Params(channelId, deviceId, proxyPlay, streamUrl?)` | `Result<Unit>` |
+| `SyncHealthResultsUseCase` | Suspend | `Params(deviceId, results[])` | `Result<Unit>` |
 
 ---
 

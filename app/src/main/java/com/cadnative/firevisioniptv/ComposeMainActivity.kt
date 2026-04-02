@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +41,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
@@ -70,6 +72,9 @@ class ComposeMainActivity : ComponentActivity() {
     @Inject
     lateinit var channelHealthScanner: ChannelHealthScanner
 
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
+
     companion object {
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
     }
@@ -99,7 +104,13 @@ class ComposeMainActivity : ComponentActivity() {
         val showSplashOnStart = savedInstanceState == null
 
         setContent {
-            FireVisionTheme {
+            val themeStr by userPreferencesRepository.getTheme().collectAsState(initial = "dark")
+            val darkTheme = when (themeStr) {
+                "light" -> false
+                "system" -> androidx.compose.foundation.isSystemInDarkTheme()
+                else -> true
+            }
+            FireVisionTheme(darkTheme = darkTheme) {
                 var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
                 val navController = rememberNavController()
                 val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
