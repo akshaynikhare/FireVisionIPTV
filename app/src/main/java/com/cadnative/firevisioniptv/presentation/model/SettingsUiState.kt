@@ -9,7 +9,7 @@ import android.graphics.Bitmap
  * all user preferences, server configuration, and pairing info.
  */
 data class SettingsUiState(
-    val theme: String = "dark",
+    val theme: String = "system",
     val gridSize: Int = 3,
     val fontSize: Float = 1.0f,
     val animationSpeed: Float = 1.0f,

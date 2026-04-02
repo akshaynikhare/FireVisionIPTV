@@ -231,7 +231,7 @@ private fun PopularCategoriesSlider(
             text = "Popular Categories",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Amber
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(14.dp))
         LazyRow(

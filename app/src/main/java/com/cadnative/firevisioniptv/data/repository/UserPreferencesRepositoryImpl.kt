@@ -25,7 +25,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private val _theme = MutableStateFlow(prefs.getString(KEY_THEME, "dark") ?: "dark")
+    private val _theme = MutableStateFlow(prefs.getString(KEY_THEME, "system") ?: "system")
     private val _gridSize = MutableStateFlow(prefs.getInt(KEY_GRID_SIZE, 3))
     private val _fontSize = MutableStateFlow(prefs.getFloat(KEY_FONT_SIZE, 1.0f))
     private val _animationSpeed = MutableStateFlow(prefs.getFloat(KEY_ANIMATION_SPEED, 1.0f))

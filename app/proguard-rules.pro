@@ -57,6 +57,10 @@
 # ---- ZXing ----
 -keep class com.google.zxing.** { *; }
 
+# ---- Lottie ----
+-dontwarn com.airbnb.lottie.**
+-keep class com.airbnb.lottie.** { *; }
+
 # ---- Kotlin Coroutines ----
 -dontwarn kotlinx.coroutines.**
 -keepclassmembers class kotlinx.coroutines.** { *; }

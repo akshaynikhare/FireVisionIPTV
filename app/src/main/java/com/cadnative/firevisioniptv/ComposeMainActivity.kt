@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -49,12 +51,8 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundDark
-import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -104,10 +102,10 @@ class ComposeMainActivity : ComponentActivity() {
         val showSplashOnStart = savedInstanceState == null
 
         setContent {
-            val themeStr by userPreferencesRepository.getTheme().collectAsState(initial = "dark")
+            val themeStr by userPreferencesRepository.getTheme().collectAsState(initial = "system")
             val darkTheme = when (themeStr) {
                 "light" -> false
-                "system" -> androidx.compose.foundation.isSystemInDarkTheme()
+                "system" -> isSystemInDarkTheme()
                 else -> true
             }
             FireVisionTheme(darkTheme = darkTheme) {
@@ -237,8 +235,8 @@ private fun BottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp),
-        containerColor = BackgroundDark,
-        contentColor = TextSecondary,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         tonalElevation = 0.dp
     ) {
         bottomNavItems.forEach { (screen, icon, label) ->
@@ -255,11 +253,11 @@ private fun BottomNavBar(
                 },
                 label = { Text(text = label, maxLines = 1, fontSize = 10.sp) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Amber,
-                    selectedTextColor = Amber,
-                    unselectedIconColor = TextSecondary,
-                    unselectedTextColor = TextSecondary,
-                    indicatorColor = BackgroundMedium
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
         }

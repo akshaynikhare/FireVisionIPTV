@@ -1,16 +1,17 @@
 package com.cadnative.firevisioniptv.presentation.ui.theme
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Full-screen background with a subtle dual-tone diagonal gradient.
@@ -24,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun DiagonalGradientBackground(
     modifier: Modifier = Modifier,
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f,
     content: @Composable BoxScope.() -> Unit
 ) {
     val baseColor = if (darkTheme) Void950 else Parchment50
