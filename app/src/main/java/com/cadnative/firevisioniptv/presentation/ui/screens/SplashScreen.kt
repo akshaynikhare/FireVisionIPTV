@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieClipSpec
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
@@ -48,11 +49,29 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         LottieCompositionSpec.Asset("splash_animation.json")
     )
 
-    val progress by animateLottieCompositionAsState(
+    // Phase 0 = intro (full 1.5s), Phase 1 = loop last 0.5s
+    var looping by remember { mutableStateOf(false) }
+
+    // Play full animation once, then switch to looping last segment
+    val introProgress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = 1,
+        isPlaying = !looping
+    )
+
+    val loopProgress by animateLottieCompositionAsState(
         composition = composition,
         iterations = LottieConstants.IterateForever,
-        isPlaying = true
+        isPlaying = looping,
+        clipSpec = LottieClipSpec.Progress(60f / 90f, 1f)
     )
+
+    // Switch to loop when intro completes
+    LaunchedEffect(introProgress) {
+        if (introProgress == 1f) {
+            looping = true
+        }
+    }
 
     // ── Timed exit ───────────────────────────────────────────────────
 
@@ -75,6 +94,8 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
     // ── Layout ───────────────────────────────────────────────────────
 
+    val currentProgress = if (looping) loopProgress else introProgress
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -84,7 +105,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     ) {
         LottieAnimation(
             composition = composition,
-            progress = { progress },
+            progress = { currentProgress },
             modifier = Modifier.fillMaxSize()
         )
     }
