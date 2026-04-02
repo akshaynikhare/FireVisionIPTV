@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.graphics.Typeface
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -48,6 +49,11 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     val composition by rememberLottieComposition(
         LottieCompositionSpec.Asset("splash_animation.json")
     )
+
+    // Map Lottie font to Android system typeface (Arial not available on Android)
+    val fontMap = remember {
+        mapOf("Arial-BoldMT" to Typeface.create("sans-serif", Typeface.BOLD))
+    }
 
     // Phase 0 = intro (full 1.5s), Phase 1 = loop last 0.5s
     var looping by remember { mutableStateOf(false) }
@@ -106,7 +112,8 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         LottieAnimation(
             composition = composition,
             progress = { currentProgress },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            fontMap = fontMap
         )
     }
 }
