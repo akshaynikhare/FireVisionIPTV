@@ -12,6 +12,7 @@ data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
     val categories: List<String> = emptyList(),
     val isLoading: Boolean = false,
+    val isInitialLoadComplete: Boolean = false,
     val error: String? = null,
     val errorType: ErrorType = ErrorType.NONE,
     val selectedCategory: String? = null,

@@ -87,7 +87,7 @@ fun CategoryCard(
             isFocused -> BorderStroke(2.dp, FocusBorder)
             else -> BorderStroke(1.dp, subtleBorder)
         },
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Color gradient background
@@ -154,7 +154,7 @@ fun CategoryCard(
                 Text(
                     text = "Hold to favorite",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
@@ -179,7 +179,7 @@ fun CategoryCard(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextPrimary.copy(alpha = EmphasisMedium)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = EmphasisMedium)
                 )
             }
         }

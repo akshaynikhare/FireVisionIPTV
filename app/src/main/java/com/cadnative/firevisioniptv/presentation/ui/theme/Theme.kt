@@ -23,11 +23,11 @@ private val DarkColorScheme = darkColorScheme(
     primaryContainer = Flame400,
     onPrimaryContainer = Flame50,
 
-    // Secondary — info blue
-    secondary = InfoDark,
-    onSecondary = Color(0xFF071428),
-    secondaryContainer = Color(0xFF1A3A6A),
-    onSecondaryContainer = Color(0xFFB0CCFF),
+    // Secondary — warm accent (Flame400, complementary to primary)
+    secondary = Flame400,
+    onSecondary = Flame50,
+    secondaryContainer = Flame500,
+    onSecondaryContainer = Flame50,
 
     // Tertiary — Flame100 for subtle accent
     tertiary = Flame100,
@@ -74,11 +74,11 @@ private val LightColorScheme = lightColorScheme(
     primaryContainer = Flame100,
     onPrimaryContainer = Flame700,
 
-    // Secondary — info blue light
-    secondary = InfoLight,
-    onSecondary = Color(0xFFFAF8F4),
-    secondaryContainer = Color(0xFFCCDDFF),
-    onSecondaryContainer = Color(0xFF0A2050),
+    // Secondary — warm accent (Flame700, complementary to primary)
+    secondary = Flame700,
+    onSecondary = Parchment50,
+    secondaryContainer = Flame100,
+    onSecondaryContainer = Flame700,
 
     // Tertiary — Flame400
     tertiary = Flame400,

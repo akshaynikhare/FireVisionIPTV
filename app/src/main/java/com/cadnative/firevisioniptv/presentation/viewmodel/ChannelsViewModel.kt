@@ -277,13 +277,14 @@ class ChannelsViewModel @Inject constructor(
 
             when (result) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
                 }
                 is Result.Error -> {
                     val (msg, type) = classifyError(result.exception)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isInitialLoadComplete = true,
                             error = msg,
                             errorType = type
                         )

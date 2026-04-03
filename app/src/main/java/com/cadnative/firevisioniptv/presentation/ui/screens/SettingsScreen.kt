@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -28,6 +29,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -59,6 +61,8 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scanProgress by viewModel.scanProgress.collectAsStateWithLifecycle()
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     Scaffold(
         topBar = {
@@ -99,6 +103,7 @@ fun SettingsScreen(
                     tvCode = uiState.tvCode,
                     settingsSaved = uiState.settingsSaved,
                     qrCodeBitmap = uiState.qrCodeBitmap,
+                    isPortrait = isPortrait,
                     onServerUrlChange = { viewModel.onServerUrlChange(it) },
                     onTvCodeChange = { viewModel.onTvCodeChange(it) },
                     onSave = { viewModel.saveServerSettings() },
@@ -107,28 +112,15 @@ fun SettingsScreen(
                 )
             }
 
-            // Section 2: Appearance
-            AppearanceCard(
-                currentTheme = uiState.theme,
-                onThemeChange = { viewModel.setTheme(it) },
-                modifier = Modifier.animateItemEntrance(index = 1)
-            )
-
-            // Section 3: Two-column content
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Left column: Channels
+            // Section 2: Channels + About
+            if (isPortrait) {
+                // Portrait: stack vertically
                 ChannelsCard(
                     scanProgress = scanProgress,
                     onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
-                    modifier = Modifier
-                        .weight(1f)
-                        .animateItemEntrance(index = 2)
+                    modifier = Modifier.animateItemEntrance(index = 1)
                 )
 
-                // Right column: About
                 AboutCard(
                     appVersion = uiState.appVersion,
                     isChecking = uiState.isCheckingForUpdate,
@@ -138,11 +130,44 @@ fun SettingsScreen(
                     downloadError = uiState.downloadError,
                     onCheckForUpdate = { viewModel.checkForUpdate() },
                     onUpdateNow = { viewModel.downloadAndInstallUpdate() },
-                    modifier = Modifier
-                        .weight(1f)
-                        .animateItemEntrance(index = 3)
+                    modifier = Modifier.animateItemEntrance(index = 2)
                 )
+            } else {
+                // Landscape: side by side
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ChannelsCard(
+                        scanProgress = scanProgress,
+                        onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .animateItemEntrance(index = 1)
+                    )
+
+                    AboutCard(
+                        appVersion = uiState.appVersion,
+                        isChecking = uiState.isCheckingForUpdate,
+                        updateInfo = uiState.updateInfo,
+                        updateChecked = uiState.updateChecked,
+                        isDownloading = uiState.isDownloadingUpdate,
+                        downloadError = uiState.downloadError,
+                        onCheckForUpdate = { viewModel.checkForUpdate() },
+                        onUpdateNow = { viewModel.downloadAndInstallUpdate() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .animateItemEntrance(index = 2)
+                    )
+                }
             }
+
+            // Section 3: Appearance
+            AppearanceCard(
+                currentTheme = uiState.theme,
+                onThemeChange = { viewModel.setTheme(it) },
+                modifier = Modifier.animateItemEntrance(index = 3)
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -222,6 +247,7 @@ private fun UnpairedSetupCard(
     tvCode: String,
     settingsSaved: Boolean,
     qrCodeBitmap: Bitmap?,
+    isPortrait: Boolean,
     onServerUrlChange: (String) -> Unit,
     onTvCodeChange: (String) -> Unit,
     onSave: () -> Boolean,
@@ -234,100 +260,69 @@ private fun UnpairedSetupCard(
     var tvCodeEditing by remember { mutableStateOf(false) }
 
     SettingsCard(title = "Device Setup", modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Left: Form fields
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Server URL",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                TextField(
-                    value = serverUrl,
-                    onValueChange = {
+        if (isPortrait) {
+            // Portrait: stack vertically — form fields then QR
+            Column(modifier = Modifier.fillMaxWidth()) {
+                DeviceSetupFormFields(
+                    serverUrl = serverUrl,
+                    tvCode = tvCode,
+                    settingsSaved = settingsSaved,
+                    validationError = validationError,
+                    onServerUrlChange = {
                         onServerUrlChange(it)
                         validationError = null
                     },
-                    placeholder = { Text("https://tv.cadnative.com") },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged {
-                            if (it.hasFocus && !serverUrlEditing) keyboardController?.hide()
-                            if (!it.hasFocus) serverUrlEditing = false
-                        }
-                        .onKeyEvent { event ->
-                            if (!serverUrlEditing &&
-                                event.type == KeyEventType.KeyDown &&
-                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
-                            ) {
-                                serverUrlEditing = true
-                                keyboardController?.show()
-                                true
-                            } else false
-                        },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = "TV Pairing Code",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                TextField(
-                    value = tvCode,
-                    onValueChange = {
+                    onTvCodeChange = {
                         onTvCodeChange(it)
                         validationError = null
                     },
-                    placeholder = { Text("Enter TV code") },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged {
-                            if (it.hasFocus && !tvCodeEditing) keyboardController?.hide()
-                            if (!it.hasFocus) tvCodeEditing = false
+                    onSave = {
+                        val saved = onSave()
+                        if (!saved) {
+                            validationError = when {
+                                serverUrl.isBlank() || tvCode.isBlank() -> "Server URL and TV code are required"
+                                !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://") ->
+                                    "URL must start with http:// or https://"
+                                else -> "Invalid settings"
+                            }
+                        } else {
+                            validationError = null
                         }
-                        .onKeyEvent { event ->
-                            if (!tvCodeEditing &&
-                                event.type == KeyEventType.KeyDown &&
-                                (event.key == Key.DirectionCenter || event.key == Key.Enter)
-                            ) {
-                                tvCodeEditing = true
-                                keyboardController?.show()
-                                true
-                            } else false
-                        },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
+                    },
+                    onPairDevice = onPairDevice,
+                    keyboardController = keyboardController,
+                    serverUrlEditing = serverUrlEditing,
+                    onServerUrlEditingChange = { serverUrlEditing = it },
+                    tvCodeEditing = tvCodeEditing,
+                    onTvCodeEditingChange = { tvCodeEditing = it }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FocusAwareButton(
-                        onClick = {
+                if (qrCodeBitmap != null) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    QrCodeSection(qrCodeBitmap = qrCodeBitmap)
+                }
+            }
+        } else {
+            // Landscape: side by side
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    DeviceSetupFormFields(
+                        serverUrl = serverUrl,
+                        tvCode = tvCode,
+                        settingsSaved = settingsSaved,
+                        validationError = validationError,
+                        onServerUrlChange = {
+                            onServerUrlChange(it)
+                            validationError = null
+                        },
+                        onTvCodeChange = {
+                            onTvCodeChange(it)
+                            validationError = null
+                        },
+                        onSave = {
                             val saved = onSave()
                             if (!saved) {
                                 validationError = when {
@@ -340,92 +335,208 @@ private fun UnpairedSetupCard(
                                 validationError = null
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text("Save Settings", fontWeight = FontWeight.SemiBold)
-                    }
-
-                    FocusAwareOutlinedButton(
-                        onClick = onPairDevice,
-                        border = BorderStroke(1.dp, subtleBorder)
-                    ) {
-                        Text("Pair with PIN", fontWeight = FontWeight.Medium)
-                    }
-
-                    AnimatedVisibility(
-                        visible = settingsSaved,
-                        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                        exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-                    ) {
-                        Text(
-                            text = "Saved",
-                            color = Success,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                        onPairDevice = onPairDevice,
+                        keyboardController = keyboardController,
+                        serverUrlEditing = serverUrlEditing,
+                        onServerUrlEditingChange = { serverUrlEditing = it },
+                        tvCodeEditing = tvCodeEditing,
+                        onTvCodeEditingChange = { tvCodeEditing = it }
+                    )
                 }
 
-                AnimatedVisibility(
-                    visible = validationError != null,
-                    enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                    exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-                ) {
-                    validationError?.let { error ->
-                        Column {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = error,
-                                color = Warning,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Right: QR code
-            if (qrCodeBitmap != null) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    Text(
-                        text = "Scan to pair",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(6.dp))
-                            .padding(8.dp)
-                    ) {
-                        Image(
-                            bitmap = qrCodeBitmap.asImageBitmap(),
-                            contentDescription = "Pairing QR Code",
-                            modifier = Modifier.size(160.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "or enter PIN on dashboard",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                if (qrCodeBitmap != null) {
+                    QrCodeSection(qrCodeBitmap = qrCodeBitmap, modifier = Modifier.padding(top = 8.dp))
                 }
             }
         }
     }
 }
 
-// ── Section 2: Two-column cards ─────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeviceSetupFormFields(
+    serverUrl: String,
+    tvCode: String,
+    settingsSaved: Boolean,
+    validationError: String?,
+    onServerUrlChange: (String) -> Unit,
+    onTvCodeChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onPairDevice: () -> Unit,
+    keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?,
+    serverUrlEditing: Boolean,
+    onServerUrlEditingChange: (Boolean) -> Unit,
+    tvCodeEditing: Boolean,
+    onTvCodeEditingChange: (Boolean) -> Unit
+) {
+    Text(
+        text = "Server URL",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelMedium
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    TextField(
+        value = serverUrl,
+        onValueChange = onServerUrlChange,
+        placeholder = { Text("https://tv.cadnative.com") },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged {
+                if (it.hasFocus && !serverUrlEditing) keyboardController?.hide()
+                if (!it.hasFocus) onServerUrlEditingChange(false)
+            }
+            .onKeyEvent { event ->
+                if (!serverUrlEditing &&
+                    event.type == KeyEventType.KeyDown &&
+                    (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                ) {
+                    onServerUrlEditingChange(true)
+                    keyboardController?.show()
+                    true
+                } else false
+            },
+        shape = RoundedCornerShape(8.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
+
+    Spacer(modifier = Modifier.height(14.dp))
+
+    Text(
+        text = "TV Pairing Code",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelMedium
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    TextField(
+        value = tvCode,
+        onValueChange = onTvCodeChange,
+        placeholder = { Text("Enter TV code") },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged {
+                if (it.hasFocus && !tvCodeEditing) keyboardController?.hide()
+                if (!it.hasFocus) onTvCodeEditingChange(false)
+            }
+            .onKeyEvent { event ->
+                if (!tvCodeEditing &&
+                    event.type == KeyEventType.KeyDown &&
+                    (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                ) {
+                    onTvCodeEditingChange(true)
+                    keyboardController?.show()
+                    true
+                } else false
+            },
+        shape = RoundedCornerShape(8.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FocusAwareButton(
+            onClick = onSave,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text("Save Settings", fontWeight = FontWeight.SemiBold)
+        }
+
+        FocusAwareOutlinedButton(
+            onClick = onPairDevice,
+            border = BorderStroke(1.dp, subtleBorder)
+        ) {
+            Text("Pair with PIN", fontWeight = FontWeight.Medium)
+        }
+
+        AnimatedVisibility(
+            visible = settingsSaved,
+            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+            exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+        ) {
+            Text(
+                text = "Saved",
+                color = Success,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = validationError != null,
+        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+        exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+    ) {
+        validationError?.let { error ->
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    color = Warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QrCodeSection(
+    qrCodeBitmap: Bitmap,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+    ) {
+        Text(
+            text = "Scan to pair",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .background(Color.White, RoundedCornerShape(6.dp))
+                .padding(8.dp)
+        ) {
+            Image(
+                bitmap = qrCodeBitmap.asImageBitmap(),
+                contentDescription = "Pairing QR Code",
+                modifier = Modifier.size(160.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "or enter PIN on dashboard",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+// ── Section 2: Two-column cards (Channels + About) ─────────────────────────
 
 @Composable
 private fun ChannelsCard(
@@ -493,7 +604,7 @@ private fun ChannelsCard(
                 onClick = onCheckLiveliness,
                 enabled = !scanProgress.isScanning,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
@@ -637,7 +748,7 @@ private fun AboutCard(
     }
 }
 
-// ── Section 2: Appearance ───────────────────────────────────────────────────
+// ── Section 3: Appearance ───────────────────────────────────────────────────
 
 @Composable
 private fun AppearanceCard(
