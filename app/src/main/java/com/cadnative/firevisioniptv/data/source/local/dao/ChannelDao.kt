@@ -89,6 +89,9 @@ interface ChannelDao {
         insertChannels(channels)
     }
 
+    @Query("SELECT * FROM channels WHERE isActive = 1 ORDER BY name ASC")
+    suspend fun getAllActiveChannels(): List<ChannelEntity>
+
     @Query("SELECT * FROM channels WHERE id = :channelId")
     suspend fun getChannelByIdSync(channelId: String): ChannelEntity?
 

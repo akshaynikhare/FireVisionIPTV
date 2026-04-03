@@ -150,8 +150,9 @@ private fun ChannelCardContent(
                 model = channel.logoUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                    .fillMaxSize(0.7f)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 6.dp, end = 8.dp),
                 contentScale = ContentScale.Fit
             )
         } else if (thumbnailFile != null) {
@@ -177,12 +178,13 @@ private fun ChannelCardContent(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .fillMaxHeight(0.45f)
+                .fillMaxHeight(0.50f)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
                             surfaceColor.copy(alpha = 0f),
-                            surfaceColor.copy(alpha = 0.85f)
+                            surfaceColor.copy(alpha = 0.5f),
+                            surfaceColor.copy(alpha = 0.92f)
                         )
                     )
                 )
@@ -236,7 +238,16 @@ private fun ChannelCardContent(
         // Channel name + category — bottom
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            surfaceColor.copy(alpha = 0f),
+                            surfaceColor.copy(alpha = 0.6f)
+                        )
+                    )
+                )
                 .padding(10.dp),
             verticalArrangement = Arrangement.Bottom
         ) {

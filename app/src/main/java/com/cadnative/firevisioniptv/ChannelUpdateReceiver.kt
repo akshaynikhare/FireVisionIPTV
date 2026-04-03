@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.media.tv.TvContract
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ChannelUpdateReceiver : BroadcastReceiver() {
 
@@ -24,12 +27,17 @@ class ChannelUpdateReceiver : BroadcastReceiver() {
     }
 
     private fun syncChannels(context: Context) {
-        try {
-            val channelManager = ChannelManager(context)
-            channelManager.syncChannelsToTif()
-            Log.d(TAG, "Channel sync completed successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error syncing channels", e)
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val channelManager = ChannelManager.create(context)
+                channelManager.syncChannelsToTif()
+                Log.d(TAG, "Channel sync completed successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error syncing channels", e)
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 

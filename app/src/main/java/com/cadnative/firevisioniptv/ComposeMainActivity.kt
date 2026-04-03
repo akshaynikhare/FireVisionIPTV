@@ -93,7 +93,7 @@ class ComposeMainActivity : ComponentActivity() {
 
         // Parse deep link channel ID if present
         val deepLinkChannelId = intent?.data?.let { uri ->
-            if (uri.host == "play" && uri.pathSegments.size >= 2 && uri.pathSegments[0] == "movie") {
+            if (uri.host == "play" && uri.pathSegments.size >= 2 && uri.pathSegments[0] in listOf("movie", "channel")) {
                 uri.pathSegments[1]
             } else null
         }

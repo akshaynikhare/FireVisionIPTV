@@ -2,11 +2,11 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="251"
-    android:viewportHeight="303">
+    android:viewportWidth="500"
+    android:viewportHeight="500">
 
-    <!-- Group offsets flame coords to fill the viewport (flame bbox ~143-354 x, ~37-320 y) -->
-    <group android:translateX="-123" android:translateY="-37">
+    <!-- Center flame in 500x500 viewport with safe-zone padding for adaptive icons -->
+    <group android:translateX="1" android:translateY="63">
 
         <!-- FireVision flame — outer golden-brown -->
         <path

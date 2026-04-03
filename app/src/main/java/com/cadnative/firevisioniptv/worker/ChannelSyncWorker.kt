@@ -1,16 +1,15 @@
 package com.cadnative.firevisioniptv.worker
 
 import android.content.Context
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.cadnative.firevisioniptv.ChannelManager
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
-/**
- * WorkManager worker for periodic channel synchronization.
- */
 @HiltWorker
 class ChannelSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
@@ -20,11 +19,18 @@ class ChannelSyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            // Refresh channels from server
             val result = channelRepository.refreshChannels()
 
             when (result) {
-                is com.cadnative.firevisioniptv.data.model.Result.Success -> Result.success()
+                is com.cadnative.firevisioniptv.data.model.Result.Success -> {
+                    // Sync updated channels + EPG to Fire TV TIF database
+                    try {
+                        ChannelManager.create(applicationContext).syncChannelsToTif()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "TIF sync failed after channel refresh", e)
+                    }
+                    Result.success()
+                }
                 is com.cadnative.firevisioniptv.data.model.Result.Error -> {
                     if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
                         Result.retry()
@@ -34,7 +40,6 @@ class ChannelSyncWorker @AssistedInject constructor(
                 }
             }
         } catch (e: Exception) {
-            // Retry with exponential backoff
             if (runAttemptCount < MAX_RETRY_ATTEMPTS) {
                 Result.retry()
             } else {
@@ -44,6 +49,7 @@ class ChannelSyncWorker @AssistedInject constructor(
     }
 
     companion object {
+        private const val TAG = "ChannelSyncWorker"
         const val WORK_NAME = "channel_sync_work"
         private const val MAX_RETRY_ATTEMPTS = 3
     }

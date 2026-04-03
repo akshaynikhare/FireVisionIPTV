@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv
 
 import android.app.Application
+import com.cadnative.firevisioniptv.worker.WorkManagerInitializer
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 
@@ -14,6 +15,8 @@ class FireVisionApplication : Application() {
         FirebaseCrashlytics.getInstance().apply {
             setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
         }
+
+        WorkManagerInitializer.scheduleChannelSync(this)
     }
 
     companion object {
