@@ -55,7 +55,7 @@ help:
 	@echo "  make logcat               Show app logs (filtered to FireVision)"
 	@echo ""
 	@echo "Release Management:"
-	@echo "  make tag VERSION=v1.2.3   Create and push an annotated release tag"
+	@echo "  make tag v=v1.2.3         Create and push an annotated release tag"
 	@echo "  make tags                 List recent release tags (newest first)"
 	@echo ""
 
@@ -130,15 +130,15 @@ logcat:
 # ── Release tagging ──────────────────────────────────────────────────────────
 
 tag:
-ifndef VERSION
-	$(error VERSION is required. Usage: make tag VERSION=v1.2.3)
+ifndef v
+	$(error v is required. Usage: make tag v=v1.2.3)
 endif
-	@echo "$(VERSION)" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || \
-		(echo "Error: VERSION must follow semantic versioning: vMAJOR.MINOR.PATCH (e.g. v1.2.3)" && exit 1)
-	@echo "Creating annotated tag $(VERSION)..."
-	git tag -a "$(VERSION)" -m "Release $(VERSION)"
-	git push origin "$(VERSION)"
-	@echo "Tag $(VERSION) created and pushed successfully."
+	@echo "$(v)" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' || \
+		(echo "Error: v must follow semantic versioning: vMAJOR.MINOR.PATCH (e.g. v1.2.3)" && exit 1)
+	@echo "Creating annotated tag $(v)..."
+	git tag -a "$(v)" -m "Release $(v)"
+	git push origin "$(v)"
+	@echo "Tag $(v) created and pushed successfully."
 
 tags:
 	@echo ""
