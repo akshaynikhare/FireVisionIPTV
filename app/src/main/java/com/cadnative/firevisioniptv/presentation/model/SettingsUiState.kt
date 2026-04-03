@@ -29,7 +29,10 @@ data class SettingsUiState(
     val updateInfo: UpdateInfo? = null,
     val updateChecked: Boolean = false,
     val isDownloadingUpdate: Boolean = false,
-    val downloadError: String? = null
+    val downloadError: String? = null,
+    // Cache
+    val isClearingCache: Boolean = false,
+    val cacheCleared: Boolean = false
 )
 
 data class UpdateInfo(

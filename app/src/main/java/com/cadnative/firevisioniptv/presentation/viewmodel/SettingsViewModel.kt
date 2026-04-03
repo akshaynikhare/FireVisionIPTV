@@ -21,6 +21,7 @@ import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
+import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ln
@@ -44,7 +46,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val application: Application,
-    private val channelHealthScanner: ChannelHealthScanner
+    private val channelHealthScanner: ChannelHealthScanner,
+    private val refreshChannelsUseCase: RefreshChannelsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -102,7 +105,9 @@ class SettingsViewModel @Inject constructor(
                         settingsSaved = current.settingsSaved,
                         isCheckingForUpdate = current.isCheckingForUpdate,
                         updateInfo = current.updateInfo,
-                        updateChecked = current.updateChecked
+                        updateChecked = current.updateChecked,
+                        isClearingCache = current.isClearingCache,
+                        cacheCleared = current.cacheCleared
                     )
                 }
             }
@@ -248,16 +253,20 @@ class SettingsViewModel @Inject constructor(
 
     fun clearCache() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isClearingCache = true, cacheCleared = false) }
             val result = userPreferencesRepository.clearCache()
             when (result) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update { it.copy(isClearingCache = false, cacheCleared = true) }
+                    refreshChannelsUseCase(Unit)
+                    // Reset success message after 3 seconds
+                    delay(3_000)
+                    _uiState.update { it.copy(cacheCleared = false) }
                 }
                 is Result.Error -> {
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
+                            isClearingCache = false,
                             error = result.exception.message ?: "Failed to clear cache"
                         )
                     }

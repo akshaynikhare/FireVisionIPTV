@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import android.view.KeyEvent
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
@@ -150,9 +151,9 @@ private fun ChannelCardContent(
                 model = channel.logoUrl,
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxSize(0.7f)
-                    .align(Alignment.TopEnd)
-                    .padding(top = 6.dp, end = 8.dp),
+                    .fillMaxSize(0.6f)
+                    .align(Alignment.TopCenter)
+                    .padding(top = 6.dp),
                 contentScale = ContentScale.Fit
             )
         } else if (thumbnailFile != null) {
@@ -191,15 +192,6 @@ private fun ChannelCardContent(
         )
 
         // ── Layer 3: Text, badges, accent line ──────────────────────
-        // Accent line at top
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .height(3.dp)
-                .background(catColor.copy(alpha = 0.8f))
-        )
-
         // Health indicator — top-right
         if (channel.healthStatus != ChannelHealthStatus.UNKNOWN) {
             HealthIndicatorDot(
@@ -252,12 +244,11 @@ private fun ChannelCardContent(
             verticalArrangement = Arrangement.Bottom
         ) {
             Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = catColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = channel.category,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EmphasisMedium)
             )
             if (channel.nowProgramTitle != null) {
                 Text(
@@ -269,9 +260,12 @@ private fun ChannelCardContent(
                 )
             }
             Text(
-                text = channel.category,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EmphasisMedium)
+                text = channel.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = catColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

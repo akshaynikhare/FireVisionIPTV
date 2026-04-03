@@ -118,6 +118,9 @@ fun SettingsScreen(
                 ChannelsCard(
                     scanProgress = scanProgress,
                     onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
+                    isClearingCache = uiState.isClearingCache,
+                    cacheCleared = uiState.cacheCleared,
+                    onClearCache = { viewModel.clearCache() },
                     modifier = Modifier.animateItemEntrance(index = 1)
                 )
 
@@ -141,6 +144,9 @@ fun SettingsScreen(
                     ChannelsCard(
                         scanProgress = scanProgress,
                         onCheckLiveliness = { viewModel.triggerLivelinessCheck() },
+                        isClearingCache = uiState.isClearingCache,
+                        cacheCleared = uiState.cacheCleared,
+                        onClearCache = { viewModel.clearCache() },
                         modifier = Modifier
                             .weight(1f)
                             .animateItemEntrance(index = 1)
@@ -542,6 +548,9 @@ private fun QrCodeSection(
 private fun ChannelsCard(
     scanProgress: ScanProgress,
     onCheckLiveliness: () -> Unit,
+    isClearingCache: Boolean,
+    cacheCleared: Boolean,
+    onClearCache: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SettingsCard(title = "Channels", modifier = modifier) {
@@ -609,6 +618,66 @@ private fun ChannelsCard(
                 )
             ) {
                 Text("Check Liveliness", fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // Cache section
+        Spacer(modifier = Modifier.height(16.dp))
+        HorizontalDivider(color = subtleBorder)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Local Cache",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Clear cached channels and thumbnails. Channels will be re-fetched from the server.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (isClearingCache) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Clearing cache...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            AnimatedVisibility(
+                visible = cacheCleared,
+                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+            ) {
+                Text(
+                    text = "Cache cleared — refreshing channels",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Success
+                )
+            }
+            if (!cacheCleared) {
+                FocusAwareOutlinedButton(
+                    onClick = onClearCache,
+                    border = BorderStroke(1.dp, Warning.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        "Clear Local Cache",
+                        fontWeight = FontWeight.SemiBold,
+                        color = Warning
+                    )
+                }
             }
         }
     }

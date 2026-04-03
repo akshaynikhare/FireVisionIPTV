@@ -50,6 +50,7 @@ class ChannelHealthScanner @Inject constructor(
         private const val BATCH_SIZE = 4
         private const val CONNECT_TIMEOUT_SECONDS = 6L
         private const val READ_TIMEOUT_SECONDS = 6L
+        private const val STARTUP_DELAY_MS = 60L * 1000L             // 1 minute
         private const val THUMBNAIL_DELAY_MS = 5L * 60L * 1000L  // 5 minutes
         private const val COOLDOWN_MS = 30L * 60L * 1000L         // 30 minutes
     }
@@ -79,7 +80,8 @@ class ChannelHealthScanner @Inject constructor(
             scanMutex.withLock {
                 if (scanJob?.isActive == true) return@launch
                 scanJob = scope.launch scanLoop@{
-            Log.d(TAG, "Auto scan started")
+            Log.d(TAG, "Auto scan started, waiting ${STARTUP_DELAY_MS / 1000}s before first scan")
+            delay(STARTUP_DELAY_MS)
             while (isActive) {
                 // Phase 1: Health scan
                 runFullScan()

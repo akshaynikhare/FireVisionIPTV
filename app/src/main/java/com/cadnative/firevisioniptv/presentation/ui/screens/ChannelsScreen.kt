@@ -109,7 +109,10 @@ fun ChannelsScreen(
                             message = uiState.error ?: "Unknown error",
                             onRetry = { viewModel.refresh() }
                         )
-                        "empty" -> EmptyState(message = "No channels available")
+                        "empty" -> EmptyState(
+                            message = "No channels available",
+                            onRetry = { viewModel.refresh() }
+                        )
                         else -> ChannelsGrid(
                             channels = uiState.channels,
                             onChannelClick = onChannelClick,

@@ -68,7 +68,10 @@ fun HomeScreen(
                     errorType = uiState.errorType,
                     onPairDevice = onPairDevice
                 )
-                "empty" -> EmptyState(message = "No channels available")
+                "empty" -> EmptyState(
+                    message = "No channels available",
+                    onRetry = { viewModel.refresh() }
+                )
                 else -> HomeContent(
                     channels = uiState.channels,
                     featuredChannels = uiState.featuredChannels,

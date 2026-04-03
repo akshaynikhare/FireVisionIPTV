@@ -67,6 +67,7 @@ class ChannelsViewModel @Inject constructor(
     val uiState: StateFlow<ChannelsUiState> = _uiState.asStateFlow()
 
     private var loadJob: Job? = null
+    private var refreshJob: Job? = null
 
     init {
         viewModelScope.launch { epgRepository.ensureLoaded() }
@@ -76,10 +77,18 @@ class ChannelsViewModel @Inject constructor(
         refresh()
     }
 
+    @OptIn(FlowPreview::class)
     fun loadChannels(category: String? = null) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            val isUserCategorySwitch = category != null && category != _uiState.value.selectedCategory
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = if (isUserCategorySwitch) null else it.error,
+                    errorType = if (isUserCategorySwitch) ErrorType.NONE else it.errorType
+                )
+            }
 
             val channelFlow = if (category != null) {
                 getChannelsByCategoryUseCase(category)
@@ -87,7 +96,7 @@ class ChannelsViewModel @Inject constructor(
                 getChannelsUseCase(Unit)
             }
 
-            channelFlow.combine(channelHealthDao.getAllHealth()) { result, healthList ->
+            channelFlow.combine(channelHealthDao.getAllHealth().debounce(HEALTH_SCAN_DEBOUNCE_MS)) { result, healthList ->
                 result to healthList
             }.collect { (result, healthList) ->
                 when (result) {
@@ -115,7 +124,9 @@ class ChannelsViewModel @Inject constructor(
                                 channels = uiChannels,
                                 categories = allCategories,
                                 categoryLogos = catLogos,
-                                isLoading = false,
+                                isLoading = refreshJob?.isActive == true,
+                                error = if (uiChannels.isNotEmpty()) null else it.error,
+                                errorType = if (uiChannels.isNotEmpty()) ErrorType.NONE else it.errorType,
                                 selectedCategory = category
                             )
                         }
@@ -124,7 +135,7 @@ class ChannelsViewModel @Inject constructor(
                         val (msg, type) = classifyError(result.exception)
                         _uiState.update {
                             it.copy(
-                                isLoading = false,
+                                isLoading = refreshJob?.isActive == true,
                                 error = msg,
                                 errorType = type
                             )
@@ -159,7 +170,6 @@ class ChannelsViewModel @Inject constructor(
                                         recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
                                     ).map { enrichWithEpg(it) }
-                                     .filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
 
                                     // Preserve the order from recentIds
                                     val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
@@ -197,10 +207,9 @@ class ChannelsViewModel @Inject constructor(
                     val allCatNames = (favNames + popularCatIds).distinct()
                     allCatNames.mapNotNull { catName ->
                         val catChannels = categoryChannels[catName] ?: return@mapNotNull null
-                        val liveChannels = catChannels.filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
                         PopularCategoryUiModel(
                             name = catName,
-                            channelCount = liveChannels.size,
+                            channelCount = catChannels.size,
                             imageUrl = catChannels.firstOrNull { it.thumbnailPath != null }?.thumbnailPath
                                 ?: catChannels.firstOrNull { it.logoUrl != null }?.logoUrl,
                             isFavorite = catName in favNames
@@ -270,8 +279,9 @@ class ChannelsViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = it.channels.isEmpty()) }
 
             val result = refreshChannelsUseCase(Unit)
 
@@ -280,14 +290,20 @@ class ChannelsViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
                 }
                 is Result.Error -> {
-                    val (msg, type) = classifyError(result.exception)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isInitialLoadComplete = true,
-                            error = msg,
-                            errorType = type
-                        )
+                    val hasCache = _uiState.value.channels.isNotEmpty()
+                    if (hasCache) {
+                        // Silently swallow refresh errors when cached data exists
+                        _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
+                    } else {
+                        val (msg, type) = classifyError(result.exception)
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isInitialLoadComplete = true,
+                                error = msg,
+                                errorType = type
+                            )
+                        }
                     }
                 }
             }
