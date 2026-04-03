@@ -426,7 +426,7 @@ private fun OverlayCategoryChips(
             val isSelected = selectedCategory == null
             val borderStroke: BorderStroke? = when {
                 isFocused -> BorderStroke(2.5.dp, FocusBorder)
-                !isSelected -> BorderStroke(1.dp, SubtleBorder)
+                !isSelected -> BorderStroke(1.dp, subtleBorder)
                 else -> null
             }
             FilterChip(
@@ -466,7 +466,7 @@ private fun OverlayCategoryChips(
             val catColor = categoryColor(category)
             val borderStroke: BorderStroke? = when {
                 isFocused -> BorderStroke(2.5.dp, FocusBorder)
-                !isSelected -> BorderStroke(1.dp, SubtleBorder)
+                !isSelected -> BorderStroke(1.dp, subtleBorder)
                 else -> null
             }
             FilterChip(

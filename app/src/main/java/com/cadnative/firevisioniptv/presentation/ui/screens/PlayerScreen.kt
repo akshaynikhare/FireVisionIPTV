@@ -197,7 +197,7 @@ fun PlayerScreen(
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             // Reset fav button visibility on channel switch
-            favButtonReveal++
+            favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
         }
     }
 
@@ -286,8 +286,8 @@ fun PlayerScreen(
                                 if (held >= LONG_PRESS_THRESHOLD_MS) {
                                     longPressConsumed = true
                                     viewModel.toggleFavorite()
-                                    favIndicatorToken++
-                                    favButtonReveal++
+                                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
+                                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
                                 }
                             }
                             return@onKeyEvent true
@@ -296,7 +296,7 @@ fun PlayerScreen(
                             if (!longPressConsumed) {
                                 // Short press → toggle play/pause
                                 if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                favButtonReveal++
+                                favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
                             }
                             centerKeyDownTime = 0L
                             longPressConsumed = false
@@ -414,7 +414,7 @@ fun PlayerScreen(
             )
         }
 
-        // Favorite indicator — centered brief toast on long-press toggle
+        // Favorite indicator — centered brief toast after toggle
         AnimatedVisibility(
             visible = showFavIndicator && uiState.channel != null,
             enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
@@ -462,8 +462,8 @@ fun PlayerScreen(
                 isFavorite = uiState.channel?.isFavorite == true,
                 onClick = {
                     viewModel.toggleFavorite()
-                    favButtonReveal++
-                    favIndicatorToken++
+                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
                 }
             )
         }

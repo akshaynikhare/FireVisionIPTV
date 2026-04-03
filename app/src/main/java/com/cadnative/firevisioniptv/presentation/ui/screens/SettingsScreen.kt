@@ -43,7 +43,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
 import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
@@ -160,7 +160,7 @@ private fun PairedStatusBanner(
     var hasFocus by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else subtleBorder,
         animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "bannerBorder"
     )
@@ -350,7 +350,7 @@ private fun UnpairedSetupCard(
 
                     FocusAwareOutlinedButton(
                         onClick = onPairDevice,
-                        border = BorderStroke(1.dp, SubtleBorder)
+                        border = BorderStroke(1.dp, subtleBorder)
                     ) {
                         Text("Pair with PIN", fontWeight = FontWeight.Medium)
                     }
@@ -629,7 +629,7 @@ private fun AboutCard(
             }
             FocusAwareOutlinedButton(
                 onClick = onCheckForUpdate,
-                border = BorderStroke(1.dp, SubtleBorder)
+                border = BorderStroke(1.dp, subtleBorder)
             ) {
                 Text("Check for Updates", fontWeight = FontWeight.Medium)
             }
@@ -675,7 +675,7 @@ private fun ThemeOption(
         targetValue = when {
             isFocused -> FocusBorder
             isSelected -> MaterialTheme.colorScheme.primary
-            else -> SubtleBorder
+            else -> subtleBorder
         },
         animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "themeOptionBorder"
@@ -723,7 +723,7 @@ private fun SettingsCard(
     var hasFocus by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else SubtleBorder,
+        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else subtleBorder,
         animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "cardBorder"
     )
@@ -823,7 +823,7 @@ private fun FocusAwareButton(
 private fun FocusAwareOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    border: BorderStroke = BorderStroke(1.dp, SubtleBorder),
+    border: BorderStroke = BorderStroke(1.dp, subtleBorder),
     content: @Composable RowScope.() -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }

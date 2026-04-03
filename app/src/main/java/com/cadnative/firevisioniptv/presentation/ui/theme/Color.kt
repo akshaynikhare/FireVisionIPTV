@@ -124,7 +124,9 @@ val FocusBorder      = Flame300
 val SelectionOverlay = Color(0x1AFFFFFF)
 
 // ── Borders ──────────────────────────────────────────────────────────
-val SubtleBorder = Color(0x10FFFFFF)
+val SubtleBorderDark  = Color(0x10FFFFFF)   // ~6% white on dark surfaces
+val SubtleBorderLight = Color(0x20000000)   // ~12% black on light surfaces
+val SubtleBorder = SubtleBorderDark         // Backward compat — prefer subtleBorder() composable
 
 // ── Standardized emphasis opacities ──────────────────────────────────
 const val EmphasisHigh     = 0.87f

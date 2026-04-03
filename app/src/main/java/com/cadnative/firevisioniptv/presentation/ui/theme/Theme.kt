@@ -5,7 +5,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+/** Composition local to expose whether FireVisionTheme is in dark mode. */
+val LocalIsDarkTheme = compositionLocalOf { true }
+
+/** Theme-aware subtle border color: light white on dark, dark on light. */
+val subtleBorder: Color
+    @Composable get() = if (LocalIsDarkTheme.current) SubtleBorderDark else SubtleBorderLight
 
 private val DarkColorScheme = darkColorScheme(
     // Primary — Flame300 (bright amber, high contrast on void surfaces)
@@ -114,9 +123,11 @@ fun FireVisionTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = FireVisionTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+            typography = FireVisionTypography,
+            content = content
+        )
+    }
 }

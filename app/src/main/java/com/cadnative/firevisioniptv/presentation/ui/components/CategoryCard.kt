@@ -85,7 +85,7 @@ fun CategoryCard(
         shape = MaterialTheme.shapes.medium,
         border = when {
             isFocused -> BorderStroke(2.dp, FocusBorder)
-            else -> BorderStroke(1.dp, SubtleBorder)
+            else -> BorderStroke(1.dp, subtleBorder)
         },
         colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
     ) {

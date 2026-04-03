@@ -46,7 +46,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.viewmodel.SearchViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,7 +144,7 @@ fun SearchScreen(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
-                unfocusedIndicatorColor = SubtleBorder,
+                unfocusedIndicatorColor = subtleBorder,
                 cursorColor = MaterialTheme.colorScheme.secondary
             )
         )
@@ -282,7 +282,7 @@ private fun RecentSearches(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, SubtleBorder),
+                    border = BorderStroke(1.dp, subtleBorder),
                     modifier = Modifier.clickable { onSearchClick(search) }
                 ) {
                     Row(

@@ -62,6 +62,7 @@ class PlayerViewModel @Inject constructor(
     private var loadJob: Job? = null
     private var playbackPositionJob: Job? = null
     private var channelListJob: Job? = null
+    private var preloadJob: Job? = null
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
     private var playReportJob: Job? = null
@@ -208,9 +209,16 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleFavorite() {
         val channelId = _uiState.value.channel?.id ?: return
+        // Optimistically update UI immediately so indicator shows correct text
+        _uiState.update { state ->
+            state.channel?.let { channel ->
+                state.copy(channel = channel.copy(isFavorite = !channel.isFavorite))
+            } ?: state
+        }
         viewModelScope.launch {
             val result = toggleFavoriteUseCase(channelId)
-            if (result is Result.Success) {
+            if (result is Result.Error) {
+                // Revert on failure
                 _uiState.update { state ->
                     state.channel?.let { channel ->
                         state.copy(channel = channel.copy(isFavorite = !channel.isFavorite))
@@ -249,14 +257,38 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Preload all channels so next/prev works even before overlay is opened.
-     * Always reloads ALL channels (no category filter) so category-based navigation
-     * in nextChannel()/previousChannel() works regardless of overlay filter state.
+     * Uses a separate job so it doesn't cancel/get cancelled by overlay category loads.
+     * Skips if overlay is open or a user-initiated category load is active.
      */
     private fun preloadChannelList() {
-        loadChannelListInternal(null, updateSelection = false)
+        if (_uiState.value.showChannelOverlay) return
+        if (channelListJob?.isActive == true) return
+        preloadJob?.cancel()
+        preloadJob = viewModelScope.launch {
+            val channelFlow = getChannelsUseCase(Unit)
+            channelFlow.combine(channelHealthDao.getAllHealth()) { result, healthList ->
+                result to healthList
+            }.collect { (result, healthList) ->
+                when (result) {
+                    is Result.Success -> {
+                        val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
+                        val categories = uiChannels.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
+                        _uiState.update {
+                            it.copy(
+                                overlayChannels = uiChannels,
+                                overlayCategories = categories,
+                                overlayIsLoadingChannels = false
+                            )
+                        }
+                    }
+                    is Result.Error -> { /* silent — preload is best-effort */ }
+                }
+            }
+        }
     }
 
     fun loadChannelList(category: String? = null) {
+        preloadJob?.cancel() // user-initiated load takes priority over background preload
         loadChannelListInternal(category, updateSelection = true)
     }
 

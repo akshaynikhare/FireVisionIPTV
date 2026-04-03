@@ -43,7 +43,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceElevated
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
@@ -100,7 +100,7 @@ fun ChannelCard(
         shape = MaterialTheme.shapes.medium,
         border = when {
             isFocused -> BorderStroke(2.dp, FocusBorder)
-            else -> BorderStroke(1.dp, SubtleBorder)
+            else -> BorderStroke(1.dp, subtleBorder)
         },
         colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
     ) {

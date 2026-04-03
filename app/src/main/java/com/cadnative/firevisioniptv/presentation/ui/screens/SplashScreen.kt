@@ -27,6 +27,9 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_MIN_DISPLAY
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void950
 import kotlinx.coroutines.delay
 
+private const val LOTTIE_TOTAL_FRAMES = 90
+private const val LOTTIE_LOOP_START_FRAME = 60
+
 /**
  * Cinematic Lottie splash screen.
  *
@@ -69,7 +72,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         composition = composition,
         iterations = LottieConstants.IterateForever,
         isPlaying = looping,
-        clipSpec = LottieClipSpec.Progress(60f / 90f, 1f)
+        clipSpec = LottieClipSpec.Progress(LOTTIE_LOOP_START_FRAME.toFloat() / LOTTIE_TOTAL_FRAMES, 1f)
     )
 
     // Switch to loop when intro completes
@@ -88,6 +91,15 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             delay(SPLASH_MIN_DISPLAY_MS)
             fadingOut = true
             delay(SPLASH_FADE_OUT_DURATION.toLong())
+            onSplashFinished()
+        }
+    }
+
+    // Fallback: if Lottie never loads, still advance after a max timeout
+    LaunchedEffect(Unit) {
+        delay(SPLASH_MIN_DISPLAY_MS + SPLASH_FADE_OUT_DURATION.toLong() + 1000L)
+        // Only fire if the composition-based exit hasn't already run
+        if (!fadingOut) {
             onSplashFinished()
         }
     }
