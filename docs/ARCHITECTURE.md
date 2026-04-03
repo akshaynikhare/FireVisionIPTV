@@ -47,7 +47,7 @@ FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation*
 
 | Component | Role |
 |-----------|------|
-| `ComposeMainActivity` | Entry point. Initializes Firebase, checks pairing, starts health scanner, sets up navigation shell with side rail. |
+| `ComposeMainActivity` | Entry point. Initializes Firebase, checks pairing, starts health scanner. Uses **Box overlay pattern**: app shell composes behind an opaque splash screen so ViewModels init during splash, not after. Orientation-adaptive: landscape uses side rail, portrait uses bottom nav bar. |
 | `FireVisionNavGraph` | Defines all navigation routes using Jetpack Navigation Compose. 9 destinations including Player with `channelId` argument. |
 | `Screen` (sealed class) | Type-safe route definitions: Home, Channels, Categories, Search, Favorites, Settings, Player, Pairing, ChannelsByCategory. |
 | `SideNavRail` | Persistent sidebar for TV navigation across main routes. |
@@ -65,8 +65,8 @@ FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation*
 
 | Component | Role |
 |-----------|------|
-| Domain Models (5) | `Channel`, `Category`, `ChannelHealthStatus`, `PlaybackState`, `SearchFilter` |
-| Repository Interfaces (7) | `ChannelRepository`, `CategoryRepository`, `FavoriteRepository`, `PlaybackRepository`, `PlaylistRepository`, `SearchHistoryRepository`, `UserPreferencesRepository` |
+| Domain Models (6) | `Channel`, `Category`, `ChannelHealthStatus`, `PlaybackState`, `SearchFilter`, `EpgProgram` |
+| Repository Interfaces (8) | `ChannelRepository`, `CategoryRepository`, `FavoriteRepository`, `PlaybackRepository`, `PlaylistRepository`, `SearchHistoryRepository`, `UserPreferencesRepository`, `EpgRepository` |
 | Use Cases (16) | Single-responsibility classes for each operation. Two base classes: `UseCase<P, R>` (suspend, one-shot) and `FlowUseCase<P, R>` (reactive streams). The 4 additions over the original 12 are: `PullFavoritesUseCase`, `ReportStreamStatusUseCase`, `ReportStreamPlayUseCase`, `SyncHealthResultsUseCase`. |
 | Services (2) | `ChannelHealthScanner` (batch HTTP health checks with server sync after each cycle), `ChannelThumbnailExtractor` (MediaMetadataRetriever frame extraction). |
 
@@ -84,7 +84,7 @@ FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation*
 | DAOs (6) | Type-safe SQL queries with `Flow` return types for reactive updates |
 | Local Data Sources (5) | Thin wrappers around DAOs that run operations on `IoDispatcher` |
 | Remote Data Sources (2) | `ChannelRemoteDataSource`, `CategoryRemoteDataSource` — wrap Retrofit calls with error mapping |
-| Repository Impls (6) | Implement domain interfaces. Offline-first: local DB is source of truth, remote data refreshes the cache. |
+| Repository Impls (7) | Implement domain interfaces. Offline-first: local DB is source of truth, remote data refreshes the cache. `EpgRepositoryImpl` uses in-memory cache with lazy network load. |
 | Mappers (2) | `ChannelMapper`, `CategoryMapper` — bidirectional DTO ↔ Entity ↔ Domain conversions |
 | `FireVisionApiService` | Retrofit interface with 9 endpoints: channels, categories, favorites (GET + POST), report-status, report-play, health-sync, app version, device pairing |
 | `Result<T>` | Sealed class (`Success<T>` / `Error`) for type-safe error handling |
@@ -230,3 +230,7 @@ Navigation uses Jetpack Navigation Compose with a `NavHostController`. The `Comp
 | **Fire-and-forget health reporting** | `ReportStreamStatusUseCase` and `ReportStreamPlayUseCase` are launched in `viewModelScope` with `SupervisorJob` — failures are silently swallowed so health reporting never blocks playback or affects user experience. |
 | **Unresponsive stream detection in ErrorRecoveryManager** | `bufferWatchJob` fires after 30 s of continuous `STATE_BUFFERING` without producing frames, triggering `onStreamUnresponsive` — distinct from a full stream failure and reported separately to the server. |
 | **In-memory alternate stream slots** | Alternates fetched from `/me/channels-with-fallbacks` are stored in a `StreamSlot` queue in `ChannelRepositoryImpl` (not in Room) to avoid database migrations. On cold start the queue is empty and the app degrades gracefully to primary-only retry. |
+| **Box overlay pattern for pre-warming** | `ComposeMainActivity` composes the full app shell (NavHost, HomeScreen, ViewModel) behind an opaque splash overlay. ViewModel `init{}` fires at T=0, Room returns cached channels by ~T=50ms. When splash fades at ~T=1900ms, HomeScreen is already populated. Previous `Crossfade` approach delayed ViewModel creation until after splash. |
+| **Non-blocking EPG enrichment** | `EpgRepository.getNowNextIfCached()` is a synchronous (non-suspend) function that returns `null` if EPG data hasn't loaded yet. Channels render immediately without EPG; "Now Playing" titles appear asynchronously once `ensureLoaded()` completes. This prevents a network call from blocking the entire channel list. |
+| **Health flow seeding with `onStart`** | `channelHealthDao.getAllHealth().debounce(500ms).onStart { emit(emptyList()) }` — the `onStart` AFTER `debounce` seeds `combine` with an empty list so channels render instantly. Real health data updates silently ~500ms later. Placing `onStart` before `debounce` would cause the seed to be swallowed. |
+| **Lifecycle-aware resume refresh** | `HomeScreen` uses `DisposableEffect` + `LifecycleEventObserver` to call `ChannelsViewModel.onResume()` on `ON_RESUME`. First resume is skipped (init handles it). Subsequent resumes trigger a silent `refresh()` to detect server-side changes. |

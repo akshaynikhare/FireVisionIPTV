@@ -101,14 +101,24 @@ All ViewModels are `@HiltViewModel` with constructor injection.
 |-------|------|---------|
 | `channels` | `List<ChannelUiModel>` | `[]` |
 | `categories` | `List<String>` | `[]` |
-| `isLoading` | `Boolean` | `false` |
+| `isLoading` | `Boolean` | `true` |
+| `isInitialLoadComplete` | `Boolean` | `false` |
 | `error` | `String?` | `null` |
+| `errorType` | `ErrorType` | `NONE` |
 | `selectedCategory` | `String?` | `null` |
+| `recentlyWatched` | `List<ChannelUiModel>` | `[]` |
+| `featuredChannels` | `List<ChannelUiModel>` | `[]` |
+| `popularCategories` | `List<PopularCategoryUiModel>` | `[]` |
+| `categoryLogos` | `Map<String, List<String>>` | `{}` |
+| `favoriteCategoryNames` | `Set<String>` | `{}` |
 
 **Key behavior:**
-- `loadChannels(category?)` — Collects channel flow combined with health data from `ChannelHealthDao`
+- `init{}` — Fires immediately (pre-warmed during splash via Box overlay). Launches EPG loading, channel loading, home data, favorite categories, and refresh in parallel. Channels from Room cache appear in ~50ms.
+- `loadChannels(category?)` — Collects channel flow combined with health data from `ChannelHealthDao`. Health flow is seeded with empty list via `onStart` after `debounce` so channels render without waiting for health scan.
 - `toggleFavorite(channelId)` — Optimistic UI update with rollback on error
-- `refresh()` — Triggers `RefreshChannelsUseCase`
+- `refresh()` — Triggers `RefreshChannelsUseCase`. Silent on error when cached data exists.
+- `onResume()` — Called by HomeScreen's lifecycle observer. Skips first call (init handles it), then triggers silent refresh to detect server-side changes.
+- `enrichWithEpgIfReady(channel)` — Non-suspend. Uses `EpgRepository.getNowNextIfCached()` to add "Now Playing" titles without blocking. Returns channel unchanged if EPG not loaded yet.
 
 ### FavoritesViewModel
 
@@ -254,7 +264,7 @@ data class CategoryUiModel(
 
 | Screen | ViewModel | Description |
 |--------|-----------|-------------|
-| `HomeScreen` | `ChannelsViewModel` | Featured channels grid, category quick-links, navigation to all sections |
+| `HomeScreen` | `ChannelsViewModel` | Featured channels, recently watched, popular categories, category rows. Lifecycle-aware: refreshes on `ON_RESUME` via `DisposableEffect` + `LifecycleEventObserver`. |
 | `ChannelsScreen` | `ChannelsViewModel` | Full channel list with category filter tabs |
 | `CategoriesScreen` | `ChannelsViewModel` | Category grid with channel counts |
 | `SearchScreen` | `SearchViewModel` | Search input with debounce, filter chips, recent searches, results grid |

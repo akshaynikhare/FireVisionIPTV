@@ -242,11 +242,9 @@ class PlayerViewModel @Inject constructor(
 
     fun showOverlay() {
         _uiState.update { it.copy(showChannelOverlay = true) }
-        // Default to current channel's category
+        // Always select the current channel's category so the user sees similar channels
         val currentCategory = _uiState.value.channel?.category
-        if (_uiState.value.overlayChannels.isEmpty()) {
-            loadChannelList(currentCategory)
-        }
+        loadChannelList(currentCategory)
         resetAutoHideTimer()
     }
 

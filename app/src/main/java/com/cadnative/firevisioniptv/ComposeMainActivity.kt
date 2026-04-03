@@ -113,25 +113,23 @@ class ComposeMainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                Crossfade(
-                    targetState = showSplash,
-                    animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
-                    label = "splashTransition"
-                ) { isSplashing ->
-                    if (isSplashing) {
-                        SplashScreen(onSplashFinished = { showSplash = false })
-                    } else {
-                        FireVisionAppShell(
-                            navController = navController,
-                            startDestination = startDestination
-                        )
+                // Compose app shell immediately so ViewModel init{} fires during splash
+                Box(modifier = Modifier.fillMaxSize()) {
+                    FireVisionAppShell(
+                        navController = navController,
+                        startDestination = startDestination
+                    )
 
-                        // Navigate to player if deep link channel is set (once only)
-                        if (targetChannelId != null && savedInstanceState == null && !needsPairing) {
-                            LaunchedEffect(targetChannelId) {
-                                navController.navigate(Screen.Player.createRoute(targetChannelId))
-                            }
+                    // Deep link navigation (once only, after splash)
+                    if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
+                        LaunchedEffect(targetChannelId) {
+                            navController.navigate(Screen.Player.createRoute(targetChannelId))
                         }
+                    }
+
+                    // Splash overlay — fades itself out via built-in alpha animation
+                    if (showSplash) {
+                        SplashScreen(onSplashFinished = { showSplash = false })
                     }
                 }
             }

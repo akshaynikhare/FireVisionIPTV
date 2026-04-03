@@ -277,10 +277,10 @@ private fun BottomChannelPanel(
     val categoryFocusRequester = remember { FocusRequester() }
     val channelFocusRequester = remember { FocusRequester() }
 
-    // Auto-scroll to the current channel when overlay appears
+    // Auto-scroll to the current channel when overlay appears or channels change
     val currentIndex = channels.indexOfFirst { it.id == currentChannel?.id }
-    LaunchedEffect(channels, currentChannel?.id) {
-        if (currentIndex >= 0) {
+    LaunchedEffect(channels, currentChannel?.id, isVisible) {
+        if (isVisible && currentIndex >= 0) {
             channelListState.scrollToItem(
                 index = maxOf(0, currentIndex - 1), // show one before for context
                 scrollOffset = 0
@@ -410,7 +410,18 @@ private fun OverlayCategoryChips(
     onCategorySelected: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+
+    // Auto-scroll to the selected category chip
+    // Index 0 = "All", categories start at index 1
+    val selectedIndex = if (selectedCategory == null) 0
+        else categories.indexOf(selectedCategory).let { if (it >= 0) it + 1 else 0 }
+    LaunchedEffect(selectedCategory) {
+        listState.scrollToItem(maxOf(0, selectedIndex - 1))
+    }
+
     LazyRow(
+        state = listState,
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier

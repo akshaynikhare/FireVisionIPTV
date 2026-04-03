@@ -34,10 +34,13 @@ Data flows reactively via Kotlin `Flow`. ViewModels expose `StateFlow<UiState>` 
 ## Quick Start
 
 ```bash
-./gradlew assembleDebug                  # Build debug APK
-./gradlew assembleDev                    # Build dev variant (com.cadnative.firevisioniptv.dev)
-./gradlew assembleRelease                # Build release APK (requires signing env vars)
-adb install app/build/outputs/apk/debug/app-debug.apk  # Install on device
+make debug                               # Build debug APK (preferred)
+make release                             # Build release APK (requires signing env vars)
+make install                             # Build debug + install on device
+make run                                 # Build, install, and launch
+make lint                                # Run Android lint checks
+make test                                # Run unit tests
+make logcat                              # Show app logs (filtered to FireVision)
 ```
 
 API base URL is hardcoded in `app/build.gradle.kts`:

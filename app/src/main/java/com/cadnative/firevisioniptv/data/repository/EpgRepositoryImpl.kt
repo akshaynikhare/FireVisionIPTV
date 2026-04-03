@@ -55,6 +55,17 @@ class EpgRepositoryImpl @Inject constructor(
             Pair(nowProgram, nextProgram)
         }
 
+    override fun getNowNextIfCached(tvgId: String): Pair<EpgProgram?, EpgProgram?>? {
+        if (!cacheLoaded) return null
+        val programs = cache[tvgId] ?: return Pair(null, null)
+        val now = Instant.now()
+        val nowProgram = programs.firstOrNull { it.startTime <= now && it.endTime > now }
+        val nextProgram = programs
+            .filter { it.startTime > now }
+            .minByOrNull { it.startTime }
+        return Pair(nowProgram, nextProgram)
+    }
+
     private suspend fun loadGuide() {
         try {
             val channelListCode = AppPreferences.getTvCode(context)

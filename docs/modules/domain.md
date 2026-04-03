@@ -67,6 +67,21 @@ Enum representing channel availability:
 | `duration` | `Long` | Total duration in milliseconds |
 | `isPlaying` | `Boolean` | Whether playback is active |
 
+### EpgProgram
+
+`domain/model/EpgProgram.kt`
+
+EPG (Electronic Program Guide) entry for a channel.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `channelEpgId` | `String` | TVG ID matching the channel |
+| `title` | `String` | Program title (e.g., "News at 9") |
+| `description` | `String?` | Program description |
+| `startTime` | `Instant` | Program start time |
+| `endTime` | `Instant` | Program end time |
+| `icon` | `String?` | Program artwork URL |
+
 ### SearchFilter
 
 `domain/model/SearchFilter.kt`
@@ -155,6 +170,22 @@ suspend fun saveSearch(query: String): Result<Unit>
 suspend fun clearHistory(): Result<Unit>
 suspend fun removeSearch(query: String): Result<Unit>
 ```
+
+### EpgRepository
+
+`domain/repository/EpgRepository.kt`
+
+Provides EPG (Electronic Program Guide) data — "Now" and "Next" program info for channels.
+
+```kotlin
+suspend fun ensureLoaded()
+suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?>
+fun getNowNextIfCached(tvgId: String): Pair<EpgProgram?, EpgProgram?>?
+```
+
+- `ensureLoaded()` — Fetches EPG data from the server if not already cached. Called once during ViewModel init.
+- `getNowNext(tvgId)` — Suspend. Triggers load if needed, then returns current and next program.
+- `getNowNextIfCached(tvgId)` — **Non-suspend, non-blocking.** Returns `null` if EPG not yet loaded (caller skips enrichment). Returns `Pair(null, null)` if loaded but no programs found for this tvgId. Used by `ChannelsViewModel.enrichWithEpgIfReady()` to avoid blocking channel display while EPG loads.
 
 ### UserPreferencesRepository
 

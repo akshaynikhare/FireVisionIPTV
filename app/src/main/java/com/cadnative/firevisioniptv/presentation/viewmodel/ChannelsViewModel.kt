@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -68,9 +69,20 @@ class ChannelsViewModel @Inject constructor(
 
     private var loadJob: Job? = null
     private var refreshJob: Job? = null
+    private var hasResumedBefore = false
 
     init {
-        viewModelScope.launch { epgRepository.ensureLoaded() }
+        viewModelScope.launch {
+            epgRepository.ensureLoaded()
+            // Re-enrich displayed channels once EPG is loaded
+            _uiState.update { state ->
+                state.copy(
+                    channels = state.channels.map { enrichWithEpgIfReady(it) },
+                    recentlyWatched = state.recentlyWatched.map { enrichWithEpgIfReady(it) },
+                    featuredChannels = state.featuredChannels.map { enrichWithEpgIfReady(it) }
+                )
+            }
+        }
         loadChannels()
         loadHomeData()
         observeFavoriteCategories()
@@ -96,13 +108,17 @@ class ChannelsViewModel @Inject constructor(
                 getChannelsUseCase(Unit)
             }
 
-            channelFlow.combine(channelHealthDao.getAllHealth().debounce(HEALTH_SCAN_DEBOUNCE_MS)) { result, healthList ->
+            channelFlow.combine(
+                channelHealthDao.getAllHealth()
+                    .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                    .onStart { emit(emptyList()) }
+            ) { result, healthList ->
                 result to healthList
             }.collect { (result, healthList) ->
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
-                            .map { enrichWithEpg(it) }
+                            .map { enrichWithEpgIfReady(it) }
                         val allCategories = uiChannels
                             .map { it.category }
                             .filter { it.isNotBlank() }
@@ -163,13 +179,14 @@ class ChannelsViewModel @Inject constructor(
                         } else {
                             channelHealthDao.getAllHealth()
                                 .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                                .onStart { emit(emptyList()) }
                                 .map { health ->
                                     val recentEntities = channelDao.getChannelsByIds(recentIds)
                                     val favIds = favoriteDao.getFavoriteChannelIds().toSet()
                                     val recentUi = channelUiMapper.toUiModelsWithHealth(
                                         recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
-                                    ).map { enrichWithEpg(it) }
+                                    ).map { enrichWithEpgIfReady(it) }
 
                                     // Preserve the order from recentIds
                                     val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
@@ -196,6 +213,8 @@ class ChannelsViewModel @Inject constructor(
                     favoriteCategoryDao.getAllFavoriteCategoryNames(),
                     channelDao.getAllChannels(),
                     channelHealthDao.getAllHealth()
+                        .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                        .onStart { emit(emptyList()) }
                 ) { popularCatIds, favNames, channelEntities, healthList ->
                     val uiChannels = channelUiMapper.toUiModelsWithHealth(
                         channelEntities.map { channelMapper.toDomain(it) },
@@ -310,13 +329,21 @@ class ChannelsViewModel @Inject constructor(
         }
     }
 
+    fun onResume() {
+        if (!hasResumedBefore) {
+            hasResumedBefore = true
+            return // Skip first resume — init{} already handles it
+        }
+        refresh()
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null, errorType = ErrorType.NONE) }
     }
 
-    private suspend fun enrichWithEpg(channel: ChannelUiModel): ChannelUiModel {
+    private fun enrichWithEpgIfReady(channel: ChannelUiModel): ChannelUiModel {
         val tvgId = channel.tvgId ?: return channel
-        val (now, _) = epgRepository.getNowNext(tvgId)
+        val (now, _) = epgRepository.getNowNextIfCached(tvgId) ?: return channel
         return if (now != null) channel.copy(nowProgramTitle = now.title) else channel
     }
 

@@ -22,6 +22,7 @@ data/
 ├── repository/              # Repository implementations
 │   ├── CategoryRepositoryImpl.kt
 │   ├── ChannelRepositoryImpl.kt
+│   ├── EpgRepositoryImpl.kt
 │   ├── FavoriteRepositoryImpl.kt
 │   ├── PlaybackRepositoryImpl.kt
 │   ├── SearchHistoryRepositoryImpl.kt
@@ -293,6 +294,18 @@ All repositories are `@Singleton` and follow the **offline-first** pattern: loca
 
 - `addFavorite()` / `removeFavorite()` — Updates local DB, then fires background sync to `POST /api/v1/favorites`
 - `syncFavorites()` — Collects all local favorite channel IDs and sends to server
+
+### EpgRepositoryImpl
+
+`data/repository/EpgRepositoryImpl.kt` — `@Singleton`
+
+In-memory EPG cache. Fetches guide data from `GET /api/v1/epg/guide` on first access, then serves from memory.
+
+- `ensureLoaded()` — Double-checked locking with `Mutex`. Fetches EPG once, maps `EpgProgramDto` → `EpgProgram`, stores in `Map<tvgId, List<EpgProgram>>`.
+- `getNowNext(tvgId)` — Suspend. Calls `ensureLoaded()` if needed, then finds current/next programs by comparing `Instant.now()` against start/end times.
+- `getNowNextIfCached(tvgId)` — **Synchronous, non-blocking.** Returns `null` when `!cacheLoaded` (EPG not fetched yet). This is the key performance optimization: `ChannelsViewModel` calls this during channel rendering so channels appear instantly without waiting for EPG network call.
+
+Network failures are silently swallowed — EPG is non-critical, the app degrades gracefully (no "Now Playing" titles).
 
 ### UserPreferencesRepositoryImpl
 

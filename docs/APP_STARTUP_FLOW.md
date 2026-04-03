@@ -2,7 +2,7 @@
 
 ## Overview
 
-On app start, the priority is **show channels fast**. Cached data appears instantly. Server refresh and health scanning are deferred to avoid blocking the UI.
+On app start, the priority is **show channels fast**. The app shell and ViewModel are composed **behind the splash screen**, so data loading starts at T=0. Cached data is ready before splash finishes. Server refresh, EPG, and health scanning are deferred and non-blocking.
 
 ---
 
@@ -19,11 +19,14 @@ flowchart TD
     C --> C1[FirebaseApp.initializeApp]
     C --> C2[Check isTvCodeConfigured + isFirstLaunch]
 
-    C --> SP[SplashScreen shown FIRST — always]
-    SP --> SP1[onSplashFinished callback]
-    SP1 --> RT{isTvCodeConfigured?}
+    C --> SET["setContent — Box overlay pattern"]
 
-    RT -- "No: first start / not paired" --> PA[PairingScreen]
+    SET --> SP["SplashScreen overlay (1.5s + 400ms fade)"]
+    SET --> SHELL["FireVisionAppShell composed BEHIND splash"]
+
+    SHELL --> RT{isTvCodeConfigured?}
+
+    RT -- "No: first start / not paired" --> PA[PairingScreen composed behind splash]
 
     PA --> PD{User choice}
     PD -- "Enter PIN" --> PA1[User enters PIN on dashboard]
@@ -35,17 +38,17 @@ flowchart TD
     PA3 --> PA4
     PA4 --> PA5["isPaired = true → 1.5s delay → Navigate to HomeScreen"]
 
-    RT -- "Yes: already paired" --> HS[HomeScreen]
+    RT -- "Yes: already paired" --> HS["HomeScreen composed at T=0 (behind splash)"]
     PA5 --> HS
 
-    HS --> J[ChannelsViewModel.init]
+    HS --> J["ChannelsViewModel.init — fires DURING splash"]
 
     J --> K["1. loadChannels — observe Room DB"]
     K --> O{Room has cached channels?}
-    O -- Yes --> P[Show cached channels immediately]
-    O -- No --> Q[Show loading spinner]
+    O -- Yes --> P["Channels in state by ~T=50ms (splash still showing)"]
+    O -- No --> Q[Show loading spinner when splash fades]
 
-    J --> M["2. refresh — check if server request needed"]
+    J --> M["2. refresh — silent background API call"]
     M --> MG{refreshJob active?}
     MG -- Yes --> MS[Skip — already refreshing]
     MG -- No --> R[refreshChannelsUseCase — API call]
@@ -55,41 +58,59 @@ flowchart TD
     S -- No, has cache --> U[Swallow error silently — cached data stays]
     S -- No, no cache --> V[Show error + Try Again button]
 
-    J --> L["3. loadHomeData — recently watched, popular categories"]
-    J --> N["4. observeFavoriteCategories"]
-    J --> J1["5. Start health scanner after 1 min delay"]
+    J --> EPG["3. ensureLoaded — EPG loads in background"]
+    EPG --> EPG1["Re-enrich channels with 'Now Playing' when ready"]
+    J --> L["4. loadHomeData — recently watched, popular categories"]
+    J --> N["5. observeFavoriteCategories"]
+
+    SP --> SP1["Splash fades at ~T=1900ms"]
+    SP1 --> REVEAL["Reveal already-populated HomeScreen"]
 
     style SP fill:#e2e3f1,stroke:#4a4e69
     style PA fill:#fff3cd,stroke:#856404
     style PA3 fill:#d1ecf1,stroke:#0c5460
     style P fill:#d4edda,stroke:#155724
-    style J1 fill:#d1ecf1,stroke:#0c5460
+    style REVEAL fill:#d4edda,stroke:#155724
+    style HS fill:#d1ecf1,stroke:#0c5460
 ```
 
 ## Channel Loading — Detail
 
 ```mermaid
 sequenceDiagram
+    participant Splash as SplashScreen
     participant UI as HomeScreen
     participant VM as ChannelsViewModel
     participant UC as GetChannelsUseCase
     participant Room as Room DB
+    participant EPG as EpgRepository
     participant API as RefreshChannelsUseCase
     participant Server as FireVision Server
 
-    Note over VM: init {} runs all 4 in parallel
+    Note over Splash,UI: Both composed at T=0 (Box overlay)
+    Note over VM: init {} fires during splash — all 5 tasks in parallel
 
-    VM->>UC: getChannelsUseCase(Unit)
+    VM->>UC: 1. getChannelsUseCase(Unit)
     UC->>Room: observe channels Flow
-    Room-->>VM: emit cached channels (if any)
-    VM-->>UI: channels → show content (or loading if empty)
+    Note over Room: Health flow seeded with empty list (onStart)
+    Room-->>VM: emit cached channels (~T=50ms)
+    Note over VM: enrichWithEpgIfReady — skips if EPG not loaded yet
+    VM-->>UI: channels in StateFlow (splash still covering UI)
 
-    VM->>API: refreshChannelsUseCase(Unit)
+    VM->>API: 2. refreshChannelsUseCase(Unit)
+    VM->>EPG: 3. ensureLoaded() — loads EPG guide from server
+
     API->>Server: GET /api/v1/channels
     Server-->>API: channel list JSON
     API->>Room: upsert channels
     Room-->>VM: Flow re-emits with fresh data
-    VM-->>UI: UI updates silently (no loading flash)
+
+    EPG-->>VM: EPG loaded → re-enrich all channels with "Now Playing"
+
+    Note over Splash: Splash fades out at ~T=1900ms
+    Splash-->>UI: Reveal already-populated HomeScreen
+
+    Note over UI: Time to content after splash: 0ms (pre-loaded)
 ```
 
 ## Health Scanner Lifecycle
@@ -169,27 +190,36 @@ sequenceDiagram
     Note over Settings: "Cache cleared" message auto-dismisses after 3s
 ```
 
-## Resume / Background Detection (Planned)
+## Resume / Background Detection
 
 ```mermaid
 flowchart TD
     A[App goes to background] --> B[ON_STOP]
     B --> C[App returns to foreground]
     C --> D[ON_RESUME]
-    D --> E{hasInitialized?}
-    E -- Yes --> F[viewModel.onResume → refresh]
-    E -- No --> G[Skip — init already handles it]
+    D --> E{hasResumedBefore?}
+    E -- "No (first resume)" --> G["Skip — init{} already handles it"]
+    E -- "Yes (returning)" --> F["viewModel.onResume() → refresh()"]
     F --> H[Silent background refresh]
     H --> I[Room updated → UI reacts via Flow]
+
+    style G fill:#fff3cd,stroke:#856404
+    style F fill:#d4edda,stroke:#155724
 ```
+
+Implemented via `DisposableEffect` + `LifecycleEventObserver` in HomeScreen, with `hasResumedBefore` guard in ChannelsViewModel.
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
+| App shell composed behind splash | ViewModel init{} fires at T=0 — channels pre-loaded before splash fades |
+| EPG enrichment non-blocking | `getNowNextIfCached()` skips if EPG not loaded — channels render instantly, "Now Playing" titles appear later |
+| Health flow seeded with empty list | `onStart { emit(emptyList()) }` after debounce lets `combine` fire immediately — no 500ms wait |
 | Show cached channels instantly | Users shouldn't wait for network on every launch |
 | Health scan delayed 1 min | Let channel list load and render first — health is secondary |
 | Silent refresh when cache exists | No loading flash, no error toast — just update in background |
 | OFFLINE channels stay visible | Health dot indicator communicates status; hiding causes flicker during scan |
 | 500ms debounce on health flow | Prevents rapid UI recomposition during batch scanning |
 | refreshJob guard | Prevents duplicate concurrent refresh calls |
+| Resume triggers silent refresh | Detects server-side changes when returning from background |
