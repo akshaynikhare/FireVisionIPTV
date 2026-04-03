@@ -14,7 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 
 /**
  * Skeleton loading card with shimmer effect for TV.
@@ -51,7 +51,7 @@ fun ChannelCardSkeleton(
             .width(200.dp)
             .height(120.dp),
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, SubtleBorder),
+        border = BorderStroke(1.dp, subtleBorder),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )

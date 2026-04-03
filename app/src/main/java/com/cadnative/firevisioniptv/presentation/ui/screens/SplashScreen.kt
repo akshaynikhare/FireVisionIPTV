@@ -4,139 +4,128 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.graphics.Typeface
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Text
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieClipSpec
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
-import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_GLOW_EXPAND_DURATION
-import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_HOLD_DURATION_MS
-import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_LOGO_FADE_DURATION
-import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_REVEAL_DURATION
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundDark
-import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
+import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_FADE_OUT_DURATION
+import com.cadnative.firevisioniptv.presentation.ui.animation.SPLASH_MIN_DISPLAY_MS
+import com.cadnative.firevisioniptv.presentation.ui.theme.Void950
 import kotlinx.coroutines.delay
 
+private const val LOTTIE_TOTAL_FRAMES = 90
+private const val LOTTIE_LOOP_START_FRAME = 60
+
 /**
- * Animated splash screen shown on cold launch.
+ * Cinematic Lottie splash screen.
  *
- * Three-phase animation sequence (~1.5 s total):
- * 1. Logo fade-in (400 ms)
- * 2. Amber radial glow expands behind logo (500 ms)
- * 3. Scale-up reveal (400 ms) + brief hold (200 ms)
+ * Plays `assets/splash_animation.json` in a seamless loop on a dark Void950
+ * background. After [SPLASH_MIN_DISPLAY_MS] (one full loop), the splash
+ * fades out and fires [onSplashFinished].
  *
- * Calls [onSplashFinished] when the animation completes.
+ * The Lottie file is expected to contain:
+ * - Deep gradient background (#0A0A12 → #191921)
+ * - Radial amber glow with breathing animation
+ * - FireVision logo with scale-up + blur-to-sharp reveal
+ * - Flame flicker, micro-parallax, ambient particles
+ * - Optional loading dots / progress bar at the bottom
  */
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
 
-    var phase by remember { mutableStateOf(SplashPhase.LogoFadeIn) }
+    // ── Lottie composition ───────────────────────────────────────────
 
-    // Sequence the animation phases
-    LaunchedEffect(Unit) {
-        delay(SPLASH_LOGO_FADE_DURATION.toLong())
-        phase = SplashPhase.GlowExpand
-        delay(SPLASH_GLOW_EXPAND_DURATION.toLong())
-        phase = SplashPhase.Reveal
-        delay(SPLASH_REVEAL_DURATION.toLong() + SPLASH_HOLD_DURATION_MS)
-        phase = SplashPhase.Finished
-        onSplashFinished()
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.Asset("splash_animation.json")
+    )
+
+    // Map Lottie font to Android system typeface (Arial not available on Android)
+    val fontMap = remember {
+        mapOf("Arial-BoldMT" to Typeface.create("sans-serif", Typeface.BOLD))
     }
 
-    // ── Animated values ──────────────────────────────────────────────
+    // Phase 0 = intro (full 1.5s), Phase 1 = loop last 0.5s
+    var looping by remember { mutableStateOf(false) }
 
-    val logoAlpha by animateFloatAsState(
-        targetValue = if (phase >= SplashPhase.LogoFadeIn) 1f else 0f,
-        animationSpec = tween(SPLASH_LOGO_FADE_DURATION, easing = EaseOutQuart),
-        label = "splashLogoAlpha"
+    // Play full animation once, then switch to looping last segment
+    val introProgress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = 1,
+        isPlaying = !looping
     )
 
-    val glowRadius by animateFloatAsState(
-        targetValue = if (phase >= SplashPhase.GlowExpand) 1f else 0f,
-        animationSpec = tween(SPLASH_GLOW_EXPAND_DURATION, easing = EaseOutQuart),
-        label = "splashGlowRadius"
+    val loopProgress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever,
+        isPlaying = looping,
+        clipSpec = LottieClipSpec.Progress(LOTTIE_LOOP_START_FRAME.toFloat() / LOTTIE_TOTAL_FRAMES, 1f)
     )
 
-    val logoScale by animateFloatAsState(
-        targetValue = if (phase >= SplashPhase.Reveal) 1.15f else 1f,
-        animationSpec = tween(SPLASH_REVEAL_DURATION, easing = EaseOutQuart),
-        label = "splashLogoScale"
+    // Switch to loop when intro completes
+    LaunchedEffect(introProgress) {
+        if (introProgress == 1f) {
+            looping = true
+        }
+    }
+
+    // ── Timed exit ───────────────────────────────────────────────────
+
+    var fadingOut by remember { mutableStateOf(false) }
+
+    LaunchedEffect(composition) {
+        if (composition != null) {
+            delay(SPLASH_MIN_DISPLAY_MS)
+            fadingOut = true
+            delay(SPLASH_FADE_OUT_DURATION.toLong())
+            onSplashFinished()
+        }
+    }
+
+    // Fallback: if Lottie never loads, still advance after a max timeout
+    LaunchedEffect(Unit) {
+        delay(SPLASH_MIN_DISPLAY_MS + SPLASH_FADE_OUT_DURATION.toLong() + 1000L)
+        // Only fire if the composition-based exit hasn't already run
+        if (!fadingOut) {
+            onSplashFinished()
+        }
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (fadingOut) 0f else 1f,
+        animationSpec = tween(SPLASH_FADE_OUT_DURATION, easing = EaseOutQuart),
+        label = "splashFadeOut"
     )
 
     // ── Layout ───────────────────────────────────────────────────────
 
+    val currentProgress = if (looping) loopProgress else introProgress
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
-            .drawBehind {
-                // Animated amber radial glow behind the logo
-                val maxRadius = size.minDimension * 0.5f
-                val currentRadius = maxRadius * glowRadius.coerceAtLeast(0.01f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Amber.copy(alpha = 0.15f * glowRadius),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = currentRadius
-                    ),
-                    radius = currentRadius,
-                    center = center
-                )
-            },
+            .background(Void950)
+            .graphicsLayer { this.alpha = alpha },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer {
-                alpha = logoAlpha
-                scaleX = logoScale
-                scaleY = logoScale
-            }
-        ) {
-            Text(
-                text = "FireVision",
-                color = Amber,
-                fontSize = 48.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-1).sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "IPTV",
-                color = SteelBlue,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 4.sp
-            )
-        }
+        LottieAnimation(
+            composition = composition,
+            progress = { currentProgress },
+            modifier = Modifier.fillMaxSize(),
+            fontMap = fontMap
+        )
     }
-}
-
-// ── Internal helpers ─────────────────────────────────────────────────
-
-private enum class SplashPhase {
-    LogoFadeIn,
-    GlowExpand,
-    Reveal,
-    Finished
 }

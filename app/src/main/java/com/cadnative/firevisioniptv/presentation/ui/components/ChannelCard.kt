@@ -43,10 +43,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
-import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceElevated
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
@@ -100,9 +97,9 @@ fun ChannelCard(
         shape = MaterialTheme.shapes.medium,
         border = when {
             isFocused -> BorderStroke(2.dp, FocusBorder)
-            else -> BorderStroke(1.dp, SubtleBorder)
+            else -> BorderStroke(1.dp, subtleBorder)
         },
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         ChannelCardContent(
             channel = channel,
@@ -120,6 +117,7 @@ private fun ChannelCardContent(
     catColor: androidx.compose.ui.graphics.Color,
     catIcon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
     Box(modifier = Modifier.fillMaxSize()) {
 
         // ── Layer 1: Logo / image as full-bleed background ──────────
@@ -138,8 +136,8 @@ private fun ChannelCardContent(
         )
 
         // Logo or thumbnail fills the card
-        var thumbnailFile by remember(channel.thumbnailPath) { mutableStateOf<File?>(null) }
-        LaunchedEffect(channel.thumbnailPath) {
+        var thumbnailFile by remember(channel.id, channel.thumbnailPath) { mutableStateOf<File?>(null) }
+        LaunchedEffect(channel.id, channel.thumbnailPath) {
             thumbnailFile = withContext(Dispatchers.IO) {
                 channel.thumbnailPath?.let { path ->
                     File(path).takeIf { it.exists() }
@@ -183,8 +181,8 @@ private fun ChannelCardContent(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            SurfaceElevated.copy(alpha = 0f),
-                            SurfaceElevated.copy(alpha = 0.85f)
+                            surfaceColor.copy(alpha = 0f),
+                            surfaceColor.copy(alpha = 0.85f)
                         )
                     )
                 )
@@ -228,7 +226,7 @@ private fun ChannelCardContent(
             Text(
                 text = "Hold to favorite",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextDim,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(8.dp)
@@ -254,7 +252,7 @@ private fun ChannelCardContent(
                 Text(
                     text = channel.nowProgramTitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextPrimary.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -262,7 +260,7 @@ private fun ChannelCardContent(
             Text(
                 text = channel.category,
                 style = MaterialTheme.typography.labelSmall,
-                color = TextPrimary.copy(alpha = EmphasisMedium)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EmphasisMedium)
             )
         }
     }

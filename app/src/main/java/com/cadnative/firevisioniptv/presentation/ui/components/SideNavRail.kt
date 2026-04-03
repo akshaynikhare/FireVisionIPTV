@@ -48,14 +48,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundDark
-import com.cadnative.firevisioniptv.presentation.ui.theme.BackgroundMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 
 private data class NavItem(
     val screen: Screen,
@@ -87,13 +82,16 @@ fun SideNavRail(
         label = "railWidth"
     )
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val bgColor = MaterialTheme.colorScheme.background
+
     Column(
         modifier = modifier
             .width(railWidth)
             .fillMaxHeight()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(BackgroundMedium, BackgroundDark)
+                    colors = listOf(surfaceColor, bgColor)
                 )
             )
             .onFocusChanged { focusState ->
@@ -106,7 +104,7 @@ fun SideNavRail(
         // Brand mark
         Text(
             text = if (isExpanded) "FireVision" else "FV",
-            color = Amber,
+            color = MaterialTheme.colorScheme.primary,
             fontSize = if (isExpanded) 20.sp else 14.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = if (isExpanded) (-0.5).sp else 1.sp,
@@ -151,11 +149,15 @@ private fun NavRailItem(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
     val contentColor by animateColorAsState(
         targetValue = when {
-            isFocused -> TextPrimary
-            isSelected -> Amber
-            else -> TextSecondary
+            isFocused -> onSurface
+            isSelected -> primaryColor
+            else -> onSurfaceVariant
         },
         animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
         label = "navItemContent"
@@ -198,7 +200,7 @@ private fun NavRailItem(
                 modifier = Modifier
                     .width(3.dp)
                     .height(20.dp)
-                    .background(Amber, RoundedCornerShape(2.dp))
+                    .background(primaryColor, RoundedCornerShape(2.dp))
             )
             Spacer(modifier = Modifier.width(if (isExpanded) 11.dp else 8.dp))
         }

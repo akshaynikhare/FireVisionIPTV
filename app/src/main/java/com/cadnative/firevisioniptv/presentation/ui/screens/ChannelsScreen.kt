@@ -25,8 +25,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.SubtleBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
@@ -142,7 +141,7 @@ private fun CategoryChips(
     ) {
         item {
             val borderColor by animateColorAsState(
-                targetValue = if (selectedCategory != null) SubtleBorder else Color.Transparent,
+                targetValue = if (selectedCategory != null) subtleBorder else Color.Transparent,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
                 label = "allChipBorder"
             )
@@ -156,7 +155,7 @@ private fun CategoryChips(
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Amber,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 border = if (selectedCategory != null) BorderStroke(1.dp, borderColor) else null,
@@ -167,7 +166,7 @@ private fun CategoryChips(
             val catColor = categoryColor(category)
             val isSelected = selectedCategory == category
             val borderColor by animateColorAsState(
-                targetValue = if (!isSelected) SubtleBorder else Color.Transparent,
+                targetValue = if (!isSelected) subtleBorder else Color.Transparent,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
                 label = "chipBorder_$category"
             )

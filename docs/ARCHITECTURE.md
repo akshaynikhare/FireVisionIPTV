@@ -67,8 +67,8 @@ FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation*
 |-----------|------|
 | Domain Models (5) | `Channel`, `Category`, `ChannelHealthStatus`, `PlaybackState`, `SearchFilter` |
 | Repository Interfaces (7) | `ChannelRepository`, `CategoryRepository`, `FavoriteRepository`, `PlaybackRepository`, `PlaylistRepository`, `SearchHistoryRepository`, `UserPreferencesRepository` |
-| Use Cases (12) | Single-responsibility classes for each operation. Two base classes: `UseCase<P, R>` (suspend, one-shot) and `FlowUseCase<P, R>` (reactive streams). |
-| Services (2) | `ChannelHealthScanner` (batch HTTP health checks), `ChannelThumbnailExtractor` (MediaMetadataRetriever frame extraction). |
+| Use Cases (16) | Single-responsibility classes for each operation. Two base classes: `UseCase<P, R>` (suspend, one-shot) and `FlowUseCase<P, R>` (reactive streams). The 4 additions over the original 12 are: `PullFavoritesUseCase`, `ReportStreamStatusUseCase`, `ReportStreamPlayUseCase`, `SyncHealthResultsUseCase`. |
+| Services (2) | `ChannelHealthScanner` (batch HTTP health checks with server sync after each cycle), `ChannelThumbnailExtractor` (MediaMetadataRetriever frame extraction). |
 
 **Dependencies:** None (pure Kotlin + coroutines).
 
@@ -86,7 +86,7 @@ FireVisionIPTV follows **Clean Architecture** with three layers: **Presentation*
 | Remote Data Sources (2) | `ChannelRemoteDataSource`, `CategoryRemoteDataSource` — wrap Retrofit calls with error mapping |
 | Repository Impls (6) | Implement domain interfaces. Offline-first: local DB is source of truth, remote data refreshes the cache. |
 | Mappers (2) | `ChannelMapper`, `CategoryMapper` — bidirectional DTO ↔ Entity ↔ Domain conversions |
-| `FireVisionApiService` | Retrofit interface with 5 endpoints |
+| `FireVisionApiService` | Retrofit interface with 9 endpoints: channels, categories, favorites (GET + POST), report-status, report-play, health-sync, app version, device pairing |
 | `Result<T>` | Sealed class (`Success<T>` / `Error`) for type-safe error handling |
 
 **Dependencies:** Domain layer (repository interfaces, models).
@@ -227,3 +227,6 @@ Navigation uses Jetpack Navigation Compose with a `NavHostController`. The `Comp
 | **Compose for TV over Leanback XML** | Modern declarative UI with better state management. Leanback dependency kept for backward compatibility. |
 | **BuildConfig for API URL** | Allows different URLs per build variant (debug, dev, release) without code changes. |
 | **Destructive migration in dev** | `fallbackToDestructiveMigration()` simplifies schema iteration during development. Production should use proper migrations. |
+| **Fire-and-forget health reporting** | `ReportStreamStatusUseCase` and `ReportStreamPlayUseCase` are launched in `viewModelScope` with `SupervisorJob` — failures are silently swallowed so health reporting never blocks playback or affects user experience. |
+| **Unresponsive stream detection in ErrorRecoveryManager** | `bufferWatchJob` fires after 30 s of continuous `STATE_BUFFERING` without producing frames, triggering `onStreamUnresponsive` — distinct from a full stream failure and reported separately to the server. |
+| **In-memory alternate stream slots** | Alternates fetched from `/me/channels-with-fallbacks` are stored in a `StreamSlot` queue in `ChannelRepositoryImpl` (not in Room) to avoid database migrations. On cold start the queue is empty and the app degrades gracefully to primary-only retry. |

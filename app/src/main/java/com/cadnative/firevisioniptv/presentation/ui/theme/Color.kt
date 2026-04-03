@@ -33,71 +33,120 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import java.util.Locale
 
-// ── Primary accent — warm amber/gold ────────────────────────────────
-val Amber = Color(0xFFE8A849)
-val AmberDark = Color(0xFFC4842D)
-val AmberLight = Color(0xFFF2C97D)
+// ── Flame — brand primary ────────────────────────────────────────────
+// Dark mode primary: Flame300. Light mode primary: Flame500.
+val Flame300 = Color(0xFFF7A93A)   // bright amber — dark mode primary, focus rings
+val Flame400 = Color(0xFFE07818)   // rich amber — button fills, active nav
+val Flame500 = Color(0xFFB85E10)   // deep amber — light mode primary, pressed
+val Flame50  = Color(0xFFFEECC8)   // tint — hover backgrounds, badge tints
+val Flame100 = Color(0xFFFFD080)   // glow overlays, focus halos
+val Flame700 = Color(0xFF7A3A06)   // text on flame-colored surfaces
 
-// ── Secondary accent — cool steel blue ──────────────────────────────
-val SteelBlue = Color(0xFF6B8EAE)
-val SteelBlueDark = Color(0xFF4A6D8C)
-val SteelBlueLight = Color(0xFF8EADC8)
+// ── Backward-compatible aliases ──────────────────────────────────────
+val Amber      = Flame300
+val AmberLight = Flame100
+val AmberDark  = Flame500
 
-// ── Backgrounds — warm-tinted near-blacks ───────────────────────────
-val BackgroundDark = Color(0xFF0A0A0C)
-val BackgroundMedium = Color(0xFF0E0E12)
-val SurfaceDark = Color(0xFF141418)
-val SurfaceVariant = Color(0xFF1C1C22)
-val SurfaceElevated = Color(0xFF26262E)
+// ── Void — dark mode surfaces (blue-coal) ────────────────────────────
+val Void950 = Color(0xFF0A0A12)    // app background
+val Void900 = Color(0xFF11111A)    // sidebar / navigation drawer
+val Void800 = Color(0xFF191921)    // card background
+val Void700 = Color(0xFF21212C)    // elevated / focused card
+val Void600 = Color(0xFF2A2B37)    // overlay, modal surface
+val Void500 = Color(0xFF343542)    // tooltip, highest elevation
 
-// ── Text ────────────────────────────────────────────────────────────
-val TextPrimary = Color(0xFFF0EDE8)
-val TextSecondary = Color(0xFF9A9590)
-val TextDim = Color(0xFF7A756F)
-val TextDisabled = Color(0xFF3D3A37)
+// ── Backward-compatible aliases ──────────────────────────────────────
+val BackgroundDark   = Void950
+val BackgroundMedium = Void900
+val SurfaceDark      = Void800
+val SurfaceVariant   = Void700
+val SurfaceElevated  = Void600
 
-// ── Warm highlight — muted cream for subtle emphasis ────────────────
-val WarmHighlight = Color(0xFFF5E6D0)
+// ── Parchment — light mode surfaces (warm cream) ─────────────────────
+val Parchment50  = Color(0xFFFAF8F4)   // app background
+val Parchment100 = Color(0xFFF4F0E8)   // content areas
+val Parchment200 = Color(0xFFEDE8DE)   // card background
+val Parchment300 = Color(0xFFE2DCD0)   // borders, dividers
+val Parchment500 = Color(0xFFC8C0B0)   // strong borders
+val Parchment700 = Color(0xFFA09080)   // icons, inactive elements
 
-// ── Status ──────────────────────────────────────────────────────────
-val Success = Color(0xFF6DAF7B)
-val Error = Color(0xFFD4654A)
-val Warning = Color(0xFFDEB252)
-val Info = Color(0xFF6B8EAE)
+// ── Text — dark mode ─────────────────────────────────────────────────
+val TextPrimaryDark   = Color(0xFFF2EDE3)
+val TextSecondaryDark = Color(0xFFA8A0B2)
+val TextDimDark       = Color(0xFF706880)
+val TextDisabledDark  = Color(0xFF3A3648)
 
-// ── Channel health indicator ────────────────────────────────────────
-val HealthOnline = Color(0xFF4CAF50)
-val HealthChecking = Color(0xFFFFA726)
-val HealthOffline = Color(0xFFEF5350)
-val HealthUnknown = Color(0xFF616161)
+// ── Text — light mode ────────────────────────────────────────────────
+val TextPrimaryLight   = Color(0xFF1C1A24)
+val TextSecondaryLight = Color(0xFF5A5470)
+val TextDimLight       = Color(0xFF8C8898)
+val TextDisabledLight  = Color(0xFFC4C0D0)
 
-// ── Focus and selection (TV) ────────────────────────────────────────
-val FocusGlow = Color(0x40E8A849)
-val FocusBorder = Color(0xFFE8A849)
+// ── Backward-compatible aliases (resolves to dark defaults) ──────────
+val TextPrimary   = TextPrimaryDark
+val TextSecondary = TextSecondaryDark
+val TextDim       = TextDimDark
+val TextDisabled  = TextDisabledDark
+
+// ── Warm highlight ───────────────────────────────────────────────────
+val WarmHighlight = Parchment100
+
+// ── Semantic — dark mode ─────────────────────────────────────────────
+val SuccessDark = Color(0xFF28B560)
+val ErrorDark   = Color(0xFFE83838)
+val WarningDark = Color(0xFFF5A624)
+val InfoDark    = Color(0xFF3D88F5)
+
+// ── Semantic — light mode ────────────────────────────────────────────
+val SuccessLight = Color(0xFF1A8A40)
+val ErrorLight   = Color(0xFFC02020)
+val WarningLight = Color(0xFFD07808)
+val InfoLight    = Color(0xFF1A60D0)
+
+// ── Backward-compatible aliases ──────────────────────────────────────
+val Success  = SuccessDark
+val Error    = ErrorDark
+val Warning  = WarningDark
+val Info     = InfoDark
+val SteelBlue      = InfoDark
+val SteelBlueDark  = InfoLight
+val SteelBlueLight = Color(0xFF7AAEF8)
+
+// ── Channel health ───────────────────────────────────────────────────
+val HealthOnline   = SuccessDark    // #28B560
+val HealthChecking = WarningDark    // #F5A624
+val HealthOffline  = ErrorDark      // #E83838
+val HealthUnknown  = TextDimDark    // #706880
+
+// ── Focus and selection (TV) ─────────────────────────────────────────
+val FocusGlow        = Color(0x40F7A93A)   // 25% Flame300
+val FocusBorder      = Flame300
 val SelectionOverlay = Color(0x1AFFFFFF)
 
-// ── Borders ─────────────────────────────────────────────────────────
-val SubtleBorder = Color(0x10FFFFFF)
+// ── Borders ──────────────────────────────────────────────────────────
+val SubtleBorderDark  = Color(0x10FFFFFF)   // ~6% white on dark surfaces
+val SubtleBorderLight = Color(0x20000000)   // ~12% black on light surfaces
+val SubtleBorder = SubtleBorderDark         // Backward compat — prefer subtleBorder() composable
 
 // ── Standardized emphasis opacities ──────────────────────────────────
-const val EmphasisHigh = 0.87f
-const val EmphasisMedium = 0.6f
+const val EmphasisHigh     = 0.87f
+const val EmphasisMedium   = 0.6f
 const val EmphasisDisabled = 0.38f
 
-// ── Background gradient glows ────────────────────────────────────
-val AmberGlow = Color(0x08E8A849)       // ~3% opacity Amber
-val SteelBlueGlow = Color(0x086B8EAE)   // ~3% opacity Steel Blue
+// ── Background gradient glows ────────────────────────────────────────
+val AmberGlow    = Color(0x0AF7A93A)   // ~4% Flame300
+val SteelBlueGlow = Color(0x0A3D88F5)  // ~4% Info blue
 
-// ── Category colors — muted tones for dark backgrounds ──────────────
+// ── Category colors — muted tones for dark backgrounds ───────────────
 // Based on iptv-org/database categories (29 categories)
-val CategorySports = Color(0xFF4CAF7A)
-val CategoryNews = Color(0xFF5B9BD5)
-val CategoryMovies = Color(0xFFC96B6B)
+val CategorySports        = Color(0xFF4CAF7A)
+val CategoryNews          = Color(0xFF5B9BD5)
+val CategoryMovies        = Color(0xFFC96B6B)
 val CategoryEntertainment = Color(0xFF9B7EC8)
-val CategoryMusic = Color(0xFFD98A6E)
-val CategoryKids = Color(0xFF4DB6AC)
-val CategoryDocumentary = Color(0xFF7C9A82)
-val CategoryGeneral = Amber
+val CategoryMusic         = Color(0xFFD98A6E)
+val CategoryKids          = Color(0xFF4DB6AC)
+val CategoryDocumentary   = Color(0xFF7C9A82)
+val CategoryGeneral       = Flame300
 val CategoryAnimation = Color(0xFFE87ECB)
 val CategoryBusiness = Color(0xFF6893B8)
 val CategoryClassic = Color(0xFFA89078)
@@ -152,7 +201,7 @@ fun categoryColor(category: String): Color = when (category.lowercase(Locale.ROO
     "weather" -> CategoryWeather
     "auto" -> CategoryAuto
     "xxx" -> CategoryXxx
-    else -> Amber
+    else -> Flame300
 }
 
 fun categoryIcon(category: String): ImageVector = when (category.lowercase(Locale.ROOT)) {

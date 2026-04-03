@@ -32,11 +32,9 @@ const val STAGGER_DELAY_MS = 50L     // Between staggered items
 const val DURATION_OVERLAY = 300     // Overlay slide in/out
 const val AUTO_HIDE_DELAY_MS = 7000L // Channel overlay auto-hide timeout
 
-// ── Splash Animation ─────────────────────────────────────────────
-const val SPLASH_LOGO_FADE_DURATION = 400       // Phase 1: logo fades in
-const val SPLASH_GLOW_EXPAND_DURATION = 500     // Phase 2: amber glow expands
-const val SPLASH_REVEAL_DURATION = 400          // Phase 3: scale up + full reveal
-const val SPLASH_HOLD_DURATION_MS = 200L        // Brief hold before exit
+// ── Splash Animation (Lottie) ────────────────────────────────────
+const val SPLASH_MIN_DISPLAY_MS = 1500L         // Minimum time to show splash (one full Lottie loop)
+const val SPLASH_FADE_OUT_DURATION = 400        // Crossfade out of splash screen
 
 // ── Navigation Transitions ──────────────────────────────────────────
 

@@ -62,6 +62,7 @@ class PlayerViewModel @Inject constructor(
     private var loadJob: Job? = null
     private var playbackPositionJob: Job? = null
     private var channelListJob: Job? = null
+    private var preloadJob: Job? = null
     private var autoHideJob: Job? = null
     private var countdownJob: Job? = null
     private var playReportJob: Job? = null
@@ -208,9 +209,16 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleFavorite() {
         val channelId = _uiState.value.channel?.id ?: return
+        // Optimistically update UI immediately so indicator shows correct text
+        _uiState.update { state ->
+            state.channel?.let { channel ->
+                state.copy(channel = channel.copy(isFavorite = !channel.isFavorite))
+            } ?: state
+        }
         viewModelScope.launch {
             val result = toggleFavoriteUseCase(channelId)
-            if (result is Result.Success) {
+            if (result is Result.Error) {
+                // Revert on failure
                 _uiState.update { state ->
                     state.channel?.let { channel ->
                         state.copy(channel = channel.copy(isFavorite = !channel.isFavorite))
@@ -249,14 +257,38 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Preload all channels so next/prev works even before overlay is opened.
+     * Uses a separate job so it doesn't cancel/get cancelled by overlay category loads.
+     * Skips if overlay is open or a user-initiated category load is active.
      */
     private fun preloadChannelList() {
-        if (_uiState.value.overlayChannels.isEmpty()) {
-            loadChannelListInternal(null, updateSelection = false)
+        if (_uiState.value.showChannelOverlay) return
+        if (channelListJob?.isActive == true) return
+        preloadJob?.cancel()
+        preloadJob = viewModelScope.launch {
+            val channelFlow = getChannelsUseCase(Unit)
+            channelFlow.combine(channelHealthDao.getAllHealth()) { result, healthList ->
+                result to healthList
+            }.collect { (result, healthList) ->
+                when (result) {
+                    is Result.Success -> {
+                        val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
+                        val categories = uiChannels.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
+                        _uiState.update {
+                            it.copy(
+                                overlayChannels = uiChannels,
+                                overlayCategories = categories,
+                                overlayIsLoadingChannels = false
+                            )
+                        }
+                    }
+                    is Result.Error -> { /* silent — preload is best-effort */ }
+                }
+            }
         }
     }
 
     fun loadChannelList(category: String? = null) {
+        preloadJob?.cancel() // user-initiated load takes priority over background preload
         loadChannelListInternal(category, updateSelection = true)
     }
 
@@ -306,19 +338,28 @@ class PlayerViewModel @Inject constructor(
     // ── Next / Previous Channel (D-Pad & remote buttons) ───────────
 
     fun nextChannel() {
-        val channels = _uiState.value.overlayChannels
-        if (channels.isEmpty()) return
-        val currentId = _uiState.value.channel?.id
-        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val currentChannel = _uiState.value.channel ?: return
+        val allChannels = _uiState.value.overlayChannels
+        if (allChannels.isEmpty()) return
+        // Filter to same category, exclude offline, keep current channel in list
+        val channels = allChannels
+            .filter { it.category == currentChannel.category &&
+                    (it.id == currentChannel.id || it.healthStatus != ChannelHealthStatus.OFFLINE) }
+        if (channels.size <= 1) return // only current channel or empty — nowhere to go
+        val currentIndex = channels.indexOfFirst { it.id == currentChannel.id }
         val nextIndex = if (currentIndex < 0 || currentIndex >= channels.size - 1) 0 else currentIndex + 1
         switchChannel(channels[nextIndex].id)
     }
 
     fun previousChannel() {
-        val channels = _uiState.value.overlayChannels
-        if (channels.isEmpty()) return
-        val currentId = _uiState.value.channel?.id
-        val currentIndex = channels.indexOfFirst { it.id == currentId }
+        val currentChannel = _uiState.value.channel ?: return
+        val allChannels = _uiState.value.overlayChannels
+        if (allChannels.isEmpty()) return
+        val channels = allChannels
+            .filter { it.category == currentChannel.category &&
+                    (it.id == currentChannel.id || it.healthStatus != ChannelHealthStatus.OFFLINE) }
+        if (channels.size <= 1) return
+        val currentIndex = channels.indexOfFirst { it.id == currentChannel.id }
         val prevIndex = if (currentIndex <= 0) channels.size - 1 else currentIndex - 1
         switchChannel(channels[prevIndex].id)
     }

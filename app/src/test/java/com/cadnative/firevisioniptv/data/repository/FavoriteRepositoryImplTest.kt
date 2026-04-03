@@ -2,12 +2,14 @@ package com.cadnative.firevisioniptv.data.repository
 
 import android.app.Application
 import android.provider.Settings
+import android.util.Log
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.FavoriteLocalDataSource
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
+import com.cadnative.firevisioniptv.data.model.dto.FavoritesResponse
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -82,6 +84,8 @@ class FavoriteRepositoryImplTest {
         channelDao = mockk()
         application = mockk(relaxed = true)
         mockkStatic(Settings.Secure::class)
+        mockkStatic(Log::class)
+        every { Log.w(any<String>(), any<String>()) } returns 0
         every { Settings.Secure.getString(any(), Settings.Secure.ANDROID_ID) } returns "test-device-id"
         
         repository = FavoriteRepositoryImpl(
@@ -282,5 +286,82 @@ class FavoriteRepositoryImplTest {
         // Then - local operation succeeds despite sync failure
         assertTrue(result is Result.Success)
         coVerify { localDataSource.addFavorite(any()) }
+    }
+
+    // ─── pullFavoritesFromServer ──────────────────────────────────────────────
+
+    @Test
+    fun `pullFavoritesFromServer adds server favorites missing from local`() = runTest(testDispatcher) {
+        // Server has ch1 and ch2; local only has ch1
+        val serverResponse = FavoritesResponse(channelIds = listOf("ch1", "ch2"))
+        coEvery { apiService.getFavorites() } returns Response.success(serverResponse)
+        val localFav = FavoriteEntity(channelId = "ch1", addedAt = 0L, displayOrder = 0)
+        every { localDataSource.getAllFavorites() } returns flowOf(listOf(localFav))
+        coEvery { channelDao.getChannelByIdSync("ch2") } returns testChannelEntity
+        coEvery { localDataSource.addFavorite(match { it.channelId == "ch2" }) } returns Unit
+
+        val result = repository.pullFavoritesFromServer()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(result is Result.Success)
+        coVerify(exactly = 1) { localDataSource.addFavorite(match { it.channelId == "ch2" }) }
+    }
+
+    @Test
+    fun `pullFavoritesFromServer skips server favorites already in local`() = runTest(testDispatcher) {
+        val serverResponse = FavoritesResponse(channelIds = listOf("ch1"))
+        coEvery { apiService.getFavorites() } returns Response.success(serverResponse)
+        val localFav = FavoriteEntity(channelId = "ch1", addedAt = 0L, displayOrder = 0)
+        every { localDataSource.getAllFavorites() } returns flowOf(listOf(localFav))
+
+        val result = repository.pullFavoritesFromServer()
+
+        assertTrue(result is Result.Success)
+        coVerify(exactly = 0) { localDataSource.addFavorite(any()) }
+    }
+
+    @Test
+    fun `pullFavoritesFromServer skips server channelIds not in local channel table`() = runTest(testDispatcher) {
+        // Server sends ch99 but it doesn't exist in the channels DB
+        val serverResponse = FavoritesResponse(channelIds = listOf("ch99"))
+        coEvery { apiService.getFavorites() } returns Response.success(serverResponse)
+        every { localDataSource.getAllFavorites() } returns flowOf(emptyList())
+        coEvery { channelDao.getChannelByIdSync("ch99") } returns null
+
+        val result = repository.pullFavoritesFromServer()
+
+        assertTrue(result is Result.Success)
+        coVerify(exactly = 0) { localDataSource.addFavorite(any()) }
+    }
+
+    @Test
+    fun `pullFavoritesFromServer returns error on non-2xx response`() = runTest(testDispatcher) {
+        coEvery { apiService.getFavorites() } returns Response.error(401, "Unauthorized".toResponseBody())
+
+        val result = repository.pullFavoritesFromServer()
+
+        assertTrue(result is Result.Error)
+        assertTrue((result as Result.Error).exception.message?.contains("Pull favorites failed") == true)
+    }
+
+    @Test
+    fun `pullFavoritesFromServer returns error on network exception`() = runTest(testDispatcher) {
+        coEvery { apiService.getFavorites() } throws Exception("No connectivity")
+
+        val result = repository.pullFavoritesFromServer()
+
+        assertTrue(result is Result.Error)
+    }
+
+    @Test
+    fun `pullFavoritesFromServer handles empty server list gracefully`() = runTest(testDispatcher) {
+        val serverResponse = FavoritesResponse(channelIds = emptyList())
+        coEvery { apiService.getFavorites() } returns Response.success(serverResponse)
+        every { localDataSource.getAllFavorites() } returns flowOf(emptyList())
+
+        val result = repository.pullFavoritesFromServer()
+
+        assertTrue(result is Result.Success)
+        coVerify(exactly = 0) { localDataSource.addFavorite(any()) }
     }
 }

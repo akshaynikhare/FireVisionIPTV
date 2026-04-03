@@ -48,9 +48,12 @@ fun HomeScreen(
         val contentState = when {
             uiState.isLoading && uiState.channels.isEmpty() -> "loading"
             uiState.error != null && uiState.channels.isEmpty() -> "error"
+            uiState.channels.isEmpty() && !uiState.isInitialLoadComplete -> "loading"
             uiState.channels.isEmpty() -> "empty"
             else -> "content"
         }
+
+        val loadingMessage = if (uiState.isLoading) "Loading channels..." else "Fetching channels from server…"
 
         Crossfade(
             targetState = contentState,
@@ -58,7 +61,7 @@ fun HomeScreen(
             label = "homeState"
         ) { state ->
             when (state) {
-                "loading" -> LoadingIndicator(message = "Loading channels...")
+                "loading" -> LoadingIndicator(message = loadingMessage)
                 "error" -> ErrorState(
                     message = uiState.error ?: "Unknown error",
                     onRetry = { viewModel.refresh() },
@@ -231,7 +234,7 @@ private fun PopularCategoriesSlider(
             text = "Popular Categories",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Amber
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(14.dp))
         LazyRow(

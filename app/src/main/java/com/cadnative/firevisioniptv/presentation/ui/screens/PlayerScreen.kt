@@ -21,6 +21,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -28,14 +29,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,6 +73,8 @@ import java.net.URLEncoder
 
 private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
 private const val CHANNEL_SWITCH_DEBOUNCE_MS = 250L
+private const val LONG_PRESS_THRESHOLD_MS = 600L
+private const val FAV_INDICATOR_DURATION_MS = 2000L
 
 @Composable
 fun PlayerScreen(
@@ -110,12 +121,14 @@ fun PlayerScreen(
         }
     }
 
-    // Favorite button auto-hide
-    var showFavButton by remember { mutableStateOf(true) }
-    LaunchedEffect(showFavButton) {
-        if (showFavButton) {
+    // Favorite button auto-hide — uses an incrementing token so the timer
+    // properly restarts even when the button is already visible.
+    var favButtonReveal by remember { mutableIntStateOf(1) }
+    val showFavButton = favButtonReveal > 0
+    LaunchedEffect(favButtonReveal) {
+        if (favButtonReveal > 0) {
             delay(FAV_BUTTON_AUTO_HIDE_MS)
-            showFavButton = false
+            favButtonReveal = 0
         }
     }
 
@@ -184,7 +197,7 @@ fun PlayerScreen(
             exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
             // Reset fav button visibility on channel switch
-            showFavButton = true
+            favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
         }
     }
 
@@ -228,21 +241,80 @@ fun PlayerScreen(
     // Debounce state for channel switching
     var lastChannelSwitchTime by remember { mutableLongStateOf(0L) }
 
+    // Long-press detection for DPAD_CENTER → toggle favorite
+    var centerKeyDownTime by remember { mutableLongStateOf(0L) }
+    var longPressConsumed by remember { mutableStateOf(false) }
+
+    // Favorite indicator (shown briefly on long-press toggle)
+    var favIndicatorToken by remember { mutableIntStateOf(0) }
+    val showFavIndicator = favIndicatorToken > 0
+    LaunchedEffect(favIndicatorToken) {
+        if (favIndicatorToken > 0) {
+            delay(FAV_INDICATOR_DURATION_MS)
+            favIndicatorToken = 0
+        }
+    }
+
+    // Focus requester so the player Box captures remote key events
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // Re-grab focus when the channel overlay closes
+    LaunchedEffect(uiState.showChannelOverlay) {
+        if (!uiState.showChannelOverlay) focusRequester.requestFocus()
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim)
+            .focusRequester(focusRequester)
+            .focusable()
             .onKeyEvent { keyEvent ->
-                if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
+                val action = keyEvent.nativeKeyEvent.action
+                val keyCode = keyEvent.nativeKeyEvent.keyCode
+
+                // ── Long-press detection for DPAD_CENTER / ENTER → toggle favorite ──
+                if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                    if (uiState.showChannelOverlay) return@onKeyEvent false
+                    when (action) {
+                        KeyEvent.ACTION_DOWN -> {
+                            if (centerKeyDownTime == 0L) {
+                                centerKeyDownTime = System.currentTimeMillis()
+                                longPressConsumed = false
+                            } else if (!longPressConsumed) {
+                                val held = System.currentTimeMillis() - centerKeyDownTime
+                                if (held >= LONG_PRESS_THRESHOLD_MS) {
+                                    longPressConsumed = true
+                                    viewModel.toggleFavorite()
+                                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
+                                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                                }
+                            }
+                            return@onKeyEvent true
+                        }
+                        KeyEvent.ACTION_UP -> {
+                            if (!longPressConsumed) {
+                                // Short press → toggle play/pause
+                                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                            }
+                            centerKeyDownTime = 0L
+                            longPressConsumed = false
+                            return@onKeyEvent true
+                        }
+                    }
+                }
+
+                if (action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
 
                 // Menu button: toggle channel overlay (works regardless of overlay state)
-                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_MENU) {
+                if (keyCode == KeyEvent.KEYCODE_MENU) {
                     if (uiState.showChannelOverlay) viewModel.hideOverlay() else viewModel.showOverlay()
                     return@onKeyEvent true
                 }
 
                 // Settings button: navigate to settings
-                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
+                if (keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
                     onNavigateToSettings.invoke()
                     return@onKeyEvent true
                 }
@@ -251,7 +323,7 @@ fun PlayerScreen(
                 if (uiState.showChannelOverlay) return@onKeyEvent false
 
                 val now = System.currentTimeMillis()
-                when (keyEvent.nativeKeyEvent.keyCode) {
+                when (keyCode) {
                     KeyEvent.KEYCODE_DPAD_RIGHT,
                     KeyEvent.KEYCODE_MEDIA_NEXT,
                     KeyEvent.KEYCODE_CHANNEL_UP -> {
@@ -268,13 +340,6 @@ fun PlayerScreen(
                             lastChannelSwitchTime = now
                             viewModel.previousChannel()
                         }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_CENTER,
-                    KeyEvent.KEYCODE_ENTER -> {
-                        // Toggle play/pause and show favorite button
-                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                        showFavButton = true
                         true
                     }
                     KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
@@ -349,6 +414,37 @@ fun PlayerScreen(
             )
         }
 
+        // Favorite indicator — centered brief toast after toggle
+        AnimatedVisibility(
+            visible = showFavIndicator && uiState.channel != null,
+            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            val isFav = uiState.channel?.isFavorite == true
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .padding(horizontal = 24.dp, vertical = 14.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (isFav) MaterialTheme.colorScheme.error else Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = if (isFav) "Added to Favorites" else "Removed from Favorites",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
         // Favorite button — bottom-left, auto-hides, focus border, press animation
         AnimatedVisibility(
             visible = uiState.channel != null
@@ -366,7 +462,8 @@ fun PlayerScreen(
                 isFavorite = uiState.channel?.isFavorite == true,
                 onClick = {
                     viewModel.toggleFavorite()
-                    showFavButton = true // reset auto-hide timer
+                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
                 }
             )
         }
