@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.0.5] - 2026-04-03
+
+### Added
+- Update splash animation colors and enhance font mapping in SplashScreen
+- Implement pullFavoritesFromServer use case and related tests
+- Implement unified color palette across FireVision IPTV app
+- show current EPG program title on channel cards
+- add unit tests for error handling in repository classes and update dependencies for testing
+- add pre-commit hook for Android lint checks and update Makefile for setup instructions
+- integrate Sentry for error tracking and reporting in the Android app
+- add Sentry crash tracking and Jacoco/Codecov coverage reporting
+- add portrait orientation support for Android phone users
+- add EPG Phase 1 now/next program display in player overlay
+
+### Changed
+- add Android app user guide for end users
+- streamline TV code management by centralizing SharedPreferences access
+- update CHANGELOG.md for v2.0.4
+- update preview assets by removing obsolete video and adding new images
+
+### Fixed
+- Update release tagging command to use 'v' instead of 'VERSION' for consistency
+- Update border color references to use subtleBorder for consistency across components
+- Implement long-press favorite toggle and enhance channel navigation logic
+- Enhance category chip focus effects and improve visual feedback
+- fix:#35 Improve thumbnail loading and enhance favorite button auto-hide logic
+- update CI workflow to generate coverage report and set Sentry environment variables
+- set ANDROID_SDK_ROOT and export environment variables in Makefile
+- address PR review feedback for portrait mode
+- add InnerClasses attribute to proguard keep rules for Gson TypeToken
+- add EnclosingMethod and TypeToken keep rules to prevent Gson crash on release builds
+- settings key event consumed when no handler, remove unused parameter
+- Fire TV remote optimization — D-pad focus, OK/Menu/Settings buttons, debouncing
+
+### Other
+- Enhance UI state management and improve color theming
+- Refactor app icons and backgrounds for improved design consistency
+- Fix race condition in EpgRepositoryImpl cache loading
+- Apply suggestions from code review
+- Add GitHub issue templates (bug, feature request, remote navigation)
+
+---
+
 ## [2.0.4] - 2026-03-21
 
 ### Added
