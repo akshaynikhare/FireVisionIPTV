@@ -72,13 +72,17 @@ class ChannelManager private constructor(
 
         Log.d(TAG, "Channel sync completed. Synced ${appChannels.size} channels")
 
-        syncEpgToTif()
+        // Re-fetch TIF channels since inserts above may have added new entries
+        syncEpgToTif(appChannels, getExistingTifChannels())
     }
 
     /**
      * Sync EPG program data to TvContract.Programs for channels with a tvgId.
      */
-    private suspend fun syncEpgToTif() {
+    private suspend fun syncEpgToTif(
+        appChannels: List<ChannelEntity>,
+        tifChannels: Map<String, Long>
+    ) {
         Log.d(TAG, "Starting EPG sync to TIF")
 
         try {
@@ -88,8 +92,6 @@ class ChannelManager private constructor(
             return
         }
 
-        val tifChannels = getExistingTifChannels()
-        val appChannels = channelDao.getAllActiveChannels()
         var programCount = 0
 
         for (channel in appChannels) {

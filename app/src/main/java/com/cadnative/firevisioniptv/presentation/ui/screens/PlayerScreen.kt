@@ -244,14 +244,20 @@ fun PlayerScreen(
 
     // On TV devices: pause playback when backgrounded, resume when foregrounded
     val lifecycleOwner = LocalLifecycleOwner.current
+    var wasPlayingBeforeStop by remember { mutableStateOf(true) }
     DisposableEffect(lifecycleOwner, exoPlayer) {
         if (!isTvDevice(context)) {
             onDispose { }
         } else {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
-                    Lifecycle.Event.ON_STOP -> exoPlayer.pause()
-                    Lifecycle.Event.ON_START -> exoPlayer.play()
+                    Lifecycle.Event.ON_STOP -> {
+                        wasPlayingBeforeStop = exoPlayer.isPlaying
+                        exoPlayer.pause()
+                    }
+                    Lifecycle.Event.ON_START -> {
+                        if (wasPlayingBeforeStop) exoPlayer.play()
+                    }
                     else -> {}
                 }
             }

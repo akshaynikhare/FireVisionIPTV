@@ -48,6 +48,8 @@ class FireVisionTvInputService : TvInputService() {
             val streamUrl = getStreamUrlFromChannel(channelUri)
             if (streamUrl == null) {
                 Log.e(TAG, "No stream URL found for channel: $channelUri")
+                player?.release()
+                player = null
                 notifyVideoUnavailable(TvInputManager.VIDEO_UNAVAILABLE_REASON_UNKNOWN)
                 return false
             }
