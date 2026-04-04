@@ -65,6 +65,11 @@
 -dontwarn kotlinx.coroutines.**
 -keepclassmembers class kotlinx.coroutines.** { *; }
 
+# ---- Amazon Appstore SDK (DRM) ----
+-dontwarn com.amazon.device.**
+-keep class com.amazon.device.drm.** { *; }
+-keep class com.amazon.device.iap.** { *; }
+
 # ---- General Android ----
 -keep class * implements android.os.Parcelable {
     public static final ** CREATOR;

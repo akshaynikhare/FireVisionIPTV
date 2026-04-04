@@ -109,6 +109,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- Amazon Appstore DRM License Verification -->
+        <receiver
+            android:name="com.amazon.device.drm.ResponseReceiver"
+            android:exported="false"
+            android:permission="com.amazon.device.drm.Permission.NOTIFY">
+            <intent-filter>
+                <action android:name="com.amazon.device.drm.LicensingIntent.VERIFICATION" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
