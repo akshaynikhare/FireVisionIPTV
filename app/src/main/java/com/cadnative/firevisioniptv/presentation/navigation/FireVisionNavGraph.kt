@@ -170,6 +170,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onCategoryClick = { categoryName ->
+                    navController.navigate(Screen.ChannelsByCategory.createRoute(categoryName))
                 }
             )
         }
