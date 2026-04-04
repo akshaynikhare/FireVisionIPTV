@@ -60,6 +60,7 @@ object NetworkModule {
                     } else {
                         HttpLoggingInterceptor.Level.NONE
                     }
+                    redactHeader("X-TV-Code")
                 }
             )
 

@@ -1,20 +1,25 @@
 package com.cadnative.firevisioniptv
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class TvSetupActivity : Activity() {
+class TvSetupActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pairingIntent = Intent(this, PairingActivity::class.java).apply {
             putExtra("source", "tv_setup")
         }
+        @Suppress("DEPRECATION")
         startActivityForResult(pairingIntent, REQUEST_CODE)
     }
 
+    @Deprecated("Use Activity Result API")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE) {
@@ -28,8 +33,14 @@ class TvSetupActivity : Activity() {
     }
 
     private fun syncChannels() {
-        val channelManager = ChannelManager(this)
-        channelManager.syncChannelsToTif()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val channelManager = ChannelManager.create(this@TvSetupActivity)
+                channelManager.syncChannelsToTif()
+            } catch (e: Exception) {
+                android.util.Log.e("TvSetupActivity", "Error syncing channels", e)
+            }
+        }
     }
 
     companion object {

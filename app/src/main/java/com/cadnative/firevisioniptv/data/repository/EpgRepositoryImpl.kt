@@ -13,6 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +24,7 @@ class EpgRepositoryImpl @Inject constructor(
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : EpgRepository {
 
-    private val cache = mutableMapOf<String, List<EpgProgram>>()
+    private val cache = ConcurrentHashMap<String, List<EpgProgram>>()
     @Volatile private var cacheLoaded = false
     private val loadMutex = Mutex()
 
@@ -54,6 +55,17 @@ class EpgRepositoryImpl @Inject constructor(
                 .minByOrNull { it.startTime }
             Pair(nowProgram, nextProgram)
         }
+
+    override fun getNowNextIfCached(tvgId: String): Pair<EpgProgram?, EpgProgram?>? {
+        if (!cacheLoaded) return null
+        val programs = cache[tvgId] ?: return Pair(null, null)
+        val now = Instant.now()
+        val nowProgram = programs.firstOrNull { it.startTime <= now && it.endTime > now }
+        val nextProgram = programs
+            .filter { it.startTime > now }
+            .minByOrNull { it.startTime }
+        return Pair(nowProgram, nextProgram)
+    }
 
     private suspend fun loadGuide() {
         try {

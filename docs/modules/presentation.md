@@ -62,6 +62,29 @@ presentation/
 
 ## Navigation
 
+```mermaid
+flowchart TD
+    Splash --> Pairing
+    Splash --> Home
+
+    subgraph SideNavRail
+        Home
+        Channels
+        Categories
+        Search
+        Favorites
+        Settings
+    end
+
+    Home --> Player
+    Channels --> Player
+    Channels --> ChannelsByCategory
+    ChannelsByCategory --> Player
+    Search --> Player
+    Favorites --> Player
+    Categories --> ChannelsByCategory
+```
+
 ### Screen Routes
 
 Defined in `Screen.kt` as a sealed class:
@@ -77,8 +100,6 @@ Defined in `Screen.kt` as a sealed class:
 | `Settings` | `"settings"` | — |
 | `Player` | `"player/{channelId}"` | `channelId: String` |
 | `ChannelsByCategory` | `"channels/category/{categoryId}"` | `categoryId: String` (URL-encoded) |
-
-**Sidebar routes:** Home, Channels, Categories, Search, Favorites, Settings — shown in the persistent `SideNavRail`.
 
 ### Navigation Graph
 
@@ -101,14 +122,24 @@ All ViewModels are `@HiltViewModel` with constructor injection.
 |-------|------|---------|
 | `channels` | `List<ChannelUiModel>` | `[]` |
 | `categories` | `List<String>` | `[]` |
-| `isLoading` | `Boolean` | `false` |
+| `isLoading` | `Boolean` | `true` |
+| `isInitialLoadComplete` | `Boolean` | `false` |
 | `error` | `String?` | `null` |
+| `errorType` | `ErrorType` | `NONE` |
 | `selectedCategory` | `String?` | `null` |
+| `recentlyWatched` | `List<ChannelUiModel>` | `[]` |
+| `featuredChannels` | `List<ChannelUiModel>` | `[]` |
+| `popularCategories` | `List<PopularCategoryUiModel>` | `[]` |
+| `categoryLogos` | `Map<String, List<String>>` | `{}` |
+| `favoriteCategoryNames` | `Set<String>` | `{}` |
 
 **Key behavior:**
-- `loadChannels(category?)` — Collects channel flow combined with health data from `ChannelHealthDao`
+- `init{}` — Fires immediately (pre-warmed during splash via Box overlay). Launches EPG loading, channel loading, home data, favorite categories, and refresh in parallel. Channels from Room cache appear in ~50ms.
+- `loadChannels(category?)` — Collects channel flow combined with health data from `ChannelHealthDao`. Health flow is seeded with empty list via `onStart` after `debounce` so channels render without waiting for health scan.
 - `toggleFavorite(channelId)` — Optimistic UI update with rollback on error
-- `refresh()` — Triggers `RefreshChannelsUseCase`
+- `refresh()` — Triggers `RefreshChannelsUseCase`. Silent on error when cached data exists.
+- `onResume()` — Called by HomeScreen's lifecycle observer. Skips first call (init handles it), then triggers silent refresh to detect server-side changes.
+- `enrichWithEpgIfReady(channel)` — Non-suspend. Uses `EpgRepository.getNowNextIfCached()` to add "Now Playing" titles without blocking. Returns channel unchanged if EPG not loaded yet.
 
 ### FavoritesViewModel
 
@@ -254,7 +285,7 @@ data class CategoryUiModel(
 
 | Screen | ViewModel | Description |
 |--------|-----------|-------------|
-| `HomeScreen` | `ChannelsViewModel` | Featured channels grid, category quick-links, navigation to all sections |
+| `HomeScreen` | `ChannelsViewModel` | Featured channels, recently watched, popular categories, category rows. Lifecycle-aware: refreshes on `ON_RESUME` via `DisposableEffect` + `LifecycleEventObserver`. |
 | `ChannelsScreen` | `ChannelsViewModel` | Full channel list with category filter tabs |
 | `CategoriesScreen` | `ChannelsViewModel` | Category grid with channel counts |
 | `SearchScreen` | `SearchViewModel` | Search input with debounce, filter chips, recent searches, results grid |
@@ -296,18 +327,3 @@ Handles playback errors with retry logic and user-facing error messages.
 - `Theme.kt` — `FireVisionTheme` composable wrapping Material3 dark color scheme
 - `Type.kt` — Typography definitions optimized for TV viewing distance
 
-## How to Extend
-
-### Adding a new screen
-
-1. Add a route entry to the `Screen` sealed class in `navigation/Screen.kt`
-2. Create the screen composable in `ui/screens/`
-3. Create a ViewModel in `viewmodel/` if needed (annotate with `@HiltViewModel`)
-4. Add the composable destination in `FireVisionNavGraph.kt`
-5. If it's a sidebar route, add it to `Screen.sidebarRoutes` and `SideNavRail`
-
-### Adding a new reusable component
-
-1. Create the composable in `ui/components/`
-2. Accept data via parameters, emit events via lambda callbacks
-3. Use `Modifier` as the first optional parameter for customization

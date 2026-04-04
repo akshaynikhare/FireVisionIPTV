@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -66,6 +69,7 @@ import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
@@ -235,6 +239,30 @@ fun PlayerScreen(
             errorRecoveryManager.release()
             exoPlayer.stop()
             exoPlayer.release()
+        }
+    }
+
+    // On TV devices: pause playback when backgrounded, resume when foregrounded
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var wasPlayingBeforeStop by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner, exoPlayer) {
+        if (!isTvDevice(context)) {
+            onDispose { }
+        } else {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_STOP -> {
+                        wasPlayingBeforeStop = exoPlayer.isPlaying
+                        exoPlayer.pause()
+                    }
+                    Lifecycle.Event.ON_START -> {
+                        if (wasPlayingBeforeStop) exoPlayer.play()
+                    }
+                    else -> {}
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
     }
 

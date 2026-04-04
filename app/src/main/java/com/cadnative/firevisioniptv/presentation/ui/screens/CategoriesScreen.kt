@@ -71,7 +71,10 @@ fun CategoriesScreen(
                         message = uiState.error ?: "Failed to load categories",
                         onRetry = { viewModel.loadChannels() }
                     )
-                    "empty" -> EmptyState(message = "No categories available")
+                    "empty" -> EmptyState(
+                        message = "No categories available",
+                        onRetry = { viewModel.loadChannels() }
+                    )
                     else -> {
                         val categoriesData = remember(uiState.channels) {
                             uiState.channels

@@ -11,7 +11,7 @@ enum class ErrorType {
 data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
     val categories: List<String> = emptyList(),
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isInitialLoadComplete: Boolean = false,
     val error: String? = null,
     val errorType: ErrorType = ErrorType.NONE,

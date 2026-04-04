@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -61,11 +62,15 @@ interface ChannelDao {
     fun searchChannels(query: String): Flow<List<ChannelEntity>>
     
     /**
-     * Insert or replace multiple channels.
-     * 
-     * @param channels List of channels to insert
+     * Insert or update multiple channels.
+     *
+     * Uses @Upsert instead of @Insert(REPLACE) to avoid triggering
+     * ON DELETE CASCADE on foreign keys (favorites, channel_health).
+     * REPLACE internally does DELETE+INSERT which cascades and wipes favorites.
+     *
+     * @param channels List of channels to upsert
      */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertChannels(channels: List<ChannelEntity>)
     
     /**
@@ -88,6 +93,9 @@ interface ChannelDao {
         deleteChannelsNotIn(newIds.toList())
         insertChannels(channels)
     }
+
+    @Query("SELECT * FROM channels WHERE isActive = 1 ORDER BY name ASC")
+    suspend fun getAllActiveChannels(): List<ChannelEntity>
 
     @Query("SELECT * FROM channels WHERE id = :channelId")
     suspend fun getChannelByIdSync(channelId: String): ChannelEntity?

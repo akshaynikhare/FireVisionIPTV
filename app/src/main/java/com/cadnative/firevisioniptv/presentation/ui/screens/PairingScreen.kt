@@ -383,12 +383,12 @@ private fun QrSection(
         if (qrCodeBitmap != null) {
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(230.dp)
                     .background(
                         color = Color.White,
                         shape = RoundedCornerShape(8.dp)
                     )
-                    .padding(10.dp),
+                    .padding(3.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -401,7 +401,7 @@ private fun QrSection(
         } else {
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(230.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(8.dp)

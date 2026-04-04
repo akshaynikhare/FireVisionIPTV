@@ -25,7 +25,11 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import androidx.lifecycle.lifecycleScope
 import com.cadnative.firevisioniptv.data.AppPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -93,7 +97,7 @@ class PairingActivity : ComponentActivity() {
     }
 
     private fun generateSignupQRCode(serverUrl: String, pin: String) {
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val registrationUrl = "$serverUrl/pair?pin=$pin"
                 val writer = QRCodeWriter()
@@ -108,11 +112,11 @@ class PairingActivity : ComponentActivity() {
                     }
                 }
 
-                runOnUiThread { qrCodeBitmap = bmp }
+                withContext(Dispatchers.Main) { qrCodeBitmap = bmp }
             } catch (e: WriterException) {
                 Log.e(TAG, "Error generating signup QR code", e)
             }
-        }.start()
+        }
     }
 
     private fun requestNewPairing() {
@@ -122,8 +126,8 @@ class PairingActivity : ComponentActivity() {
         pollAttempts = 0
 
         // Stop any existing polling/countdown
-        pollHandler?.let { handler -> pollRunnable?.let { handler.removeCallbacks(it) } }
-        countdownHandler?.let { handler -> countdownRunnable?.let { handler.removeCallbacks(it) } }
+        pollHandler?.removeCallbacksAndMessages(null)
+        countdownHandler?.removeCallbacksAndMessages(null)
 
         isLoading = true
         pin = "------"
@@ -132,7 +136,7 @@ class PairingActivity : ComponentActivity() {
         showCountdown = false
         showRetryButton = false
 
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
@@ -163,7 +167,7 @@ class PairingActivity : ComponentActivity() {
                         val expiresAtStr = jsonResponse.getString("expiresAt")
                         expiresAt = parseISO8601(expiresAtStr)
 
-                        runOnUiThread {
+                        withContext(Dispatchers.Main) {
                             isLoading = false
                             pin = currentPin ?: "------"
                             statusMessage = "Waiting for confirmation..."
@@ -186,7 +190,7 @@ class PairingActivity : ComponentActivity() {
                 connection?.disconnect()
                 isRequestingPin = false
             }
-        }.start()
+        }
     }
 
     private fun startPolling() {
@@ -208,7 +212,7 @@ class PairingActivity : ComponentActivity() {
     }
 
     private fun checkPairingStatus() {
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
@@ -239,7 +243,7 @@ class PairingActivity : ComponentActivity() {
             } finally {
                 connection?.disconnect()
             }
-        }.start()
+        }
     }
 
     private fun onPairingSuccess(channelListCode: String, username: String) {
@@ -334,11 +338,7 @@ class PairingActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isPairing = false
-        pollHandler?.let { handler ->
-            pollRunnable?.let { handler.removeCallbacks(it) }
-        }
-        countdownHandler?.let { handler ->
-            countdownRunnable?.let { handler.removeCallbacks(it) }
-        }
+        pollHandler?.removeCallbacksAndMessages(null)
+        countdownHandler?.removeCallbacksAndMessages(null)
     }
 }

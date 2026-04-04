@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -67,19 +68,54 @@ class ChannelsViewModel @Inject constructor(
     val uiState: StateFlow<ChannelsUiState> = _uiState.asStateFlow()
 
     private var loadJob: Job? = null
+    private var refreshJob: Job? = null
+    private var recentlyWatchedJob: Job? = null
+    private var popularCategoriesJob: Job? = null
+    private var hasResumedBefore = false
 
     init {
-        viewModelScope.launch { epgRepository.ensureLoaded() }
+        viewModelScope.launch {
+            epgRepository.ensureLoaded()
+            // Re-enrich displayed channels once EPG is loaded
+            _uiState.update { state ->
+                state.copy(
+                    channels = state.channels.map { enrichWithEpgIfReady(it) },
+                    recentlyWatched = state.recentlyWatched.map { enrichWithEpgIfReady(it) },
+                    featuredChannels = state.featuredChannels.map { enrichWithEpgIfReady(it) }
+                )
+            }
+        }
         loadChannels()
         loadHomeData()
         observeFavoriteCategories()
         refresh()
     }
 
+    @OptIn(FlowPreview::class)
     fun loadChannels(category: String? = null) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            val isUserCategorySwitch = category != null && category != _uiState.value.selectedCategory
+            _uiState.update {
+                it.copy(
+                    isLoading = true,
+                    error = if (isUserCategorySwitch) null else it.error,
+                    errorType = if (isUserCategorySwitch) ErrorType.NONE else it.errorType
+                )
+            }
+
+            // If entering with a category filter but categories aren't loaded yet
+            // (e.g. navigated directly via ChannelsByCategory), bootstrap them from Room.
+            if (category != null && _uiState.value.categories.isEmpty()) {
+                val allEntities = channelDao.getAllActiveChannels()
+                if (allEntities.isNotEmpty()) {
+                    val cats = allEntities.map { it.categoryId }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+                    _uiState.update { state -> state.copy(categories = cats) }
+                }
+            }
 
             val channelFlow = if (category != null) {
                 getChannelsByCategoryUseCase(category)
@@ -87,35 +123,51 @@ class ChannelsViewModel @Inject constructor(
                 getChannelsUseCase(Unit)
             }
 
-            channelFlow.combine(channelHealthDao.getAllHealth()) { result, healthList ->
+            channelFlow.combine(
+                channelHealthDao.getAllHealth()
+                    .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                    .onStart { emit(emptyList()) }
+            ) { result, healthList ->
                 result to healthList
             }.collect { (result, healthList) ->
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
-                            .map { enrichWithEpg(it) }
-                        val allCategories = uiChannels
-                            .map { it.category }
-                            .filter { it.isNotBlank() }
-                            .distinct()
-                            .sorted()
+                            .map { enrichWithEpgIfReady(it) }
 
-                        // Build category logo collages (up to 4 distinct logos per category)
-                        val catLogos = uiChannels
-                            .groupBy { it.category }
-                            .mapValues { (_, channels) ->
-                                channels
-                                    .mapNotNull { it.logoUrl }
-                                    .distinct()
-                                    .take(4)
-                            }
+                        // Only rebuild categories/logos when showing all channels (no filter).
+                        // When a category is selected we show a filtered subset, but the full
+                        // category list must stay visible so the user can jump between categories.
+                        val allCategories: List<String>
+                        val catLogos: Map<String, List<String>>
+                        if (category == null) {
+                            allCategories = uiChannels
+                                .map { it.category }
+                                .filter { it.isNotBlank() }
+                                .distinct()
+                                .sorted()
+                            catLogos = uiChannels
+                                .groupBy { it.category }
+                                .mapValues { (_, channels) ->
+                                    channels
+                                        .mapNotNull { it.logoUrl }
+                                        .distinct()
+                                        .take(4)
+                                }
+                        } else {
+                            // Keep existing categories & logos from the previous "all" load
+                            allCategories = _uiState.value.categories
+                            catLogos = _uiState.value.categoryLogos
+                        }
 
                         _uiState.update {
                             it.copy(
                                 channels = uiChannels,
                                 categories = allCategories,
                                 categoryLogos = catLogos,
-                                isLoading = false,
+                                isLoading = refreshJob?.isActive == true,
+                                error = if (uiChannels.isNotEmpty()) null else it.error,
+                                errorType = if (uiChannels.isNotEmpty()) ErrorType.NONE else it.errorType,
                                 selectedCategory = category
                             )
                         }
@@ -124,7 +176,7 @@ class ChannelsViewModel @Inject constructor(
                         val (msg, type) = classifyError(result.exception)
                         _uiState.update {
                             it.copy(
-                                isLoading = false,
+                                isLoading = refreshJob?.isActive == true,
                                 error = msg,
                                 errorType = type
                             )
@@ -141,8 +193,10 @@ class ChannelsViewModel @Inject constructor(
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, FlowPreview::class)
     private fun loadHomeData() {
+        recentlyWatchedJob?.cancel()
+        popularCategoriesJob?.cancel()
         // Recently watched — auto-updates when user watches a new channel
-        viewModelScope.launch {
+        recentlyWatchedJob = viewModelScope.launch {
             try {
                 playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT)
                     .flatMapLatest { recentIds ->
@@ -152,14 +206,14 @@ class ChannelsViewModel @Inject constructor(
                         } else {
                             channelHealthDao.getAllHealth()
                                 .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                                .onStart { emit(emptyList()) }
                                 .map { health ->
                                     val recentEntities = channelDao.getChannelsByIds(recentIds)
                                     val favIds = favoriteDao.getFavoriteChannelIds().toSet()
                                     val recentUi = channelUiMapper.toUiModelsWithHealth(
                                         recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
-                                    ).map { enrichWithEpg(it) }
-                                     .filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
+                                    ).map { enrichWithEpgIfReady(it) }
 
                                     // Preserve the order from recentIds
                                     val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
@@ -179,13 +233,15 @@ class ChannelsViewModel @Inject constructor(
         }
 
         // Popular categories — independent dataset, auto-updates on any change
-        viewModelScope.launch {
+        popularCategoriesJob = viewModelScope.launch {
             try {
                 combine(
                     playbackPositionDao.observePopularCategoryIds(POPULAR_CATEGORIES_LIMIT),
                     favoriteCategoryDao.getAllFavoriteCategoryNames(),
                     channelDao.getAllChannels(),
                     channelHealthDao.getAllHealth()
+                        .debounce(HEALTH_SCAN_DEBOUNCE_MS)
+                        .onStart { emit(emptyList()) }
                 ) { popularCatIds, favNames, channelEntities, healthList ->
                     val uiChannels = channelUiMapper.toUiModelsWithHealth(
                         channelEntities.map { channelMapper.toDomain(it) },
@@ -197,10 +253,9 @@ class ChannelsViewModel @Inject constructor(
                     val allCatNames = (favNames + popularCatIds).distinct()
                     allCatNames.mapNotNull { catName ->
                         val catChannels = categoryChannels[catName] ?: return@mapNotNull null
-                        val liveChannels = catChannels.filter { it.healthStatus != ChannelHealthStatus.OFFLINE }
                         PopularCategoryUiModel(
                             name = catName,
-                            channelCount = liveChannels.size,
+                            channelCount = catChannels.size,
                             imageUrl = catChannels.firstOrNull { it.thumbnailPath != null }?.thumbnailPath
                                 ?: catChannels.firstOrNull { it.logoUrl != null }?.logoUrl,
                             isFavorite = catName in favNames
@@ -270,8 +325,9 @@ class ChannelsViewModel @Inject constructor(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = it.channels.isEmpty()) }
 
             val result = refreshChannelsUseCase(Unit)
 
@@ -280,27 +336,41 @@ class ChannelsViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
                 }
                 is Result.Error -> {
-                    val (msg, type) = classifyError(result.exception)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isInitialLoadComplete = true,
-                            error = msg,
-                            errorType = type
-                        )
+                    val hasCache = _uiState.value.channels.isNotEmpty()
+                    if (hasCache) {
+                        // Silently swallow refresh errors when cached data exists
+                        _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
+                    } else {
+                        val (msg, type) = classifyError(result.exception)
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isInitialLoadComplete = true,
+                                error = msg,
+                                errorType = type
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
+    fun onResume() {
+        if (!hasResumedBefore) {
+            hasResumedBefore = true
+            return // Skip first resume — init{} already handles it
+        }
+        refresh()
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null, errorType = ErrorType.NONE) }
     }
 
-    private suspend fun enrichWithEpg(channel: ChannelUiModel): ChannelUiModel {
+    private fun enrichWithEpgIfReady(channel: ChannelUiModel): ChannelUiModel {
         val tvgId = channel.tvgId ?: return channel
-        val (now, _) = epgRepository.getNowNext(tvgId)
+        val (now, _) = epgRepository.getNowNextIfCached(tvgId) ?: return channel
         return if (now != null) channel.copy(nowProgramTitle = now.title) else channel
     }
 

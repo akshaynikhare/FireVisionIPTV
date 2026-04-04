@@ -30,7 +30,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 private const val POSITION_SAVE_INTERVAL_MS = 5_000L
@@ -133,7 +135,9 @@ class PlayerViewModel @Inject constructor(
         epgJob?.cancel()
         epgJob = viewModelScope.launch {
             try {
-                val (now, next) = epgRepository.getNowNext(tvgId)
+                val result = epgRepository.getNowNext(tvgId)
+                val now = result.first
+                val next = result.second
                 _uiState.update { it.copy(nowPlaying = now, nextProgram = next) }
             } catch (_: Exception) {
                 // EPG failure is non-fatal; overlay shows channel info only
@@ -193,10 +197,13 @@ class PlayerViewModel @Inject constructor(
         savePositionJob = null
     }
 
+    private var currentSaveJob: Job? = null
+
     private fun saveCurrentPosition() {
         val state = _uiState.value
         val channelId = state.channel?.id ?: return
-        viewModelScope.launch {
+        currentSaveJob?.cancel()
+        currentSaveJob = viewModelScope.launch {
             savePlaybackPositionUseCase(
                 SavePlaybackPositionUseCase.Params(
                     channelId = channelId,
@@ -234,7 +241,11 @@ class PlayerViewModel @Inject constructor(
     fun saveThumbnailFromPlayer(bitmap: Bitmap) {
         val channelId = _uiState.value.channel?.id ?: return
         viewModelScope.launch {
-            thumbnailExtractor.saveThumbnailBitmap(channelId, bitmap)
+            // NonCancellable: this fires during onDispose — viewModelScope may be
+            // closing, but the disk write + DB upsert must complete.
+            withContext(NonCancellable) {
+                thumbnailExtractor.saveThumbnailBitmap(channelId, bitmap)
+            }
         }
     }
 
@@ -242,11 +253,9 @@ class PlayerViewModel @Inject constructor(
 
     fun showOverlay() {
         _uiState.update { it.copy(showChannelOverlay = true) }
-        // Default to current channel's category
+        // Always select the current channel's category so the user sees similar channels
         val currentCategory = _uiState.value.channel?.category
-        if (_uiState.value.overlayChannels.isEmpty()) {
-            loadChannelList(currentCategory)
-        }
+        loadChannelList(currentCategory)
         resetAutoHideTimer()
     }
 

@@ -370,40 +370,61 @@ suspend fun clearCache(): Result<Unit>
 
 ### Entity Relationship Diagram
 
-```text
-┌──────────────┐       ┌──────────────┐
-│   channels   │◄──FK──│  favorites   │
-│              │       │              │
-│ id (PK)      │       │ id (PK, AI)  │
-│ name         │       │ channelId    │
-│ streamUrl    │       │ addedAt      │
-│ logoUrl      │       │ displayOrder │
-│ categoryId   │       └──────────────┘
-│ language     │
-│ country      │       ┌──────────────────┐
-│ groupTitle   │◄──FK──│  channel_health   │
-│ tvgId        │       │                  │
-│ tvgName      │       │ channelId (PK)   │
-│ isActive     │       │ status           │
-│ lastUpdated  │       │ lastCheckedAt    │
-└──────────────┘       │ responseTimeMs   │
-                       │ errorMessage     │
-┌──────────────┐       │ thumbnailPath    │
-│  categories  │       └──────────────────┘
-│              │
-│ id (PK)      │       ┌────────────────────┐
-│ name         │       │ playback_positions  │
-│ displayOrder │       │                    │
-│ channelCount │       │ channelId (PK)     │
-└──────────────┘       │ position           │
-                       │ duration           │
-┌──────────────────┐   │ lastPlayed         │
-│  search_history  │   └────────────────────┘
-│                  │
-│ id (PK, AI)      │
-│ query            │
-│ timestamp        │
-└──────────────────┘
+```mermaid
+erDiagram
+    channels ||--o{ favorites : "has"
+    channels ||--o| channel_health : "has"
+
+    channels {
+        TEXT id PK
+        TEXT name "NOT NULL, INDEXED"
+        TEXT streamUrl "NOT NULL"
+        TEXT logoUrl
+        TEXT categoryId "NOT NULL, INDEXED"
+        TEXT language
+        TEXT country
+        TEXT groupTitle
+        TEXT tvgId
+        TEXT tvgName
+        INTEGER isActive "INDEXED, default 1"
+        INTEGER lastUpdated
+    }
+
+    favorites {
+        INTEGER id PK "AUTOINCREMENT"
+        TEXT channelId FK "INDEXED, CASCADE"
+        INTEGER addedAt
+        INTEGER displayOrder "default 0"
+    }
+
+    channel_health {
+        TEXT channelId PK "FK, CASCADE"
+        TEXT status "INDEXED"
+        INTEGER lastCheckedAt "INDEXED"
+        INTEGER responseTimeMs
+        TEXT errorMessage
+        TEXT thumbnailPath
+    }
+
+    categories {
+        TEXT id PK
+        TEXT name
+        INTEGER displayOrder "default 0"
+        INTEGER channelCount "default 0"
+    }
+
+    playback_positions {
+        TEXT channelId PK
+        INTEGER position
+        INTEGER duration
+        INTEGER lastPlayed "INDEXED"
+    }
+
+    search_history {
+        INTEGER id PK "AUTOINCREMENT"
+        TEXT query
+        INTEGER timestamp "INDEXED"
+    }
 ```
 
 ### Foreign Keys

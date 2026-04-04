@@ -49,7 +49,7 @@ import com.cadnative.firevisioniptv.data.source.local.entity.StreamMetricsEntity
         FavoriteCategoryEntity::class,
         StreamMetricsEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -127,6 +127,66 @@ abstract class FireVisionDatabase : RoomDatabase() {
                         FOREIGN KEY(`channelId`) REFERENCES `channels`(`id`) ON DELETE CASCADE
                     )
                 """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stream_metrics_channelId` ON `stream_metrics` (`channelId`)")
+            }
+        }
+
+        /** v6→v7: Remove FK CASCADE from favorites, channel_health, stream_metrics.
+         *  All three tables are now independent of the channels table lifecycle.
+         *  Channel sync and health scans no longer cascade-delete user data. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // ── Favorites: remove FK CASCADE ──
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `favorites_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `channelId` TEXT NOT NULL,
+                        `addedAt` INTEGER NOT NULL DEFAULT 0,
+                        `displayOrder` INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO `favorites_new` (`id`, `channelId`, `addedAt`, `displayOrder`) SELECT `id`, `channelId`, `addedAt`, `displayOrder` FROM `favorites`")
+                db.execSQL("DROP TABLE `favorites`")
+                db.execSQL("ALTER TABLE `favorites_new` RENAME TO `favorites`")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_favorites_channelId` ON `favorites` (`channelId`)")
+
+                // ── Channel Health: remove FK CASCADE ──
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `channel_health_new` (
+                        `channelId` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `lastCheckedAt` INTEGER NOT NULL DEFAULT 0,
+                        `responseTimeMs` INTEGER,
+                        `errorMessage` TEXT,
+                        `thumbnailPath` TEXT,
+                        PRIMARY KEY(`channelId`)
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO `channel_health_new` SELECT * FROM `channel_health`")
+                db.execSQL("DROP TABLE `channel_health`")
+                db.execSQL("ALTER TABLE `channel_health_new` RENAME TO `channel_health`")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_channel_health_channelId` ON `channel_health` (`channelId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_channel_health_lastCheckedAt` ON `channel_health` (`lastCheckedAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_channel_health_status` ON `channel_health` (`status`)")
+
+                // ── Stream Metrics: remove FK CASCADE ──
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `stream_metrics_new` (
+                        `channelId` TEXT NOT NULL,
+                        `playCount` INTEGER NOT NULL DEFAULT 0,
+                        `aliveCount` INTEGER NOT NULL DEFAULT 0,
+                        `deadCount` INTEGER NOT NULL DEFAULT 0,
+                        `unresponsiveCount` INTEGER NOT NULL DEFAULT 0,
+                        `lastPlayedAt` INTEGER,
+                        `lastDeadAt` INTEGER,
+                        `lastAliveAt` INTEGER,
+                        `lastUnresponsiveAt` INTEGER,
+                        PRIMARY KEY(`channelId`)
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO `stream_metrics_new` SELECT * FROM `stream_metrics`")
+                db.execSQL("DROP TABLE `stream_metrics`")
+                db.execSQL("ALTER TABLE `stream_metrics_new` RENAME TO `stream_metrics`")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stream_metrics_channelId` ON `stream_metrics` (`channelId`)")
             }
         }

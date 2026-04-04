@@ -35,8 +35,8 @@ class SecurePreferences(context: Context) {
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
-        } catch (_: Exception) {
-            // Last resort fallback to unencrypted prefs
+        } catch (e: Exception) {
+            android.util.Log.e("SecurePreferences", "CRITICAL: EncryptedSharedPreferences failed twice — falling back to UNENCRYPTED storage. Sensitive data may not be protected.", e)
             context.getSharedPreferences("secure_prefs_fallback", Context.MODE_PRIVATE)
         }
     }

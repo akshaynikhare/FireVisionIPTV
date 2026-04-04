@@ -1,6 +1,6 @@
 # Domain Layer
 
-The domain layer is the innermost layer of the architecture. It contains business logic, domain models, repository contracts, and services. This layer has **no Android framework dependencies** — it is pure Kotlin with coroutines and Hilt annotations.
+Business logic, domain models, repository contracts, and services. Pure Kotlin — no Android framework dependencies.
 
 **Package:** `com.cadnative.firevisioniptv.domain`
 
@@ -66,6 +66,21 @@ Enum representing channel availability:
 | `position` | `Long` | Current position in milliseconds |
 | `duration` | `Long` | Total duration in milliseconds |
 | `isPlaying` | `Boolean` | Whether playback is active |
+
+### EpgProgram
+
+`domain/model/EpgProgram.kt`
+
+EPG (Electronic Program Guide) entry for a channel.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `channelEpgId` | `String` | TVG ID matching the channel |
+| `title` | `String` | Program title (e.g., "News at 9") |
+| `description` | `String?` | Program description |
+| `startTime` | `Instant` | Program start time |
+| `endTime` | `Instant` | Program end time |
+| `icon` | `String?` | Program artwork URL |
 
 ### SearchFilter
 
@@ -155,6 +170,22 @@ suspend fun saveSearch(query: String): Result<Unit>
 suspend fun clearHistory(): Result<Unit>
 suspend fun removeSearch(query: String): Result<Unit>
 ```
+
+### EpgRepository
+
+`domain/repository/EpgRepository.kt`
+
+Provides EPG (Electronic Program Guide) data — "Now" and "Next" program info for channels.
+
+```kotlin
+suspend fun ensureLoaded()
+suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?>
+fun getNowNextIfCached(tvgId: String): Pair<EpgProgram?, EpgProgram?>?
+```
+
+- `ensureLoaded()` — Fetches EPG data from the server if not already cached. Called once during ViewModel init.
+- `getNowNext(tvgId)` — Suspend. Triggers load if needed, then returns current and next program.
+- `getNowNextIfCached(tvgId)` — **Non-suspend, non-blocking.** Returns `null` if EPG not yet loaded (caller skips enrichment). Returns `Pair(null, null)` if loaded but no programs found for this tvgId. Used by `ChannelsViewModel.enrichWithEpgIfReady()` to avoid blocking channel display while EPG loads.
 
 ### UserPreferencesRepository
 
@@ -257,25 +288,3 @@ suspend fun clearThumbnails()          // Clears all cached thumbnails
 
 Thumbnails are stored in `cacheDir/thumbnails/{channelId}.jpg` and referenced via `ChannelHealthEntity.thumbnailPath`.
 
-## How to Extend
-
-### Adding a new use case
-
-1. Create a class in `domain/usecase/` extending `UseCase` or `FlowUseCase`
-2. Inject the relevant repository interface via constructor
-3. Implement `execute()` with business logic
-4. Annotate with `@Inject constructor` for Hilt
-5. Inject the use case into the ViewModel that needs it
-
-### Adding a new domain model
-
-1. Create a data class in `domain/model/`
-2. Add corresponding entity in `data/source/local/entity/` if it needs persistence
-3. Add mapper functions in `data/mapper/`
-4. Add a UI model in `presentation/model/` if it differs from the domain model
-
-### Adding a new repository
-
-1. Define the interface in `domain/repository/`
-2. Implement it in `data/repository/`
-3. Add a `@Binds` entry in `di/RepositoryModule.kt`

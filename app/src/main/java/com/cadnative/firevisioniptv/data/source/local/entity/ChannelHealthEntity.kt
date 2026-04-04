@@ -1,20 +1,15 @@
 package com.cadnative.firevisioniptv.data.source.local.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+/**
+ * No foreign key to channels — health data persists independently.
+ * Old statuses remain visible until replaced by a new scan result.
+ */
 @Entity(
     tableName = "channel_health",
-    foreignKeys = [
-        ForeignKey(
-            entity = ChannelEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["channelId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [
         Index(value = ["channelId"], unique = true),
         Index(value = ["lastCheckedAt"]),

@@ -2,10 +2,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="251"
-    android:viewportHeight="303">
+    android:viewportWidth="500"
+    android:viewportHeight="500">
 
-    <group android:translateX="-123" android:translateY="-37">
+    <group android:translateX="1" android:translateY="63">
     <!-- FireVision flame — single path for monochrome/themed icons -->
     <path
         android:fillColor="#000000"

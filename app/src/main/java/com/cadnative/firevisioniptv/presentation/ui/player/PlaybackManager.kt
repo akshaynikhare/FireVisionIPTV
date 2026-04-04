@@ -58,6 +58,7 @@ class PlaybackManager(
      * Handle channel switching with smooth transition.
      */
     fun switchChannel(streamUrl: String, savedPosition: Long = 0) {
+        stopPositionSaving()
         player.stop()
         player.clearMediaItems()
         

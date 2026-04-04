@@ -93,8 +93,10 @@ class ComposeMainActivity : ComponentActivity() {
 
         // Parse deep link channel ID if present
         val deepLinkChannelId = intent?.data?.let { uri ->
-            if (uri.host == "play" && uri.pathSegments.size >= 2 && uri.pathSegments[0] == "movie") {
-                uri.pathSegments[1]
+            if (uri.host == "play" && uri.pathSegments.size >= 2 && uri.pathSegments[0] in listOf("movie", "channel")) {
+                val rawId = uri.pathSegments[1]
+                // Validate channelId: alphanumeric, hyphens, underscores only, max 64 chars
+                if (rawId.length <= 64 && rawId.matches(Regex("^[a-zA-Z0-9_-]+$"))) rawId else null
             } else null
         }
 
@@ -113,25 +115,23 @@ class ComposeMainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                Crossfade(
-                    targetState = showSplash,
-                    animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
-                    label = "splashTransition"
-                ) { isSplashing ->
-                    if (isSplashing) {
-                        SplashScreen(onSplashFinished = { showSplash = false })
-                    } else {
-                        FireVisionAppShell(
-                            navController = navController,
-                            startDestination = startDestination
-                        )
+                // Compose app shell immediately so ViewModel init{} fires during splash
+                Box(modifier = Modifier.fillMaxSize()) {
+                    FireVisionAppShell(
+                        navController = navController,
+                        startDestination = startDestination
+                    )
 
-                        // Navigate to player if deep link channel is set (once only)
-                        if (targetChannelId != null && savedInstanceState == null && !needsPairing) {
-                            LaunchedEffect(targetChannelId) {
-                                navController.navigate(Screen.Player.createRoute(targetChannelId))
-                            }
+                    // Deep link navigation (once only, after splash)
+                    if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
+                        LaunchedEffect(targetChannelId) {
+                            navController.navigate(Screen.Player.createRoute(targetChannelId))
                         }
+                    }
+
+                    // Splash overlay — fades itself out via built-in alpha animation
+                    if (showSplash) {
+                        SplashScreen(onSplashFinished = { showSplash = false })
                     }
                 }
             }
@@ -145,6 +145,11 @@ class ComposeMainActivity : ComponentActivity() {
     private fun isFirstLaunch(): Boolean {
         val prefs: SharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         return !prefs.getBoolean("has_launched_before", false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        channelHealthScanner.destroy()
     }
 
     private fun markFirstLaunchComplete() {

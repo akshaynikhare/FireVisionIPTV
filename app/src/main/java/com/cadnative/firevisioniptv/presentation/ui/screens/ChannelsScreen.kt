@@ -1,7 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -10,13 +10,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,8 +28,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
-import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
-import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
+import com.cadnative.firevisioniptv.presentation.ui.theme.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +36,6 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
-    onCategoryClick: (String) -> Unit,
     initialCategory: String? = null,
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
@@ -109,7 +110,10 @@ fun ChannelsScreen(
                             message = uiState.error ?: "Unknown error",
                             onRetry = { viewModel.refresh() }
                         )
-                        "empty" -> EmptyState(message = "No channels available")
+                        "empty" -> EmptyState(
+                            message = "No channels available",
+                            onRetry = { viewModel.refresh() }
+                        )
                         else -> ChannelsGrid(
                             channels = uiState.channels,
                             onChannelClick = onChannelClick,
@@ -132,7 +136,17 @@ private fun CategoryChips(
     onAllSelected: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val listState = rememberLazyListState()
+
+    // Auto-scroll to keep the selected category visible
+    val selectedIndex = if (selectedCategory == null) 0
+        else categories.indexOf(selectedCategory).let { if (it >= 0) it + 1 else 0 }
+    LaunchedEffect(selectedCategory) {
+        listState.scrollToItem(maxOf(0, selectedIndex - 1))
+    }
+
     LazyRow(
+        state = listState,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
@@ -140,51 +154,80 @@ private fun CategoryChips(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            val borderColor by animateColorAsState(
-                targetValue = if (selectedCategory != null) subtleBorder else Color.Transparent,
+            var isFocused by remember { mutableStateOf(false) }
+            val scale by animateFloatAsState(
+                targetValue = if (isFocused) 1.12f else 1f,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "allChipBorder"
+                label = "allChipScale"
             )
+            val isSelected = selectedCategory == null
+            val borderStroke: BorderStroke? = when {
+                isFocused -> BorderStroke(2.5.dp, FocusBorder)
+                !isSelected -> BorderStroke(1.dp, subtleBorder)
+                else -> null
+            }
             FilterChip(
-                selected = selectedCategory == null,
+                selected = isSelected,
                 onClick = onAllSelected,
                 label = {
                     Text(
                         text = "All",
-                        fontWeight = if (selectedCategory == null) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            isFocused && !isSelected -> Amber
+                            else -> Color.Unspecified
+                        }
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    selectedContainerColor = Amber,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
                 ),
-                border = if (selectedCategory != null) BorderStroke(1.dp, borderColor) else null,
-                shape = RoundedCornerShape(8.dp)
+                border = borderStroke,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .onFocusChanged { isFocused = it.isFocused }
             )
         }
         items(categories) { category ->
-            val catColor = categoryColor(category)
-            val isSelected = selectedCategory == category
-            val borderColor by animateColorAsState(
-                targetValue = if (!isSelected) subtleBorder else Color.Transparent,
+            var isFocused by remember { mutableStateOf(false) }
+            val scale by animateFloatAsState(
+                targetValue = if (isFocused) 1.12f else 1f,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "chipBorder_$category"
+                label = "chipScale_$category"
             )
+            val isSelected = selectedCategory == category
+            val catColor = categoryColor(category)
+            val borderStroke: BorderStroke? = when {
+                isFocused -> BorderStroke(2.5.dp, FocusBorder)
+                !isSelected -> BorderStroke(1.dp, subtleBorder)
+                else -> null
+            }
             FilterChip(
                 selected = isSelected,
                 onClick = { onCategorySelected(category) },
                 label = {
                     Text(
                         text = category,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
+                        color = when {
+                            isFocused && !isSelected -> Amber
+                            else -> Color.Unspecified
+                        }
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = catColor,
-                    selectedLabelColor = MaterialTheme.colorScheme.background
+                    selectedLabelColor = MaterialTheme.colorScheme.background,
+                    containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
                 ),
-                border = if (!isSelected) BorderStroke(1.dp, borderColor) else null,
-                shape = RoundedCornerShape(8.dp)
+                border = borderStroke,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+                    .onFocusChanged { isFocused = it.isFocused }
             )
         }
     }

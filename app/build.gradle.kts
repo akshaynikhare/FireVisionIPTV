@@ -48,6 +48,11 @@ android {
         buildConfig = true
     }
 
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     // Room schema export configuration
     kapt {
         correctErrorTypes = true

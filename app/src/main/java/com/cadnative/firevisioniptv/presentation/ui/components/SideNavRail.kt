@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
@@ -46,8 +47,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cadnative.firevisioniptv.R
 import androidx.compose.material3.MaterialTheme
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
@@ -101,15 +104,27 @@ fun SideNavRail(
             .padding(vertical = 24.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Brand mark
-        Text(
-            text = if (isExpanded) "FireVision" else "FV",
-            color = MaterialTheme.colorScheme.primary,
-            fontSize = if (isExpanded) 20.sp else 14.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = if (isExpanded) (-0.5).sp else 1.sp,
+        // Brand mark — app flame icon
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 12.dp)
-        )
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "FireVision",
+                modifier = Modifier.size(64.dp)
+            )
+            if (isExpanded) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "FireVision",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -172,7 +187,17 @@ private fun NavRailItem(
         label = "navItemGlow"
     )
 
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(14.dp)
+
+    val selectedBg by animateColorAsState(
+        targetValue = when {
+            isFocused -> Color.Transparent
+            isSelected -> primaryColor.copy(alpha = 0.12f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = DURATION_FAST, easing = EaseOutQuart),
+        label = "navItemBg"
+    )
 
     Row(
         modifier = modifier
@@ -181,7 +206,11 @@ private fun NavRailItem(
             .drawBehind {
                 drawRoundRect(
                     color = glowAlpha,
-                    cornerRadius = CornerRadius(10.dp.toPx())
+                    cornerRadius = CornerRadius(14.dp.toPx())
+                )
+                drawRoundRect(
+                    color = selectedBg,
+                    cornerRadius = CornerRadius(14.dp.toPx())
                 )
             }
             .onFocusChanged { isFocused = it.isFocused }
@@ -190,26 +219,15 @@ private fun NavRailItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp, vertical = 16.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
     ) {
-        // Accent bar for selected item
-        if (isSelected && !isFocused) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(20.dp)
-                    .background(primaryColor, RoundedCornerShape(2.dp))
-            )
-            Spacer(modifier = Modifier.width(if (isExpanded) 11.dp else 8.dp))
-        }
-
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = contentColor,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(28.dp)
         )
 
         if (isExpanded) {
