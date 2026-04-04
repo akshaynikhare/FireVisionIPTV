@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.0] - 2026-04-04
+
+### Added
+- Add header redaction for X-TV-Code in NetworkModule and recycle QR code bitmap in SettingsViewModel
+- Enhance channel synchronization and playback handling in ChannelManager and PlayerScreen
+- Implement Box overlay pattern for splash screen to pre-warm ViewModel
+- Enhance channel management and UI with cache clearing functionality, improved empty states, and app startup flow documentation
+- Add FUNDING.yml for GitHub sponsorship and support options
+
+### Changed
+- Update README for clarity and formatting improvements
+
+### Other
+- Add documentation for plaintext TV code storage decision, app startup flow, deployment guide, favorites workflow, health scanner lifecycle, player back press flow, and developer setup guide
+- Refactor ChannelManager to use Hilt for dependency injection, sync EPG data, and improve channel management
+
+---
+
 ## [2.0.5] - 2026-04-03
 
 ### Added
