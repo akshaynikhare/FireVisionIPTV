@@ -44,6 +44,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
+import com.cadnative.firevisioniptv.drm.AmazonDrmManager
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
@@ -80,6 +81,15 @@ class ComposeMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+
+        // Verify Amazon Appstore DRM license
+        AmazonDrmManager(this).verifyLicense { licensed ->
+            if (!licensed) {
+                android.util.Log.w("FireVision", "DRM: App not licensed — finishing activity")
+                finish()
+                return@verifyLicense
+            }
+        }
 
         val needsPairing = !isTvCodeConfigured()
         if (isFirstLaunch()) {

@@ -173,6 +173,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Amazon Appstore SDK (DRM license verification)
+    implementation("com.amazon.device:amazon-appstore-sdk:3.0.5")
+
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
 
