@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.ContentScale
@@ -176,24 +177,15 @@ private fun ChannelCardContent(
             }
         }
 
-        if (channel.logoUrl != null) {
-            AsyncImage(
-                model = channel.logoUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize(0.6f)
-                    .align(Alignment.TopCenter)
-                    .padding(top = 6.dp),
-                contentScale = ContentScale.Fit
-            )
-        } else if (thumbnailFile != null) {
+        // Background: thumbnail screenshot (if available)
+        if (thumbnailFile != null) {
             AsyncImage(
                 model = thumbnailFile,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        } else {
+        } else if (channel.logoUrl == null) {
             Icon(
                 imageVector = catIcon,
                 contentDescription = null,
@@ -202,6 +194,25 @@ private fun ChannelCardContent(
                     .align(Alignment.Center)
                     .size(48.dp)
             )
+        }
+
+        // Foreground: logo overlay (on top of thumbnail or gradient)
+        if (channel.logoUrl != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(surfaceColor.copy(alpha = 0.80f)),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                AsyncImage(
+                    model = channel.logoUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize(0.6f)
+                        .padding(top = 6.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
 
         // ── Layer 2: Translucent scrim for text readability ─────────
