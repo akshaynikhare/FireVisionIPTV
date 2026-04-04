@@ -3,12 +3,15 @@ package com.cadnative.firevisioniptv.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
+import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.domain.usecase.GetFavoriteChannelsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ReorderFavoritesUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.FavoritesUiState
+import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +30,9 @@ class FavoritesViewModel @Inject constructor(
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val reorderFavoritesUseCase: ReorderFavoritesUseCase,
     private val channelUiMapper: ChannelUiMapper,
-    private val channelHealthDao: ChannelHealthDao
+    private val channelHealthDao: ChannelHealthDao,
+    private val channelDao: ChannelDao,
+    private val favoriteCategoryDao: FavoriteCategoryDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FavoritesUiState())
@@ -35,13 +40,54 @@ class FavoritesViewModel @Inject constructor(
 
     private val reorderMutex = Mutex()
     private var loadJob: Job? = null
+    private var categoriesJob: Job? = null
 
     init {
         loadFavorites()
+        loadFavoriteCategories()
     }
 
     fun retryLoadFavorites() {
         loadFavorites()
+        loadFavoriteCategories()
+    }
+
+    private fun loadFavoriteCategories() {
+        categoriesJob?.cancel()
+        categoriesJob = viewModelScope.launch {
+            combine(
+                favoriteCategoryDao.getAllFavoriteCategories(),
+                channelDao.getAllChannels(),
+                channelHealthDao.getAllHealth()
+            ) { favCategories, allChannels, healthList ->
+                val channelsByCategory = allChannels.groupBy { it.categoryId }
+                val healthMap = healthList.associateBy { it.channelId }
+                favCategories.mapNotNull { favCat ->
+                    val catChannels = channelsByCategory[favCat.categoryName] ?: return@mapNotNull null
+                    PopularCategoryUiModel(
+                        name = favCat.categoryName,
+                        channelCount = catChannels.size,
+                        imageUrl = catChannels.firstNotNullOfOrNull { ch ->
+                            healthMap[ch.id]?.thumbnailPath
+                        } ?: catChannels.firstNotNullOfOrNull { it.logoUrl },
+                        isFavorite = true
+                    )
+                }
+            }.collect { categories ->
+                _uiState.update { it.copy(favoriteCategories = categories) }
+            }
+        }
+    }
+
+    fun removeFavoriteCategory(categoryName: String) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    favoriteCategories = state.favoriteCategories.filter { it.name != categoryName }
+                )
+            }
+            favoriteCategoryDao.removeFavorite(categoryName)
+        }
     }
 
     private fun loadFavorites() {

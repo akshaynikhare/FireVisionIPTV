@@ -8,6 +8,7 @@ package com.cadnative.firevisioniptv.presentation.model
  */
 data class FavoritesUiState(
     val favorites: List<ChannelUiModel> = emptyList(),
+    val favoriteCategories: List<PopularCategoryUiModel> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
