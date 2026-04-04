@@ -28,6 +28,6 @@ sealed class Screen(val route: String) {
 
     companion object {
         /** Route strings for top-level screens that show the sidebar navigation rail. */
-        val sidebarRoutes = setOf("home", "channels", "categories", "search", "favorites", "settings")
+        val sidebarRoutes = setOf("home", "channels", "categories", "search", "favorites", "settings", "channels/category/{categoryId}")
     }
 }
