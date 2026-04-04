@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.2] - 2026-04-04
+
+### Added
+- enhance Favorites feature to include favorite categories and navigation
+- add ChannelsByCategory route to sidebar navigation
+- enhance ChannelCard to display logo overlay on thumbnail
+
+---
+
 ## [2.1.1] - 2026-04-04
 
 ### Added
