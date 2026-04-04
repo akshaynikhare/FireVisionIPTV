@@ -584,6 +584,7 @@ class SettingsViewModel @Inject constructor(
             try { application.applicationContext.unregisterReceiver(receiver) } catch (_: Exception) {}
         }
         downloadReceiver = null
+        _uiState.value.qrCodeBitmap?.recycle()
     }
 
     fun clearError() {
