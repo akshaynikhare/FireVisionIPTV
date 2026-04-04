@@ -45,7 +45,8 @@ object DatabaseModule {
                 FireVisionDatabase.MIGRATION_2_3,
                 FireVisionDatabase.MIGRATION_3_4,
                 FireVisionDatabase.MIGRATION_4_5,
-                FireVisionDatabase.MIGRATION_5_6
+                FireVisionDatabase.MIGRATION_5_6,
+                FireVisionDatabase.MIGRATION_6_7
             )
             .build()
     }

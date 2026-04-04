@@ -28,6 +28,7 @@
         android:theme="@style/Theme.FireVisionIPTV"
         android:networkSecurityConfig="@xml/network_security_config">
 
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
         <meta-data android:name="io.sentry.dsn" android:value="${sentryDsn}" />
         <meta-data android:name="io.sentry.traces-sample-rate" android:value="0.1" />
         <meta-data android:name="io.sentry.environment" android:value="${sentryEnvironment}" />

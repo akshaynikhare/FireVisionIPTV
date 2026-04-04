@@ -222,7 +222,11 @@ class ErrorRecoveryManager(
         player.play()
     }
 
+    private var isReleased = false
+
     fun release() {
+        if (isReleased) return
+        isReleased = true
         reconnectJob?.cancel()
         bufferWatchJob?.cancel()
         player.removeListener(playerListener)

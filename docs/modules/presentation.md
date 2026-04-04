@@ -62,6 +62,29 @@ presentation/
 
 ## Navigation
 
+```mermaid
+flowchart TD
+    Splash --> Pairing
+    Splash --> Home
+
+    subgraph SideNavRail
+        Home
+        Channels
+        Categories
+        Search
+        Favorites
+        Settings
+    end
+
+    Home --> Player
+    Channels --> Player
+    Channels --> ChannelsByCategory
+    ChannelsByCategory --> Player
+    Search --> Player
+    Favorites --> Player
+    Categories --> ChannelsByCategory
+```
+
 ### Screen Routes
 
 Defined in `Screen.kt` as a sealed class:
@@ -77,8 +100,6 @@ Defined in `Screen.kt` as a sealed class:
 | `Settings` | `"settings"` | — |
 | `Player` | `"player/{channelId}"` | `channelId: String` |
 | `ChannelsByCategory` | `"channels/category/{categoryId}"` | `categoryId: String` (URL-encoded) |
-
-**Sidebar routes:** Home, Channels, Categories, Search, Favorites, Settings — shown in the persistent `SideNavRail`.
 
 ### Navigation Graph
 
@@ -306,18 +327,3 @@ Handles playback errors with retry logic and user-facing error messages.
 - `Theme.kt` — `FireVisionTheme` composable wrapping Material3 dark color scheme
 - `Type.kt` — Typography definitions optimized for TV viewing distance
 
-## How to Extend
-
-### Adding a new screen
-
-1. Add a route entry to the `Screen` sealed class in `navigation/Screen.kt`
-2. Create the screen composable in `ui/screens/`
-3. Create a ViewModel in `viewmodel/` if needed (annotate with `@HiltViewModel`)
-4. Add the composable destination in `FireVisionNavGraph.kt`
-5. If it's a sidebar route, add it to `Screen.sidebarRoutes` and `SideNavRail`
-
-### Adding a new reusable component
-
-1. Create the composable in `ui/components/`
-2. Accept data via parameters, emit events via lambda callbacks
-3. Use `Modifier` as the first optional parameter for customization

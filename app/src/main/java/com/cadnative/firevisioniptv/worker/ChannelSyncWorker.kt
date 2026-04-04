@@ -9,6 +9,7 @@ import com.cadnative.firevisioniptv.ChannelManager
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.withTimeout
 
 @HiltWorker
 class ChannelSyncWorker @AssistedInject constructor(
@@ -19,7 +20,9 @@ class ChannelSyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            val result = channelRepository.refreshChannels()
+            val result = withTimeout(SYNC_TIMEOUT_MS) {
+                channelRepository.refreshChannels()
+            }
 
             when (result) {
                 is com.cadnative.firevisioniptv.data.model.Result.Success -> {
@@ -52,5 +55,6 @@ class ChannelSyncWorker @AssistedInject constructor(
         private const val TAG = "ChannelSyncWorker"
         const val WORK_NAME = "channel_sync_work"
         private const val MAX_RETRY_ATTEMPTS = 3
+        private const val SYNC_TIMEOUT_MS = 120_000L // 2 minutes
     }
 }

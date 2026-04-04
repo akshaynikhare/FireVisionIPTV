@@ -11,7 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +49,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
+private const val LONG_PRESS_THRESHOLD_MS = 600L
+
 @Composable
 fun ChannelCard(
     channel: ChannelUiModel,
@@ -58,6 +60,7 @@ fun ChannelCard(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
+    var selectKeyDownTime by remember { mutableLongStateOf(0L) }
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.06f else 1f,
@@ -76,24 +79,51 @@ fun ChannelCard(
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
-            .onKeyEvent { keyEvent ->
-                if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
-                when (keyEvent.nativeKeyEvent.keyCode) {
-                    KeyEvent.KEYCODE_MENU,
-                    KeyEvent.KEYCODE_BOOKMARK -> {
-                        onFavoriteClick()
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_CENTER,
-                    KeyEvent.KEYCODE_ENTER -> {
-                        if (keyEvent.nativeKeyEvent.isLongPress) {
-                            longPressHandled = true
-                            onFavoriteClick()
-                            true
-                        } else false
-                    }
-                    else -> false
+            .onPreviewKeyEvent { keyEvent ->
+                val code = keyEvent.nativeKeyEvent.keyCode
+                val action = keyEvent.nativeKeyEvent.action
+
+                // Menu / Bookmark → instant favorite toggle
+                if (action == KeyEvent.ACTION_DOWN &&
+                    (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
+                ) {
+                    onFavoriteClick()
+                    return@onPreviewKeyEvent true
                 }
+
+                // D-pad center / Enter → track hold duration for long-press
+                if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER) {
+                    when (action) {
+                        KeyEvent.ACTION_DOWN -> {
+                            if (keyEvent.nativeKeyEvent.repeatCount == 0) {
+                                selectKeyDownTime = System.currentTimeMillis()
+                                longPressHandled = false
+                            }
+                            // Check on repeated key events (held down)
+                            if (selectKeyDownTime > 0 &&
+                                System.currentTimeMillis() - selectKeyDownTime >= LONG_PRESS_THRESHOLD_MS &&
+                                !longPressHandled
+                            ) {
+                                longPressHandled = true
+                                onFavoriteClick()
+                                return@onPreviewKeyEvent true
+                            }
+                            // Don't consume — let Card handle normal press
+                            return@onPreviewKeyEvent false
+                        }
+                        KeyEvent.ACTION_UP -> {
+                            val wasLongPress = longPressHandled
+                            selectKeyDownTime = 0L
+                            // If long-press was handled, consume the UP to prevent Card's onClick
+                            if (wasLongPress) {
+                                return@onPreviewKeyEvent true
+                            }
+                            return@onPreviewKeyEvent false
+                        }
+                    }
+                }
+
+                false
             },
         shape = MaterialTheme.shapes.medium,
         border = when {
@@ -205,25 +235,13 @@ private fun ChannelCardContent(
         // Favorite badge — top-left
         if (channel.isFavorite) {
             Icon(
-                imageVector = Icons.Default.Star,
+                imageVector = Icons.Filled.Favorite,
                 contentDescription = "Favorite",
                 tint = Amber,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(8.dp)
                     .size(16.dp)
-            )
-        }
-
-        // "Hold to favorite" hint when focused
-        if (isFocused && !channel.isFavorite) {
-            Text(
-                text = "Hold to favorite",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
             )
         }
 

@@ -69,6 +69,8 @@ class ChannelsViewModel @Inject constructor(
 
     private var loadJob: Job? = null
     private var refreshJob: Job? = null
+    private var recentlyWatchedJob: Job? = null
+    private var popularCategoriesJob: Job? = null
     private var hasResumedBefore = false
 
     init {
@@ -102,6 +104,19 @@ class ChannelsViewModel @Inject constructor(
                 )
             }
 
+            // If entering with a category filter but categories aren't loaded yet
+            // (e.g. navigated directly via ChannelsByCategory), bootstrap them from Room.
+            if (category != null && _uiState.value.categories.isEmpty()) {
+                val allEntities = channelDao.getAllActiveChannels()
+                if (allEntities.isNotEmpty()) {
+                    val cats = allEntities.map { it.categoryId }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+                    _uiState.update { state -> state.copy(categories = cats) }
+                }
+            }
+
             val channelFlow = if (category != null) {
                 getChannelsByCategoryUseCase(category)
             } else {
@@ -119,21 +134,31 @@ class ChannelsViewModel @Inject constructor(
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
                             .map { enrichWithEpgIfReady(it) }
-                        val allCategories = uiChannels
-                            .map { it.category }
-                            .filter { it.isNotBlank() }
-                            .distinct()
-                            .sorted()
 
-                        // Build category logo collages (up to 4 distinct logos per category)
-                        val catLogos = uiChannels
-                            .groupBy { it.category }
-                            .mapValues { (_, channels) ->
-                                channels
-                                    .mapNotNull { it.logoUrl }
-                                    .distinct()
-                                    .take(4)
-                            }
+                        // Only rebuild categories/logos when showing all channels (no filter).
+                        // When a category is selected we show a filtered subset, but the full
+                        // category list must stay visible so the user can jump between categories.
+                        val allCategories: List<String>
+                        val catLogos: Map<String, List<String>>
+                        if (category == null) {
+                            allCategories = uiChannels
+                                .map { it.category }
+                                .filter { it.isNotBlank() }
+                                .distinct()
+                                .sorted()
+                            catLogos = uiChannels
+                                .groupBy { it.category }
+                                .mapValues { (_, channels) ->
+                                    channels
+                                        .mapNotNull { it.logoUrl }
+                                        .distinct()
+                                        .take(4)
+                                }
+                        } else {
+                            // Keep existing categories & logos from the previous "all" load
+                            allCategories = _uiState.value.categories
+                            catLogos = _uiState.value.categoryLogos
+                        }
 
                         _uiState.update {
                             it.copy(
@@ -168,8 +193,10 @@ class ChannelsViewModel @Inject constructor(
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, FlowPreview::class)
     private fun loadHomeData() {
+        recentlyWatchedJob?.cancel()
+        popularCategoriesJob?.cancel()
         // Recently watched — auto-updates when user watches a new channel
-        viewModelScope.launch {
+        recentlyWatchedJob = viewModelScope.launch {
             try {
                 playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT)
                     .flatMapLatest { recentIds ->
@@ -206,7 +233,7 @@ class ChannelsViewModel @Inject constructor(
         }
 
         // Popular categories — independent dataset, auto-updates on any change
-        viewModelScope.launch {
+        popularCategoriesJob = viewModelScope.launch {
             try {
                 combine(
                     playbackPositionDao.observePopularCategoryIds(POPULAR_CATEGORIES_LIMIT),

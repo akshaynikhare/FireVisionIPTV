@@ -1,6 +1,6 @@
 # Domain Layer
 
-The domain layer is the innermost layer of the architecture. It contains business logic, domain models, repository contracts, and services. This layer has **no Android framework dependencies** — it is pure Kotlin with coroutines and Hilt annotations.
+Business logic, domain models, repository contracts, and services. Pure Kotlin — no Android framework dependencies.
 
 **Package:** `com.cadnative.firevisioniptv.domain`
 
@@ -288,25 +288,3 @@ suspend fun clearThumbnails()          // Clears all cached thumbnails
 
 Thumbnails are stored in `cacheDir/thumbnails/{channelId}.jpg` and referenced via `ChannelHealthEntity.thumbnailPath`.
 
-## How to Extend
-
-### Adding a new use case
-
-1. Create a class in `domain/usecase/` extending `UseCase` or `FlowUseCase`
-2. Inject the relevant repository interface via constructor
-3. Implement `execute()` with business logic
-4. Annotate with `@Inject constructor` for Hilt
-5. Inject the use case into the ViewModel that needs it
-
-### Adding a new domain model
-
-1. Create a data class in `domain/model/`
-2. Add corresponding entity in `data/source/local/entity/` if it needs persistence
-3. Add mapper functions in `data/mapper/`
-4. Add a UI model in `presentation/model/` if it differs from the domain model
-
-### Adding a new repository
-
-1. Define the interface in `domain/repository/`
-2. Implement it in `data/repository/`
-3. Add a `@Binds` entry in `di/RepositoryModule.kt`

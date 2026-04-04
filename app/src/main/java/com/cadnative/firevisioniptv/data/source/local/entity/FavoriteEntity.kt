@@ -1,26 +1,18 @@
 package com.cadnative.firevisioniptv.data.source.local.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Room entity representing a user's favorite channel.
- * 
- * This entity maintains a many-to-one relationship with ChannelEntity
- * and supports reordering through the displayOrder field.
+ *
+ * No foreign key to channels — favorites are independent of channel lifecycle.
+ * Channel syncs must never delete favorites. The JOIN query in FavoriteDao
+ * naturally excludes favorites whose channel no longer exists.
  */
 @Entity(
     tableName = "favorites",
-    foreignKeys = [
-        ForeignKey(
-            entity = ChannelEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["channelId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [Index(value = ["channelId"], unique = true)]
 )
 data class FavoriteEntity(

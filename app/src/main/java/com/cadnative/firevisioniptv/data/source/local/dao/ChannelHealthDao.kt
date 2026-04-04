@@ -62,8 +62,26 @@ interface ChannelHealthDao {
     @Query("SELECT channelId FROM channel_health WHERE status = 'ONLINE' AND thumbnailPath IS NULL")
     suspend fun getOnlineChannelIdsWithoutThumbnail(): List<String>
 
-    @Query("UPDATE channel_health SET thumbnailPath = :path WHERE channelId = :channelId")
+    /**
+     * Upsert thumbnail path — creates a row if none exists yet (e.g., health scan
+     * hasn't run for this channel), preserving any existing health fields.
+     */
+    @Query("""
+        INSERT OR REPLACE INTO channel_health
+            (channelId, status, lastCheckedAt, responseTimeMs, errorMessage, thumbnailPath)
+        VALUES (
+            :channelId,
+            COALESCE((SELECT status FROM channel_health WHERE channelId = :channelId), 'UNKNOWN'),
+            COALESCE((SELECT lastCheckedAt FROM channel_health WHERE channelId = :channelId), 0),
+            (SELECT responseTimeMs FROM channel_health WHERE channelId = :channelId),
+            (SELECT errorMessage FROM channel_health WHERE channelId = :channelId),
+            :path
+        )
+    """)
     suspend fun updateThumbnailPath(channelId: String, path: String)
+
+    @Query("SELECT thumbnailPath FROM channel_health WHERE thumbnailPath IS NOT NULL")
+    suspend fun getAllThumbnailPaths(): List<String>
 
     @Query("UPDATE channel_health SET thumbnailPath = NULL")
     suspend fun clearAllThumbnailPaths()

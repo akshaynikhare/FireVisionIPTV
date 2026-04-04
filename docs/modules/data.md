@@ -1,6 +1,18 @@
 # Data Layer
 
-The data layer implements repository interfaces defined in the domain layer. It manages local persistence via Room, remote API calls via Retrofit, and data mapping between DTOs, entities, and domain models.
+Implements domain repository interfaces. Manages local persistence (Room), remote API (Retrofit), and data mapping between DTOs, entities, and domain models.
+
+```mermaid
+flowchart LR
+    API["Retrofit API"] --> DTO
+    DTO --> Mapper
+    Mapper --> Entity["Room Entity"]
+    Entity --> Room["Room DB"]
+    Room --> Flow["Flow&lt;Entity&gt;"]
+    Flow --> Mapper2["Domain Mapper"]
+    Mapper2 --> Domain["Domain Model"]
+    Domain --> ViewModel
+```
 
 **Package:** `com.cadnative.firevisioniptv.data`
 
@@ -312,20 +324,3 @@ Network failures are silently swallowed — EPG is non-critical, the app degrade
 - Uses `SharedPreferences` (not Room) with `MutableStateFlow` for reactive preference updates
 - `clearCache()` — Recursively deletes `context.cacheDir`
 
-## How to Extend
-
-### Adding a new entity
-
-1. Create entity class in `data/source/local/entity/` with `@Entity` annotation
-2. Create DAO interface in `data/source/local/dao/` with `@Dao` annotation
-3. Add entity to `@Database(entities = [...])` in `FireVisionDatabase`
-4. Add abstract DAO getter in `FireVisionDatabase`
-5. Provide the DAO via `DatabaseModule`
-6. Increment database version (or use destructive migration in dev)
-
-### Adding a new API endpoint
-
-1. Add method to `FireVisionApiService` with Retrofit annotations
-2. Add DTO classes in `data/model/dto/` with `@SerializedName` annotations
-3. Add fetch method to the relevant remote data source
-4. Call from the repository implementation

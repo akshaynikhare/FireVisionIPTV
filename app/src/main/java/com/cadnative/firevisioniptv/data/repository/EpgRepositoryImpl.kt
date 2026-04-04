@@ -13,6 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +24,7 @@ class EpgRepositoryImpl @Inject constructor(
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : EpgRepository {
 
-    private val cache = mutableMapOf<String, List<EpgProgram>>()
+    private val cache = ConcurrentHashMap<String, List<EpgProgram>>()
     @Volatile private var cacheLoaded = false
     private val loadMutex = Mutex()
 

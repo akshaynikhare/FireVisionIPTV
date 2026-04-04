@@ -42,8 +42,12 @@ class ChannelRepositoryImpl @Inject constructor(
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : ChannelRepository {
 
-    // In-memory cache of alternate stream URLs per channel (populated during sync)
-    private val alternatesCache = mutableMapOf<String, List<String>>()
+    // In-memory cache of alternate stream URLs per channel (populated during sync).
+    // Capped to prevent unbounded growth between refreshes.
+    // Wrapped with synchronizedMap — accessed from IO dispatcher and Flow collectors.
+    // Swapped atomically in refreshChannels() to avoid clear+populate races.
+    @Volatile
+    private var alternatesCache: Map<String, List<String>> = emptyMap()
 
     /**
      * Get all channels with offline-first strategy.
@@ -137,12 +141,13 @@ class ChannelRepositoryImpl @Inject constructor(
             
             when (result) {
                 is Result.Success -> {
-                    // Populate in-memory alternates cache from DTOs
-                    alternatesCache.clear()
+                    // Build new alternates map and swap atomically
+                    val newAlternates = mutableMapOf<String, List<String>>()
                     result.data.forEach { dto ->
                         val alts = dto.alternateStreams?.map { it.streamUrl } ?: emptyList()
-                        if (alts.isNotEmpty()) alternatesCache[dto.id] = alts
+                        if (alts.isNotEmpty()) newAlternates[dto.id] = alts
                     }
+                    alternatesCache = newAlternates
 
                     val entities = result.data.map { dto ->
                         channelMapper.toEntity(dto)

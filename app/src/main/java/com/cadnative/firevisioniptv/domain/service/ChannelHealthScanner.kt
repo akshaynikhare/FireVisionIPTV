@@ -151,8 +151,8 @@ class ChannelHealthScanner @Inject constructor(
     }
 
     private suspend fun runFullScan() {
-        channelHealthDao.cleanupOrphaned()
-
+        // Don't cleanup orphaned entries before scan — old statuses stay visible
+        // until replaced by new results. Cleanup happens after scan completes.
         val allChannelIds = channelHealthDao.getAllChannelIdsByPriority()
         val total = allChannelIds.size
         if (total == 0) return
@@ -216,6 +216,11 @@ class ChannelHealthScanner @Inject constructor(
         _scanProgress.value = _scanProgress.value.copy(isScanning = false)
         Log.d(TAG, "Scan complete: $scannedCount/$total channels checked")
 
+        // Cleanup orphaned health entries only after all new results are written
+        channelHealthDao.cleanupOrphaned()
+        // Remove disk thumbnail files that no longer have a DB row
+        thumbnailExtractor.cleanupOrphanedFiles()
+
         // Bulk sync health results to server
         if (allResults.isNotEmpty()) {
             try {
@@ -250,6 +255,16 @@ class ChannelHealthScanner @Inject constructor(
                 status = ChannelHealthStatus.OFFLINE.name,
                 lastCheckedAt = System.currentTimeMillis(),
                 errorMessage = "Invalid URL"
+            )
+        }
+
+        // Android network security policy blocks cleartext HTTP — skip immediately
+        if (streamUrl.startsWith("http://", ignoreCase = true)) {
+            return ChannelHealthEntity(
+                channelId = channelId,
+                status = ChannelHealthStatus.OFFLINE.name,
+                lastCheckedAt = System.currentTimeMillis(),
+                errorMessage = "Cleartext HTTP not permitted"
             )
         }
 

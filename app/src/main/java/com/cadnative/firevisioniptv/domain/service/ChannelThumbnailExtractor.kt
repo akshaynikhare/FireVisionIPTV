@@ -121,12 +121,14 @@ class ChannelThumbnailExtractor @Inject constructor(
     }
 
     private suspend fun extractSingleThumbnail(channelId: String, streamUrl: String): Boolean {
-        if (streamUrl.isBlank() || !streamUrl.startsWith("http", ignoreCase = true)) {
+        if (streamUrl.isBlank() || !streamUrl.startsWith("https://", ignoreCase = true)) {
             return false
         }
 
         return withContext(dispatcher) {
             val retriever = MediaMetadataRetriever()
+            var frame: Bitmap? = null
+            var scaled: Bitmap? = null
             try {
                 withTimeout(EXTRACT_TIMEOUT_MS) {
                     // For HLS streams, resolve to a direct segment URL
@@ -140,33 +142,29 @@ class ChannelThumbnailExtractor @Inject constructor(
                     }
 
                     retriever.setDataSource(resolvedUrl, HashMap<String, String>())
-                    val frame = retriever.getFrameAtTime(
+                    frame = retriever.getFrameAtTime(
                         0,
                         MediaMetadataRetriever.OPTION_CLOSEST_SYNC
                     ) ?: return@withTimeout false
 
-                    val scaled = Bitmap.createScaledBitmap(
-                        frame, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, true
+                    scaled = Bitmap.createScaledBitmap(
+                        frame!!, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, true
                     )
-                    if (scaled !== frame) frame.recycle()
+                    if (scaled !== frame) { frame?.recycle(); frame = null }
 
-                    try {
-                        val safeId = channelId.replace(SAFE_FILENAME_REGEX, "_")
-                        val file = File(thumbnailDir, "${safeId}.jpg")
-                        file.outputStream().use { out ->
-                            scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
-                        }
+                    val safeId = channelId.replace(SAFE_FILENAME_REGEX, "_")
+                    val file = File(thumbnailDir, "${safeId}.jpg")
+                    file.outputStream().use { out ->
+                        scaled!!.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+                    }
 
-                        if (file.exists() && file.length() > 0) {
-                            channelHealthDao.updateThumbnailPath(channelId, file.absolutePath)
-                            Log.d(TAG, "Thumbnail saved for $channelId")
-                            true
-                        } else {
-                            Log.w(TAG, "Thumbnail file invalid after write for $channelId")
-                            false
-                        }
-                    } finally {
-                        scaled.recycle()
+                    if (file.exists() && file.length() > 0) {
+                        channelHealthDao.updateThumbnailPath(channelId, file.absolutePath)
+                        Log.d(TAG, "Thumbnail saved for $channelId")
+                        true
+                    } else {
+                        Log.w(TAG, "Thumbnail file invalid after write for $channelId")
+                        false
                     }
                 }
             } catch (e: Exception) {
@@ -178,6 +176,8 @@ class ChannelThumbnailExtractor @Inject constructor(
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to release retriever for $channelId: ${e.message}")
                 }
+                frame?.let { if (!it.isRecycled) it.recycle() }
+                scaled?.let { if (!it.isRecycled) it.recycle() }
             }
         }
     }
@@ -243,6 +243,27 @@ class ChannelThumbnailExtractor @Inject constructor(
             trimmed
         } else {
             base.resolve(trimmed).toString()
+        }
+    }
+
+    /**
+     * Delete thumbnail .jpg files on disk that have no matching channel_health row.
+     * Call after cleanupOrphaned() to keep disk in sync with DB.
+     */
+    suspend fun cleanupOrphanedFiles() {
+        withContext(dispatcher) {
+            val files = thumbnailDir.listFiles() ?: return@withContext
+            val validPaths = channelHealthDao.getAllThumbnailPaths().toSet()
+            var deleted = 0
+            for (file in files) {
+                if (file.absolutePath !in validPaths) {
+                    file.delete()
+                    deleted++
+                }
+            }
+            if (deleted > 0) {
+                Log.d(TAG, "Cleaned up $deleted orphaned thumbnail files")
+            }
         }
     }
 

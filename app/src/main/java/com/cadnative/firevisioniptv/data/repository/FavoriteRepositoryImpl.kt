@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv.data.repository
 import android.app.Application
 import android.provider.Settings
 import android.util.Log
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
@@ -22,8 +23,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.Closeable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,7 +52,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     private val channelDao: ChannelDao,
     private val application: Application,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
-) : FavoriteRepository {
+) : FavoriteRepository, Closeable {
 
     private val syncScope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -228,14 +231,17 @@ class FavoriteRepositoryImpl @Inject constructor(
         }
     }
     
+    private fun isPaired(): Boolean {
+        val tvCode = AppPreferences.getTvCode(application)
+        return tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+    }
+
     /**
      * Trigger background sync without blocking the caller.
-     * 
-     * This is a fire-and-forget operation that attempts to sync
-     * favorites in the background. Failures are logged but don't
-     * affect the user experience.
+     * Skips sync for unpaired (default playlist) users — favorites are local only.
      */
     private fun syncFavoritesInBackground() {
+        if (!isPaired()) return
         syncScope.launch {
             try {
                 syncFavorites()
@@ -246,6 +252,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
     
     override suspend fun pullFavoritesFromServer(): Result<Unit> = withContext(dispatcher) {
+        if (!isPaired()) return@withContext Result.Success(Unit)
         try {
             val response = apiService.getFavorites()
             if (response.isSuccessful) {
@@ -277,6 +284,10 @@ class FavoriteRepositoryImpl @Inject constructor(
             Log.w(TAG, "Pull favorites from server failed: ${e.message}")
             Result.Error(e)
         }
+    }
+
+    override fun close() {
+        syncScope.cancel()
     }
 
     private fun getDeviceId(): String {

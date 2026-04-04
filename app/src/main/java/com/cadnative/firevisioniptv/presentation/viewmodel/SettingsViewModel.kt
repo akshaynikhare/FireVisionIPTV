@@ -196,7 +196,10 @@ class SettingsViewModel @Inject constructor(
                     null
                 }
             }
-            _uiState.update { it.copy(qrCodeBitmap = bitmap) }
+            _uiState.update { old ->
+                old.qrCodeBitmap?.recycle()
+                old.copy(qrCodeBitmap = bitmap)
+            }
         }
     }
 

@@ -94,7 +94,9 @@ class ComposeMainActivity : ComponentActivity() {
         // Parse deep link channel ID if present
         val deepLinkChannelId = intent?.data?.let { uri ->
             if (uri.host == "play" && uri.pathSegments.size >= 2 && uri.pathSegments[0] in listOf("movie", "channel")) {
-                uri.pathSegments[1]
+                val rawId = uri.pathSegments[1]
+                // Validate channelId: alphanumeric, hyphens, underscores only, max 64 chars
+                if (rawId.length <= 64 && rawId.matches(Regex("^[a-zA-Z0-9_-]+$"))) rawId else null
             } else null
         }
 
@@ -143,6 +145,11 @@ class ComposeMainActivity : ComponentActivity() {
     private fun isFirstLaunch(): Boolean {
         val prefs: SharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         return !prefs.getBoolean("has_launched_before", false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        channelHealthScanner.destroy()
     }
 
     private fun markFirstLaunchComplete() {
