@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1] - 2026-04-04
+
+### Added
+- Integrate Amazon Appstore DRM for license verification and update ProGuard rules
+
+---
+
 ## [2.1.0] - 2026-04-04
 
 ### Added
