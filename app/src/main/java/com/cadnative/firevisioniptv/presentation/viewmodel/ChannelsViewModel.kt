@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
@@ -26,7 +27,11 @@ import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.ChannelsUiState
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.WriterException
+import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +52,7 @@ private const val FEATURED_CHANNELS_LIMIT = 5
 private const val POPULAR_CATEGORIES_LIMIT = 10
 private const val HEALTH_SCAN_DEBOUNCE_MS = 500L
 private const val CATEGORY_UPDATE_DEBOUNCE_MS = 1_000L
+private const val GUIDE_URL = "https://github.com/akshaynikhare/FireVisionIPTVServer/blob/main/docs/how-to-add-channels.md"
 
 @HiltViewModel
 class ChannelsViewModel @Inject constructor(
@@ -89,6 +95,7 @@ class ChannelsViewModel @Inject constructor(
         loadHomeData()
         observeFavoriteCategories()
         refresh()
+        generateGuideQrCode()
     }
 
     @OptIn(FlowPreview::class)
@@ -327,24 +334,27 @@ class ChannelsViewModel @Inject constructor(
     fun refresh() {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = it.channels.isEmpty()) }
+            val hasContent = _uiState.value.channels.isNotEmpty()
+            _uiState.update { it.copy(
+                isLoading = !hasContent,
+                isRefreshing = hasContent
+            ) }
 
             val result = refreshChannelsUseCase(Unit)
 
             when (result) {
                 is Result.Success -> {
-                    _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
+                    _uiState.update { it.copy(isLoading = false, isRefreshing = false, isInitialLoadComplete = true) }
                 }
                 is Result.Error -> {
-                    val hasCache = _uiState.value.channels.isNotEmpty()
-                    if (hasCache) {
-                        // Silently swallow refresh errors when cached data exists
-                        _uiState.update { it.copy(isLoading = false, isInitialLoadComplete = true) }
+                    if (hasContent) {
+                        _uiState.update { it.copy(isLoading = false, isRefreshing = false, isInitialLoadComplete = true) }
                     } else {
                         val (msg, type) = classifyError(result.exception)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
+                                isRefreshing = false,
                                 isInitialLoadComplete = true,
                                 error = msg,
                                 errorType = type
@@ -374,13 +384,37 @@ class ChannelsViewModel @Inject constructor(
         return if (now != null) channel.copy(nowProgramTitle = now.title) else channel
     }
 
+    private fun generateGuideQrCode() {
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val writer = QRCodeWriter()
+                val bitMatrix = writer.encode(GUIDE_URL, BarcodeFormat.QR_CODE, 512, 512)
+                val width = bitMatrix.width
+                val height = bitMatrix.height
+                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                for (x in 0 until width) {
+                    for (y in 0 until height) {
+                        bmp.setPixel(
+                            x, y,
+                            if (bitMatrix[x, y]) android.graphics.Color.BLACK
+                            else android.graphics.Color.WHITE
+                        )
+                    }
+                }
+                _uiState.update { it.copy(guideQrBitmap = bmp) }
+            } catch (_: WriterException) {
+                // QR generation failed silently — empty state will show without QR
+            }
+        }
+    }
+
     private fun classifyError(exception: Exception): Pair<String, ErrorType> {
         return when (exception) {
             is UnauthorizedException, is ForbiddenException ->
-                "Device not paired — please pair your TV" to ErrorType.AUTH_REQUIRED
+                "Device not paired — please pair your device" to ErrorType.AUTH_REQUIRED
             is NetworkException, is java.net.ConnectException,
             is java.net.UnknownHostException, is java.net.SocketTimeoutException ->
-                "Cannot connect to server" to ErrorType.NETWORK_ERROR
+                "Cannot connect to server — check server URL in Settings" to ErrorType.NETWORK_ERROR
             is ServerException ->
                 "Server error — please try again later" to ErrorType.SERVER_ERROR
             is ServiceUnavailableException ->

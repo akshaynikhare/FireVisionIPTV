@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -27,7 +28,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import androidx.compose.ui.platform.LocalContext
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
@@ -36,6 +40,7 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    onPairDevice: () -> Unit = {},
     initialCategory: String? = null,
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
@@ -108,12 +113,26 @@ fun ChannelsScreen(
                         "loading" -> LoadingIndicator(message = "Loading channels...")
                         "error" -> ErrorState(
                             message = uiState.error ?: "Unknown error",
-                            onRetry = { viewModel.refresh() }
+                            onRetry = { viewModel.refresh() },
+                            errorType = uiState.errorType,
+                            onPairDevice = onPairDevice
                         )
-                        "empty" -> EmptyState(
-                            message = "No channels available",
-                            onRetry = { viewModel.refresh() }
-                        )
+                        "empty" -> {
+                            if (uiState.selectedCategory != null) {
+                                EmptyState(
+                                    message = "No channels in this category",
+                                    onRetry = { viewModel.refresh() }
+                                )
+                            } else {
+                                val ctx = LocalContext.current
+                                EmptyPlaylistState(
+                                    qrCodeBitmap = uiState.guideQrBitmap,
+                                    onRetry = { viewModel.refresh() },
+                                    isMobile = isMobileDevice(ctx),
+                                    channelManagerUrl = AppPreferences.getServerUrl(ctx) + "/user/channels"
+                                )
+                            }
+                        }
                         else -> ChannelsGrid(
                             channels = uiState.channels,
                             onChannelClick = onChannelClick,
@@ -240,10 +259,11 @@ private fun ChannelsGrid(
     onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = if (screenWidthDp < 600) 100.dp else 140.dp),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
+        contentPadding = PaddingValues(if (screenWidthDp < 600) 12.dp else 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

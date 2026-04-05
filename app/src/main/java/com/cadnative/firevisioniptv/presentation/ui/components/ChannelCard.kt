@@ -7,7 +7,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -22,7 +24,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
@@ -39,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
@@ -52,6 +58,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
 private const val LONG_PRESS_THRESHOLD_MS = 600L
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChannelCard(
     channel: ChannelUiModel,
@@ -62,6 +69,8 @@ fun ChannelCard(
     var isFocused by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
     var selectKeyDownTime by remember { mutableLongStateOf(0L) }
+    val isMobile = isMobileDevice(LocalContext.current)
+    val haptic = LocalHapticFeedback.current
 
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.06f else 1f,
@@ -72,73 +81,101 @@ fun ChannelCard(
     val catColor = categoryColor(channel.category)
     val catIcon = categoryIcon(channel.category)
 
-    Card(
-        onClick = {
-            if (!longPressHandled) onClick()
-            longPressHandled = false
-        },
-        modifier = modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .onFocusChanged { isFocused = it.isFocused }
-            .onPreviewKeyEvent { keyEvent ->
-                val code = keyEvent.nativeKeyEvent.keyCode
-                val action = keyEvent.nativeKeyEvent.action
+    // On mobile: non-clickable Card + combinedClickable in modifier (sole touch handler).
+    // On TV: clickable Card + D-pad key handler for long-press favorite.
+    val cardShape = MaterialTheme.shapes.medium
+    val cardBorder = when {
+        isFocused -> BorderStroke(2.dp, FocusBorder)
+        else -> BorderStroke(1.dp, subtleBorder)
+    }
+    val cardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
 
-                // Menu / Bookmark → instant favorite toggle
-                if (action == KeyEvent.ACTION_DOWN &&
-                    (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
-                ) {
-                    onFavoriteClick()
-                    return@onPreviewKeyEvent true
-                }
+    val baseModifier = modifier
+        .graphicsLayer { scaleX = scale; scaleY = scale }
+        .onFocusChanged { isFocused = it.isFocused }
 
-                // D-pad center / Enter → track hold duration for long-press
-                if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER) {
-                    when (action) {
-                        KeyEvent.ACTION_DOWN -> {
-                            if (keyEvent.nativeKeyEvent.repeatCount == 0) {
-                                selectKeyDownTime = System.currentTimeMillis()
-                                longPressHandled = false
+    if (isMobile) {
+        Card(
+            modifier = baseModifier
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onFavoriteClick()
+                    }
+                ),
+            shape = cardShape,
+            border = cardBorder,
+            colors = cardColors
+        ) {
+            ChannelCardContent(
+                channel = channel,
+                isFocused = isFocused,
+                catColor = catColor,
+                catIcon = catIcon
+            )
+        }
+    } else {
+        Card(
+            onClick = {
+                if (!longPressHandled) onClick()
+                longPressHandled = false
+            },
+            modifier = baseModifier
+                .onPreviewKeyEvent { keyEvent ->
+                    val code = keyEvent.nativeKeyEvent.keyCode
+                    val action = keyEvent.nativeKeyEvent.action
+
+                    // Menu / Bookmark → instant favorite toggle
+                    if (action == KeyEvent.ACTION_DOWN &&
+                        (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
+                    ) {
+                        onFavoriteClick()
+                        return@onPreviewKeyEvent true
+                    }
+
+                    // D-pad center / Enter → track hold duration for long-press
+                    if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER) {
+                        when (action) {
+                            KeyEvent.ACTION_DOWN -> {
+                                if (keyEvent.nativeKeyEvent.repeatCount == 0) {
+                                    selectKeyDownTime = System.currentTimeMillis()
+                                    longPressHandled = false
+                                }
+                                if (selectKeyDownTime > 0 &&
+                                    System.currentTimeMillis() - selectKeyDownTime >= LONG_PRESS_THRESHOLD_MS &&
+                                    !longPressHandled
+                                ) {
+                                    longPressHandled = true
+                                    onFavoriteClick()
+                                    return@onPreviewKeyEvent true
+                                }
+                                return@onPreviewKeyEvent false
                             }
-                            // Check on repeated key events (held down)
-                            if (selectKeyDownTime > 0 &&
-                                System.currentTimeMillis() - selectKeyDownTime >= LONG_PRESS_THRESHOLD_MS &&
-                                !longPressHandled
-                            ) {
-                                longPressHandled = true
-                                onFavoriteClick()
-                                return@onPreviewKeyEvent true
+                            KeyEvent.ACTION_UP -> {
+                                val wasLongPress = longPressHandled
+                                selectKeyDownTime = 0L
+                                if (wasLongPress) {
+                                    return@onPreviewKeyEvent true
+                                }
+                                return@onPreviewKeyEvent false
                             }
-                            // Don't consume — let Card handle normal press
-                            return@onPreviewKeyEvent false
-                        }
-                        KeyEvent.ACTION_UP -> {
-                            val wasLongPress = longPressHandled
-                            selectKeyDownTime = 0L
-                            // If long-press was handled, consume the UP to prevent Card's onClick
-                            if (wasLongPress) {
-                                return@onPreviewKeyEvent true
-                            }
-                            return@onPreviewKeyEvent false
                         }
                     }
-                }
 
-                false
-            },
-        shape = MaterialTheme.shapes.medium,
-        border = when {
-            isFocused -> BorderStroke(2.dp, FocusBorder)
-            else -> BorderStroke(1.dp, subtleBorder)
-        },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        ChannelCardContent(
-            channel = channel,
-            isFocused = isFocused,
-            catColor = catColor,
-            catIcon = catIcon
-        )
+                    false
+                },
+            shape = cardShape,
+            border = cardBorder,
+            colors = cardColors
+        ) {
+            ChannelCardContent(
+                channel = channel,
+                isFocused = isFocused,
+                catColor = catColor,
+                catIcon = catIcon
+            )
+        }
     }
 }
 

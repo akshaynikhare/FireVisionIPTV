@@ -12,6 +12,7 @@ data class ChannelsUiState(
     val channels: List<ChannelUiModel> = emptyList(),
     val categories: List<String> = emptyList(),
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isInitialLoadComplete: Boolean = false,
     val error: String? = null,
     val errorType: ErrorType = ErrorType.NONE,
@@ -24,5 +25,7 @@ data class ChannelsUiState(
     // Category logos (category name → up to 4 channel logo URLs for collage)
     val categoryLogos: Map<String, List<String>> = emptyMap(),
     // Category favorite names
-    val favoriteCategoryNames: Set<String> = emptySet()
+    val favoriteCategoryNames: Set<String> = emptySet(),
+    // QR code bitmap pointing to the "how to add channels" guide
+    val guideQrBitmap: android.graphics.Bitmap? = null
 )

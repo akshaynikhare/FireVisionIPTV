@@ -143,10 +143,18 @@ class ChannelHealthScanner @Inject constructor(
     }
 
     fun destroy() {
-        stopScan()
+        scanJob?.cancel()
+        scanJob = null
         supervisorJob.cancel()
-        scanClient.dispatcher.executorService.shutdown()
-        scanClient.connectionPool.evictAll()
+        // OkHttp socket cleanup involves network I/O — run off main thread
+        Thread {
+            try {
+                scanClient.dispatcher.executorService.shutdown()
+                scanClient.connectionPool.evictAll()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error during scanner cleanup", e)
+            }
+        }.start()
         Log.d(TAG, "Scanner destroyed")
     }
 
@@ -167,8 +175,21 @@ class ChannelHealthScanner @Inject constructor(
         for (batch in batches) {
             if (scanJob?.isActive != true) break
 
+            // Get stream URLs for this batch — filters out channels deleted by concurrent sync
+            val channelUrls = withContext(dispatcher) {
+                batch.mapNotNull { id ->
+                    val entity = channelDao.getChannelByIdSync(id)
+                    entity?.let { id to it.streamUrl }
+                }
+            }
+            if (channelUrls.isEmpty()) {
+                scannedCount += batch.size
+                continue
+            }
+            val validIds = channelUrls.map { it.first }.toSet()
+
             // Mark batch as CHECKING (preserves existing thumbnailPath)
-            for (id in batch) {
+            for ((id, _) in channelUrls) {
                 channelHealthDao.upsertPreservingThumbnail(
                     channelId = id,
                     status = ChannelHealthStatus.CHECKING.name,
@@ -178,14 +199,6 @@ class ChannelHealthScanner @Inject constructor(
                 )
             }
 
-            // Get stream URLs for this batch
-            val channelUrls = withContext(dispatcher) {
-                batch.mapNotNull { id ->
-                    val entity = channelDao.getChannelByIdSync(id)
-                    entity?.let { id to it.streamUrl }
-                }
-            }
-
             // Check streams concurrently within the batch
             val healthResults = coroutineScope {
                 channelUrls.map { (id, url) ->
@@ -193,15 +206,17 @@ class ChannelHealthScanner @Inject constructor(
                 }.awaitAll()
             }
 
-            // Save results (preserving existing thumbnailPaths)
+            // Save results — re-verify channel exists to avoid FK crash on concurrent delete
             for (result in healthResults) {
-                channelHealthDao.upsertPreservingThumbnail(
-                    channelId = result.channelId,
-                    status = result.status,
-                    lastCheckedAt = result.lastCheckedAt,
-                    responseTimeMs = result.responseTimeMs,
-                    errorMessage = result.errorMessage
-                )
+                if (channelDao.getChannelByIdSync(result.channelId) != null) {
+                    channelHealthDao.upsertPreservingThumbnail(
+                        channelId = result.channelId,
+                        status = result.status,
+                        lastCheckedAt = result.lastCheckedAt,
+                        responseTimeMs = result.responseTimeMs,
+                        errorMessage = result.errorMessage
+                    )
+                }
             }
 
             allResults.addAll(healthResults)

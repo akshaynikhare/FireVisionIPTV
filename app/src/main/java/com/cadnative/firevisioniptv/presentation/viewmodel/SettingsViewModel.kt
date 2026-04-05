@@ -587,6 +587,37 @@ class SettingsViewModel @Inject constructor(
         _uiState.value.qrCodeBitmap?.recycle()
     }
 
+    fun testConnection() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTestingConnection = true, connectionTestResult = null) }
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val serverUrl = _uiState.value.serverUrl.trim().trimEnd('/')
+                    val url = java.net.URL("$serverUrl/api/v1/health")
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.connectTimeout = 10_000
+                    connection.readTimeout = 10_000
+                    connection.requestMethod = "GET"
+                    try {
+                        val code = connection.responseCode
+                        if (code in 200..299) "Connected" else "Server returned $code"
+                    } finally {
+                        connection.disconnect()
+                    }
+                } catch (e: java.net.ConnectException) {
+                    "Connection refused — check server URL"
+                } catch (e: java.net.UnknownHostException) {
+                    "Server not found — check URL"
+                } catch (e: java.net.SocketTimeoutException) {
+                    "Connection timed out"
+                } catch (e: Exception) {
+                    "Failed: ${e.message}"
+                }
+            }
+            _uiState.update { it.copy(isTestingConnection = false, connectionTestResult = result) }
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null, downloadError = null) }
     }

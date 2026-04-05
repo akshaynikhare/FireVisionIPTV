@@ -108,6 +108,9 @@ fun SettingsScreen(
                     onTvCodeChange = { viewModel.onTvCodeChange(it) },
                     onSave = { viewModel.saveServerSettings() },
                     onPairDevice = onPairDevice,
+                    onTestConnection = { viewModel.testConnection() },
+                    isTestingConnection = uiState.isTestingConnection,
+                    connectionTestResult = uiState.connectionTestResult,
                     modifier = Modifier.animateItemEntrance(index = 0)
                 )
             }
@@ -258,6 +261,9 @@ private fun UnpairedSetupCard(
     onTvCodeChange: (String) -> Unit,
     onSave: () -> Boolean,
     onPairDevice: () -> Unit,
+    onTestConnection: () -> Unit = {},
+    isTestingConnection: Boolean = false,
+    connectionTestResult: String? = null,
     modifier: Modifier = Modifier
 ) {
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -296,6 +302,9 @@ private fun UnpairedSetupCard(
                         }
                     },
                     onPairDevice = onPairDevice,
+                    onTestConnection = onTestConnection,
+                    isTestingConnection = isTestingConnection,
+                    connectionTestResult = connectionTestResult,
                     keyboardController = keyboardController,
                     serverUrlEditing = serverUrlEditing,
                     onServerUrlEditingChange = { serverUrlEditing = it },
@@ -342,6 +351,9 @@ private fun UnpairedSetupCard(
                             }
                         },
                         onPairDevice = onPairDevice,
+                        onTestConnection = onTestConnection,
+                        isTestingConnection = isTestingConnection,
+                        connectionTestResult = connectionTestResult,
                         keyboardController = keyboardController,
                         serverUrlEditing = serverUrlEditing,
                         onServerUrlEditingChange = { serverUrlEditing = it },
@@ -369,6 +381,9 @@ private fun DeviceSetupFormFields(
     onTvCodeChange: (String) -> Unit,
     onSave: () -> Unit,
     onPairDevice: () -> Unit,
+    onTestConnection: () -> Unit = {},
+    isTestingConnection: Boolean = false,
+    connectionTestResult: String? = null,
     keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?,
     serverUrlEditing: Boolean,
     onServerUrlEditingChange: (Boolean) -> Unit,
@@ -501,6 +516,38 @@ private fun DeviceSetupFormFields(
                     fontWeight = FontWeight.Medium
                 )
             }
+        }
+    }
+
+    // Test Connection
+    Spacer(modifier = Modifier.height(12.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        FocusAwareOutlinedButton(
+            onClick = { if (!isTestingConnection && serverUrl.isNotBlank()) onTestConnection() },
+            border = BorderStroke(1.dp, subtleBorder)
+        ) {
+            if (isTestingConnection) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Testing...", fontWeight = FontWeight.Medium)
+            } else {
+                Text("Test Connection", fontWeight = FontWeight.Medium)
+            }
+        }
+        connectionTestResult?.let { result ->
+            Text(
+                text = result,
+                color = if (result == "Connected") Success else Warning,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

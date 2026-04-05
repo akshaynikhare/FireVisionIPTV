@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv.data.repository
 import android.app.Application
 import android.provider.Settings
 import android.util.Log
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.FavoriteLocalDataSource
@@ -15,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.first
@@ -85,8 +87,10 @@ class FavoriteRepositoryImplTest {
         application = mockk(relaxed = true)
         mockkStatic(Settings.Secure::class)
         mockkStatic(Log::class)
+        mockkObject(AppPreferences)
         every { Log.w(any<String>(), any<String>()) } returns 0
         every { Settings.Secure.getString(any(), Settings.Secure.ANDROID_ID) } returns "test-device-id"
+        every { AppPreferences.getTvCode(any()) } returns "PAIRED123"
         
         repository = FavoriteRepositoryImpl(
             localDataSource = localDataSource,

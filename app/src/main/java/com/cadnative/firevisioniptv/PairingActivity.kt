@@ -15,6 +15,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.PairingScreen
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.zxing.BarcodeFormat
@@ -59,6 +60,11 @@ class PairingActivity : ComponentActivity() {
     private var showCountdown by mutableStateOf(false)
     private var qrCodeBitmap by mutableStateOf<Bitmap?>(null)
     private var serverUrl by mutableStateOf("")
+    private var pairingUrl by mutableStateOf("")
+    private var isTv = false
+    private var isPaired by mutableStateOf(false)
+    private var pairedUsername by mutableStateOf("")
+    private var channelManagerQrBitmap by mutableStateOf<Bitmap?>(null)
 
     @Volatile private var currentPin: String? = null
     @Volatile private var expiresAt: Long = 0
@@ -74,6 +80,7 @@ class PairingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         serverUrl = AppPreferences.getServerUrl(this)
+        isTv = isTvDevice(this)
 
         setContent {
             FireVisionTheme {
@@ -87,8 +94,14 @@ class PairingActivity : ComponentActivity() {
                     showCountdown = showCountdown,
                     qrCodeBitmap = qrCodeBitmap,
                     serverUrl = serverUrl,
+                    isTvDevice = isTv,
+                    pairingUrl = pairingUrl,
+                    isPaired = isPaired,
+                    pairedUsername = pairedUsername,
+                    channelManagerQrBitmap = channelManagerQrBitmap,
                     onRetryClick = { requestNewPairing() },
-                    onUseDefaultClick = { useDefaultChannelList() }
+                    onUseDefaultClick = { useDefaultChannelList() },
+                    onContinue = { navigateToMain() }
                 )
             }
         }
@@ -173,7 +186,10 @@ class PairingActivity : ComponentActivity() {
                             statusMessage = "Waiting for confirmation..."
                             statusColor = androidx.compose.ui.graphics.Color.White
                             showCountdown = true
-                            generateSignupQRCode(baseUrl, currentPin ?: "")
+                            pairingUrl = "$baseUrl/pair?pin=${currentPin ?: ""}"
+                            if (isTv) {
+                                generateSignupQRCode(baseUrl, currentPin ?: "")
+                            }
                             startPolling()
                             startCountdown()
                         }
@@ -252,21 +268,43 @@ class PairingActivity : ComponentActivity() {
 
         runOnUiThread {
             AppPreferences.setTvCode(this, channelListCode)
-
-            statusMessage = "Paired successfully!"
-            statusColor = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            pairedUsername = username
+            isPaired = true
             showCountdown = false
 
-            Toast.makeText(this, "Welcome, $username!", Toast.LENGTH_LONG).show()
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                val intent = Intent(this@PairingActivity, ComposeMainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-                finish()
-            }, 2000)
+            if (isTv) {
+                generateChannelManagerQrCode()
+            }
         }
+    }
+
+    private fun generateChannelManagerQrCode() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val channelManagerUrl = "$serverUrl/user/channels"
+                val writer = QRCodeWriter()
+                val bitMatrix = writer.encode(channelManagerUrl, BarcodeFormat.QR_CODE, 512, 512)
+                val width = bitMatrix.width
+                val height = bitMatrix.height
+                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                for (x in 0 until width) {
+                    for (y in 0 until height) {
+                        bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                    }
+                }
+                withContext(Dispatchers.Main) { channelManagerQrBitmap = bmp }
+            } catch (e: WriterException) {
+                Log.e(TAG, "Error generating channel manager QR code", e)
+            }
+        }
+    }
+
+    private fun navigateToMain() {
+        val intent = Intent(this, ComposeMainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun showError(message: String) {

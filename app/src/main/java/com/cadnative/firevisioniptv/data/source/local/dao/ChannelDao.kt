@@ -90,9 +90,17 @@ interface ChannelDao {
     @Transaction
     suspend fun replaceAllChannels(channels: List<ChannelEntity>) {
         val newIds = channels.map { it.id }.toSet()
-        deleteChannelsNotIn(newIds.toList())
+        val existingIds = getAllChannelIds()
+        val idsToDelete = existingIds.filter { it !in newIds }
+
+        idsToDelete.chunked(900).forEach { batch ->
+            deleteChannelsByIds(batch)
+        }
         insertChannels(channels)
     }
+
+    @Query("SELECT id FROM channels")
+    suspend fun getAllChannelIds(): List<String>
 
     @Query("SELECT * FROM channels WHERE isActive = 1 ORDER BY name ASC")
     suspend fun getAllActiveChannels(): List<ChannelEntity>
@@ -103,6 +111,6 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE id IN (:ids) AND isActive = 1")
     suspend fun getChannelsByIds(ids: List<String>): List<ChannelEntity>
 
-    @Query("DELETE FROM channels WHERE id NOT IN (:ids)")
-    suspend fun deleteChannelsNotIn(ids: List<String>)
+    @Query("DELETE FROM channels WHERE id IN (:ids)")
+    suspend fun deleteChannelsByIds(ids: List<String>)
 }

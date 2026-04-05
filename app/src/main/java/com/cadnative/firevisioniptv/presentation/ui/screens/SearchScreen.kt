@@ -33,7 +33,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,6 +64,7 @@ fun SearchScreen(
     var searchEditing by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isMobile = isMobileDevice(LocalContext.current)
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
     val horizontalPadding = if (isPortrait) 16.dp else 32.dp
 
@@ -124,11 +127,17 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
                 .onFocusChanged {
-                    if (it.hasFocus && !searchEditing) keyboardController?.hide()
-                    if (!it.hasFocus) searchEditing = false
+                    if (isMobile) {
+                        // Mobile: show keyboard when field is tapped/focused
+                        if (it.hasFocus) keyboardController?.show()
+                    } else {
+                        // TV: hide keyboard on D-pad focus, require center press to edit
+                        if (it.hasFocus && !searchEditing) keyboardController?.hide()
+                        if (!it.hasFocus) searchEditing = false
+                    }
                 }
                 .onKeyEvent { event ->
-                    if (!searchEditing &&
+                    if (!isMobile && !searchEditing &&
                         event.type == KeyEventType.KeyDown &&
                         (event.key == Key.DirectionCenter || event.key == Key.Enter)
                     ) {
@@ -183,6 +192,9 @@ fun SearchScreen(
                 "prompt" -> SearchPrompt()
                 "no_results" -> NoResultsState(query = searchQuery)
                 else -> {
+                    if (isMobile) {
+                        LaunchedEffect(Unit) { keyboardController?.hide() }
+                    }
                     Column {
                         Text(
                             text = "${uiState.results.size} result${if (uiState.results.size != 1) "s" else ""} for \"$searchQuery\"",
@@ -190,8 +202,9 @@ fun SearchScreen(
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+                        val screenWidthDp = LocalConfiguration.current.screenWidthDp
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 140.dp),
+                            columns = GridCells.Adaptive(minSize = if (screenWidthDp < 600) 100.dp else 140.dp),
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 24.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),

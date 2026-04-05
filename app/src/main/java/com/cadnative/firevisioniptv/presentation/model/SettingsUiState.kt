@@ -32,7 +32,10 @@ data class SettingsUiState(
     val downloadError: String? = null,
     // Cache
     val isClearingCache: Boolean = false,
-    val cacheCleared: Boolean = false
+    val cacheCleared: Boolean = false,
+    // Connection test
+    val isTestingConnection: Boolean = false,
+    val connectionTestResult: String? = null
 )
 
 data class UpdateInfo(

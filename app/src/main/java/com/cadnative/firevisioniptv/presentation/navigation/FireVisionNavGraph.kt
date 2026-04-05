@@ -76,6 +76,8 @@ fun FireVisionNavGraph(
                 showCountdown = uiState.showCountdown,
                 qrCodeBitmap = uiState.qrCodeBitmap,
                 serverUrl = uiState.serverUrl,
+                isTvDevice = uiState.isTvDevice,
+                pairingUrl = uiState.pairingUrl,
                 onRetryClick = { viewModel.requestNewPairing() },
                 onUseDefaultClick = { viewModel.useDefaultChannelList() }
             )
@@ -132,6 +134,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 }
             )
         }
@@ -149,6 +154,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 },
                 initialCategory = categoryId
             )

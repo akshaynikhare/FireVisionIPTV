@@ -11,6 +11,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,6 +42,8 @@ data class PairingUiState(
     val showCountdown: Boolean = false,
     val qrCodeBitmap: Bitmap? = null,
     val serverUrl: String = "",
+    val pairingUrl: String = "",
+    val isTvDevice: Boolean = true,
     val isPaired: Boolean = false
 )
 
@@ -64,9 +67,11 @@ class PairingViewModel @Inject constructor(
     @Volatile
     private var expiresAt: Long = 0
 
+    private val isTv = isTvDevice(context)
+
     init {
         val serverUrl = AppPreferences.getServerUrl(context)
-        _uiState.update { it.copy(serverUrl = serverUrl) }
+        _uiState.update { it.copy(serverUrl = serverUrl, isTvDevice = isTv) }
         requestNewPairing()
     }
 
@@ -127,11 +132,14 @@ class PairingViewModel @Inject constructor(
                                 statusMessage = "Waiting for confirmation...",
                                 statusColor = Color.White,
                                 isLoading = false,
-                                showCountdown = true
+                                showCountdown = true,
+                                pairingUrl = "$baseUrl/pair?pin=$pin"
                             )
                         }
 
-                        generateQrCode(baseUrl, pin)
+                        if (isTv) {
+                            generateQrCode(baseUrl, pin)
+                        }
                         startPolling(pin)
                         startCountdown(expiry)
                     } else {
