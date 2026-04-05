@@ -6,6 +6,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.domain.model.PlaybackState
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
+import com.cadnative.firevisioniptv.domain.service.AnalyticsHelper
 import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
@@ -52,6 +53,7 @@ class PlayerViewModelTest {
     private val channelHealthDao: ChannelHealthDao = mockk(relaxed = true)
     private val thumbnailExtractor: ChannelThumbnailExtractor = mockk(relaxed = true)
     private val epgRepository: EpgRepository = mockk(relaxed = true)
+    private val analyticsHelper: AnalyticsHelper = mockk(relaxed = true)
 
     private lateinit var viewModel: PlayerViewModel
 
@@ -80,7 +82,7 @@ class PlayerViewModelTest {
             getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
             savePlaybackPositionUseCase, getPlaybackPositionUseCase, toggleFavoriteUseCase,
             reportStreamStatusUseCase, reportStreamPlayUseCase, channelUiMapper,
-            channelHealthDao, thumbnailExtractor, epgRepository
+            channelHealthDao, thumbnailExtractor, epgRepository, analyticsHelper
         )
     }
 
