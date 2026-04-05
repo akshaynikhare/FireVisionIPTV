@@ -75,12 +75,16 @@ private val bottomNavItem = NavItem(Screen.Settings, Icons.Default.Settings, "Se
 fun SideNavRail(
     currentRoute: String?,
     onScreenSelected: (Screen) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
+    val collapsedWidth = if (compact) 52.dp else 72.dp
+    val expandedWidth = if (compact) 180.dp else 220.dp
+
     val railWidth by animateDpAsState(
-        targetValue = if (isExpanded) 220.dp else 72.dp,
+        targetValue = if (isExpanded) expandedWidth else collapsedWidth,
         animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
         label = "railWidth"
     )
@@ -101,43 +105,48 @@ fun SideNavRail(
                 isExpanded = focusState.hasFocus
             }
             .focusGroup()
-            .padding(vertical = 24.dp, horizontal = 8.dp),
+            .padding(
+                vertical = if (compact) 8.dp else 24.dp,
+                horizontal = if (compact) 4.dp else 8.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Brand mark — app flame icon
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 12.dp)
+            modifier = Modifier.padding(vertical = if (compact) 4.dp else 12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "FireVision",
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(if (compact) 40.dp else 64.dp)
             )
             if (isExpanded) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "FireVision",
                     color = MaterialTheme.colorScheme.primary,
-                    fontSize = 20.sp,
+                    fontSize = if (compact) 16.sp else 20.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = (-0.5).sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (compact) 8.dp else 32.dp))
 
         // Top nav items
         topNavItems.forEach { item ->
             NavRailItem(
                 icon = item.icon,
                 label = item.label,
-                isSelected = currentRoute == item.screen.route,
+                isSelected = currentRoute == item.screen.route ||
+                    (item.screen == Screen.Channels && currentRoute == Screen.ChannelsByCategory.route),
                 isExpanded = isExpanded,
+                compact = compact,
                 onClick = { onScreenSelected(item.screen) }
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(if (compact) 2.dp else 6.dp))
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -148,6 +157,7 @@ fun SideNavRail(
             label = bottomNavItem.label,
             isSelected = currentRoute == bottomNavItem.screen.route,
             isExpanded = isExpanded,
+            compact = compact,
             onClick = { onScreenSelected(bottomNavItem.screen) }
         )
     }
@@ -160,7 +170,8 @@ private fun NavRailItem(
     isSelected: Boolean,
     isExpanded: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -219,7 +230,10 @@ private fun NavRailItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .padding(
+                horizontal = if (compact) 10.dp else 14.dp,
+                vertical = if (compact) 8.dp else 14.dp
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
     ) {
@@ -227,7 +241,7 @@ private fun NavRailItem(
             imageVector = icon,
             contentDescription = label,
             tint = contentColor,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(if (compact) 22.dp else 28.dp)
         )
 
         if (isExpanded) {

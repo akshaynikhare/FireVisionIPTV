@@ -14,6 +14,7 @@ sealed class Screen(val route: String) {
     object Search : Screen("search")
     object Favorites : Screen("favorites")
     object Settings : Screen("settings")
+    object SelfHostSetup : Screen("self_host_setup")
     object Player : Screen("player/{channelId}") {
         fun createRoute(channelId: String) = "player/$channelId"
     }

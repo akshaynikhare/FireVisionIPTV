@@ -10,8 +10,8 @@ object AppPreferences {
     const val PREFS_NAME = "FireVisionSettings"
     private const val SERVER_URL_KEY = "server_url"
     private const val TV_CODE_KEY = "tv_code"
+    private const val DEMO_MODE_KEY = "is_demo_mode"
     const val DEFAULT_SERVER_URL = "https://tv.cadnative.com"
-    const val DEFAULT_TV_CODE = "5T6FEP"
 
     fun getServerUrl(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -20,7 +20,7 @@ object AppPreferences {
 
     fun getTvCode(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(TV_CODE_KEY, DEFAULT_TV_CODE) ?: DEFAULT_TV_CODE
+        return prefs.getString(TV_CODE_KEY, "") ?: ""
     }
 
     fun hasChannelSelection(context: Context): Boolean {
@@ -28,18 +28,38 @@ object AppPreferences {
         return prefs.contains(TV_CODE_KEY)
     }
 
-    fun setServerUrl(context: Context, url: String) {
+    fun isDemoMode(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(SERVER_URL_KEY, url).apply()
+        return prefs.getBoolean(DEMO_MODE_KEY, false)
+    }
+
+    fun setServerUrl(context: Context, url: String) {
+        val sanitized = url.trim()
+        require(sanitized.startsWith("https://")) { "Server URL must use HTTPS" }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(SERVER_URL_KEY, sanitized).apply()
     }
 
     fun setTvCode(context: Context, code: String) {
+        val sanitized = code.trim().replace(Regex("[^A-Za-z0-9]"), "")
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(TV_CODE_KEY, code).apply()
+        prefs.edit().putString(TV_CODE_KEY, sanitized).apply()
+    }
+
+    fun setDemoMode(context: Context, code: String) {
+        val sanitized = code.trim().replace(Regex("[^A-Za-z0-9]"), "")
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString(TV_CODE_KEY, sanitized)
+            .putBoolean(DEMO_MODE_KEY, true)
+            .apply()
     }
 
     fun clearPairing(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().remove(TV_CODE_KEY).apply()
+        prefs.edit()
+            .remove(TV_CODE_KEY)
+            .remove(DEMO_MODE_KEY)
+            .apply()
     }
 }

@@ -42,10 +42,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -99,12 +101,10 @@ class ComposeMainActivity : ComponentActivity() {
         }
         FirebaseApp.initializeApp(this)
 
-        // Verify Amazon Appstore DRM license
+        // Non-blocking DRM check — log result for Amazon Appstore compliance
         AmazonDrmManager(this).verifyLicense { licensed ->
             if (!licensed) {
-                android.util.Log.w("FireVision", "DRM: App not licensed — finishing activity")
-                finish()
-                return@verifyLicense
+                android.util.Log.w("FireVision", "DRM: App not licensed (non-blocking)")
             }
         }
 
@@ -142,7 +142,6 @@ class ComposeMainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                // Compose app shell immediately so ViewModel init{} fires during splash
                 Box(modifier = Modifier.fillMaxSize()) {
                     FireVisionAppShell(
                         navController = navController,
@@ -156,7 +155,7 @@ class ComposeMainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Splash overlay — fades itself out via built-in alpha animation
+                    // Splash overlay
                     if (showSplash) {
                         SplashScreen(onSplashFinished = { showSplash = false })
                     }
@@ -214,6 +213,8 @@ private fun FireVisionAppShell(
 
     val showNav = currentRoute in Screen.sidebarRoutes
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    val context = LocalContext.current
+    val isMobile = remember { isMobileDevice(context) }
 
     val onNavigate: (Screen) -> Unit = { screen ->
         navController.navigate(screen.route) {
@@ -254,7 +255,8 @@ private fun FireVisionAppShell(
                 if (showNav) {
                     SideNavRail(
                         currentRoute = currentRoute,
-                        onScreenSelected = onNavigate
+                        onScreenSelected = onNavigate,
+                        compact = isMobile
                     )
                 }
                 FireVisionNavGraph(
@@ -297,7 +299,8 @@ private fun BottomNavBar(
         tonalElevation = 0.dp
     ) {
         bottomNavItems.forEach { (screen, icon, label) ->
-            val isSelected = currentRoute == screen.route
+            val isSelected = currentRoute == screen.route ||
+                (screen == Screen.Channels && currentRoute == Screen.ChannelsByCategory.route)
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onScreenSelected(screen) },

@@ -21,7 +21,8 @@ data class PlayerUiState(
     val recoveryAttempt: Int = 0,
     val isStreamDead: Boolean = false,
     val deadStreamCountdown: Int = 0,
-    val deadStreamMessage: String = "",
+    val deadStreamTitle: String = "",
+    val deadStreamExplanation: String = "",
     val shouldNavigateBack: Boolean = false,
     // Channel overlay state
     val showChannelOverlay: Boolean = false,

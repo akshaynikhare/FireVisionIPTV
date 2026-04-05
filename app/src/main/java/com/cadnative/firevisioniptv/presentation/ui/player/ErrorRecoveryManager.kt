@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * proxy fallback, and alternate stream fallback.
  *
  * Recovery strategy:
- * 1. Primary direct URL: up to 2 attempts with exponential backoff
+ * 1. Primary direct URL: up to 3 attempts with exponential backoff
  * 2. Primary proxy URL: 1 attempt (if proxy available)
  * 3. For each alternate (up to 3): 1 direct attempt, then 1 proxy attempt
  * 4. If all retries exhausted, signal the stream as dead
@@ -60,14 +60,14 @@ class ErrorRecoveryManager(
 
     private fun maxAttemptsForSlot(slotIndex: Int): Int {
         val slot = streamSlots.getOrNull(slotIndex) ?: return 0
-        val directAttempts = if (slotIndex == 0) 2 else 1
+        val directAttempts = if (slotIndex == 0) 3 else 1
         val proxyAttempts = if (slot.proxyUrl != null) 1 else 0
         return directAttempts + proxyAttempts
     }
 
     private fun isProxyAttempt(): Boolean {
         val slot = streamSlots.getOrNull(currentSlotIndex) ?: return false
-        val directAttempts = if (currentSlotIndex == 0) 2 else 1
+        val directAttempts = if (currentSlotIndex == 0) 3 else 1
         return attemptInSlot > directAttempts && slot.proxyUrl != null
     }
 

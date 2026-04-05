@@ -233,7 +233,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     
     private fun isPaired(): Boolean {
         val tvCode = AppPreferences.getTvCode(application)
-        return tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+        return tvCode.isNotEmpty() && !AppPreferences.isDemoMode(application)
     }
 
     /**

@@ -97,4 +97,18 @@ interface ChannelHealthDao {
 
     @Query("DELETE FROM channel_health WHERE channelId NOT IN (SELECT id FROM channels)")
     suspend fun cleanupOrphaned()
+
+    @Query("""
+        SELECT COUNT(*) FROM channel_health h
+        INNER JOIN channels c ON c.id = h.channelId
+        WHERE c.categoryId = :categoryId AND h.status = 'OFFLINE'
+    """)
+    suspend fun getOfflineCountByCategory(categoryId: String): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM channel_health h
+        INNER JOIN channels c ON c.id = h.channelId
+        WHERE c.categoryId = :categoryId AND h.status != 'UNKNOWN'
+    """)
+    suspend fun getScannedCountByCategory(categoryId: String): Int
 }

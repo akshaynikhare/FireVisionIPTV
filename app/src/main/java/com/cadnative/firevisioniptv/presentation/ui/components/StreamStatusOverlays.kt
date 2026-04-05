@@ -26,6 +26,12 @@ fun RecoveringOverlay(
     maxAttempts: Int,
     modifier: Modifier = Modifier
 ) {
+    val statusMessage = when {
+        attempt <= 1 -> "Checking stream source..."
+        attempt == maxAttempts -> "Last attempt..."
+        else -> "Trying alternate connection..."
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -47,13 +53,19 @@ fun RecoveringOverlay(
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
+            Text(
+                text = statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextDim
+            )
         }
     }
 }
 
 @Composable
 fun DeadStreamOverlay(
-    message: String,
+    title: String,
+    explanation: String,
     countdown: Int,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -84,11 +96,20 @@ fun DeadStreamOverlay(
                 modifier = Modifier.size(48.dp)
             )
             Text(
-                text = message,
+                text = title,
                 style = MaterialTheme.typography.titleMedium,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
             )
+            if (explanation.isNotEmpty()) {
+                Text(
+                    text = explanation,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.widthIn(max = 480.dp)
+                )
+            }
             if (countdown > 0) {
                 Text(
                     text = "Going back in $countdown...",

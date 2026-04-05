@@ -208,7 +208,7 @@ fun PlayerScreen(
             // Build stream slots: primary + alternates, each with optional proxy
             val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
             val tvCode = AppPreferences.getTvCode(context)
-            val canProxy = tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+            val canProxy = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(context)
 
             fun buildProxyUrl(streamUrl: String): String? {
                 if (!canProxy) return null
@@ -535,7 +535,8 @@ fun PlayerScreen(
             exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
         ) {
             DeadStreamOverlay(
-                message = uiState.deadStreamMessage,
+                title = uiState.deadStreamTitle,
+                explanation = uiState.deadStreamExplanation,
                 countdown = uiState.deadStreamCountdown,
                 onDismiss = { viewModel.cancelDeadStreamCountdown() }
             )

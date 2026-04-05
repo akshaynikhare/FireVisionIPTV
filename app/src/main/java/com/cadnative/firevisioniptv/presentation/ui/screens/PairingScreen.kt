@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,9 +46,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cadnative.firevisioniptv.presentation.ui.components.ThemeAwareQrCode
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.Flame300
+import com.cadnative.firevisioniptv.presentation.ui.theme.Flame50
 import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 
 @Composable
 fun PairingScreen(
@@ -87,17 +90,17 @@ fun PairingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(if (isPortrait) 24.dp else 32.dp)
+            .padding(if (isPortrait) 12.dp else if (isTvDevice) 32.dp else 8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (isPortrait) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                .then(if (isTvDevice) Modifier else Modifier.verticalScroll(rememberScrollState())),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Title
             Text(
-                text = "Pair Your TV",
+                text = if (isTvDevice) "Pair Your TV" else "Pair Your Device",
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -112,12 +115,13 @@ fun PairingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (isTvDevice) {
-                    StepText("1. Go to $serverUrl on your phone or computer")
-                    StepText("2. Create an account or sign in")
-                    StepText("3. Enter this PIN to link your TV")
+                    StepText("1. Visit $serverUrl and sign in")
+                    StepText("2. Enter this PIN to link your TV")
+                    StepText("3. Add channels and start watching!")
                 } else {
-                    StepText("1. Tap 'Pair in Browser' below to create an account")
-                    StepText("2. Your device will be linked automatically")
+                    StepText("1. Tap 'Pair in Browser' and sign in")
+                    StepText("2. Your device links automatically")
+                    StepText("3. Add channels and start watching!")
                 }
             }
 
@@ -167,7 +171,7 @@ fun PairingScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .then(if (isTvDevice) Modifier.weight(1f) else Modifier),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -181,7 +185,7 @@ fun PairingScreen(
                         onRetryClick = onRetryClick,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(end = 24.dp)
+                            .padding(end = if (isTvDevice) 24.dp else 12.dp)
                     )
 
                     // Vertical divider
@@ -205,10 +209,12 @@ fun PairingScreen(
                             serverUrl = serverUrl,
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(start = 24.dp)
+                                .padding(start = 12.dp)
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Bottom bar
@@ -217,45 +223,25 @@ fun PairingScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedButton(
+                        onClick = onUseDefaultClick,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Flame300.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Flame50.copy(alpha = 0.3f),
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
                         Text(
-                            text = "Visit",
-                            color = TextDim,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        Text(
-                            text = serverUrl,
-                            color = SteelBlue,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        Text(
-                            text = "to enter this PIN",
-                            color = TextDim,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    TextButton(onClick = onUseDefaultClick) {
-                        Text(
                             text = "Browse Demo Channels",
-                            color = TextDim.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                     Text(
                         text = "Demo mode — pair your device later for your personal channels",
-                        color = TextDim.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
@@ -266,35 +252,17 @@ fun PairingScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Visit",
-                        color = TextDim,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = serverUrl,
-                        color = SteelBlue,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = "to enter this PIN",
-                        color = TextDim,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    TextButton(onClick = onUseDefaultClick) {
+                    OutlinedButton(
+                        onClick = onUseDefaultClick,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Flame300.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Flame50.copy(alpha = 0.3f),
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
                         Text(
                             text = "Browse Demo Channels",
-                            color = TextDim.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -303,7 +271,7 @@ fun PairingScreen(
 
                     Text(
                         text = "Demo mode — pair later for your channels",
-                        color = TextDim.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -426,41 +394,19 @@ private fun QrSection(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Scan with your phone",
-            color = TextDim,
+            text = "Scan with your phone to Pair",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Scan to Pair",
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (qrCodeBitmap != null) {
-            Box(
-                modifier = Modifier
-                    .size(230.dp)
-                    .background(
-                        color = Color.White,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(3.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    bitmap = qrCodeBitmap.asImageBitmap(),
-                    contentDescription = "QR Code for Pairing",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            }
+            ThemeAwareQrCode(
+                bitmap = qrCodeBitmap,
+                contentDescription = "QR Code for Pairing",
+                size = 230.dp
+            )
         } else {
             Box(
                 modifier = Modifier
@@ -478,15 +424,6 @@ private fun QrSection(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = "Sign in or register to pair",
-            color = SteelBlue,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
@@ -515,7 +452,7 @@ private fun OpenBrowserSection(
 
         Text(
             text = "Tap to open your browser and complete pairing",
-            color = TextDim,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
@@ -556,7 +493,7 @@ private fun OpenBrowserSection(
 
         Text(
             text = "Or enter PIN manually at $serverUrl",
-            color = TextDim.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center
         )
@@ -619,7 +556,7 @@ private fun PairingSuccessContent(
                 Text(
                     text = "Scan the QR code or visit",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 Text(
@@ -632,7 +569,7 @@ private fun PairingSuccessContent(
                 Text(
                     text = "to add channels to your playlist",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
@@ -664,7 +601,7 @@ private fun PairingSuccessContent(
                 Text(
                     text = "Add channels to your playlist to start watching",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextDim,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 

@@ -18,6 +18,8 @@ import com.cadnative.firevisioniptv.domain.usecase.SavePlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
+import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorContext
+import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorMessageResolver
 import com.cadnative.firevisioniptv.presentation.ui.animation.AUTO_HIDE_DELAY_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -507,16 +510,22 @@ class PlayerViewModel @Inject constructor(
 
     fun onStreamDead(errorMessage: String) {
         val channelId = _uiState.value.channel?.id ?: return
+        val category = _uiState.value.channel?.category ?: ""
+
         _uiState.update {
             it.copy(
                 isRecovering = false,
                 isPlaying = false,
                 isStreamDead = true,
-                deadStreamMessage = "Stream unavailable",
+                deadStreamTitle = "Stream Unavailable",
+                deadStreamExplanation = "",
                 error = null
             )
         }
+
         viewModelScope.launch {
+            val previousHealth = channelHealthDao.getHealthByChannelId(channelId).firstOrNull()
+
             channelHealthDao.upsertPreservingThumbnail(
                 channelId = channelId,
                 status = ChannelHealthStatus.OFFLINE.name,
@@ -531,6 +540,24 @@ class PlayerViewModel @Inject constructor(
                     errorMessage = errorMessage
                 )
             )
+
+            val offlineCount = channelHealthDao.getOfflineCountByCategory(category)
+            val scannedCount = channelHealthDao.getScannedCountByCategory(category)
+            val resolved = StreamErrorMessageResolver.resolve(
+                StreamErrorContext(
+                    errorMessage = errorMessage,
+                    lastCheckedAt = previousHealth?.lastCheckedAt,
+                    previousStatus = previousHealth?.status,
+                    categoryOfflineCount = offlineCount,
+                    categoryScannedCount = scannedCount
+                )
+            )
+            _uiState.update {
+                it.copy(
+                    deadStreamTitle = resolved.title,
+                    deadStreamExplanation = resolved.explanation
+                )
+            }
         }
         startDeadStreamCountdown()
     }
