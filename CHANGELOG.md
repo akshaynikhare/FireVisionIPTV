@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.3] - 2026-04-05
+
+### Added
+- integrate AnalyticsHelper into PlayerViewModel for enhanced event logging
+- update SettingsViewModel to include download and connection test states
+- Enhance PlayerScreen with mobile-specific features and immersive mode
+
+### Other
+- Add unit tests for PlayerViewModel, SearchViewModel, and SettingsViewModel
+
+---
+
 ## [2.1.2] - 2026-04-04
 
 ### Added
