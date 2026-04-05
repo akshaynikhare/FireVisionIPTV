@@ -7,6 +7,7 @@ import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
+import com.cadnative.firevisioniptv.domain.service.AnalyticsHelper
 import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
@@ -18,6 +19,8 @@ import com.cadnative.firevisioniptv.domain.usecase.SavePlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
+import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorContext
+import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorMessageResolver
 import com.cadnative.firevisioniptv.presentation.ui.animation.AUTO_HIDE_DELAY_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +29,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -54,7 +58,8 @@ class PlayerViewModel @Inject constructor(
     private val channelUiMapper: ChannelUiMapper,
     private val channelHealthDao: ChannelHealthDao,
     private val thumbnailExtractor: ChannelThumbnailExtractor,
-    private val epgRepository: EpgRepository
+    private val epgRepository: EpgRepository,
+    private val analyticsHelper: AnalyticsHelper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -70,8 +75,26 @@ class PlayerViewModel @Inject constructor(
     private var playReportJob: Job? = null
     private var epgJob: Job? = null
     private var playReportedForChannel: String? = null
+    private var channelViewStartTime: Long = 0L
+
+    private fun logWatchDuration() {
+        val state = _uiState.value
+        val channel = state.channel ?: return
+        if (channelViewStartTime == 0L) return
+        val durationSeconds = (System.currentTimeMillis() - channelViewStartTime) / 1000
+        if (durationSeconds < 1) return
+        analyticsHelper.logEvent(
+            "channel_watch_duration",
+            "channel_id" to channel.id,
+            "channel_name" to channel.name.take(100),
+            "category" to channel.category.take(100),
+            "duration_seconds" to durationSeconds
+        )
+        channelViewStartTime = 0L
+    }
 
     fun loadChannel(channelId: String) {
+        logWatchDuration()
         loadJob?.cancel()
         playReportJob?.cancel()
         playReportedForChannel = null
@@ -81,15 +104,23 @@ class PlayerViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         val channel = result.data
+                        val uiModel = channelUiMapper.toUiModel(channel)
                         _uiState.update {
                             it.copy(
-                                channel = channelUiMapper.toUiModel(channel),
+                                channel = uiModel,
                                 isLoading = false,
                                 error = null,
                                 nowPlaying = null,
                                 nextProgram = null
                             )
                         }
+                        channelViewStartTime = System.currentTimeMillis()
+                        analyticsHelper.logEvent(
+                            "channel_view",
+                            "channel_id" to channel.id,
+                            "channel_name" to uiModel.name.take(100),
+                            "category" to uiModel.category.take(100)
+                        )
                         loadPlaybackPosition(channelId)
                         // Preload channel list for next/prev navigation
                         preloadChannelList()
@@ -378,6 +409,7 @@ class PlayerViewModel @Inject constructor(
             hideOverlay()
             return
         }
+        logWatchDuration()
         countdownJob?.cancel()
         playReportJob?.cancel()
         playReportedForChannel = null
@@ -507,16 +539,32 @@ class PlayerViewModel @Inject constructor(
 
     fun onStreamDead(errorMessage: String) {
         val channelId = _uiState.value.channel?.id ?: return
+        val channelName = _uiState.value.channel?.name ?: ""
+        val category = _uiState.value.channel?.category ?: ""
+
+        logWatchDuration()
+        analyticsHelper.logEvent(
+            "channel_error",
+            "channel_id" to channelId,
+            "channel_name" to channelName.take(100),
+            "category" to category.take(100),
+            "error_type" to errorMessage.take(100)
+        )
+
         _uiState.update {
             it.copy(
                 isRecovering = false,
                 isPlaying = false,
                 isStreamDead = true,
-                deadStreamMessage = "Stream unavailable",
+                deadStreamTitle = "Stream Unavailable",
+                deadStreamExplanation = "",
                 error = null
             )
         }
+
         viewModelScope.launch {
+            val previousHealth = channelHealthDao.getHealthByChannelId(channelId).firstOrNull()
+
             channelHealthDao.upsertPreservingThumbnail(
                 channelId = channelId,
                 status = ChannelHealthStatus.OFFLINE.name,
@@ -531,6 +579,24 @@ class PlayerViewModel @Inject constructor(
                     errorMessage = errorMessage
                 )
             )
+
+            val offlineCount = channelHealthDao.getOfflineCountByCategory(category)
+            val scannedCount = channelHealthDao.getScannedCountByCategory(category)
+            val resolved = StreamErrorMessageResolver.resolve(
+                StreamErrorContext(
+                    errorMessage = errorMessage,
+                    lastCheckedAt = previousHealth?.lastCheckedAt,
+                    previousStatus = previousHealth?.status,
+                    categoryOfflineCount = offlineCount,
+                    categoryScannedCount = scannedCount
+                )
+            )
+            _uiState.update {
+                it.copy(
+                    deadStreamTitle = resolved.title,
+                    deadStreamExplanation = resolved.explanation
+                )
+            }
         }
         startDeadStreamCountdown()
     }
@@ -581,6 +647,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        logWatchDuration()
         stopPeriodicPositionSaving()
         playbackPositionJob?.cancel()
         channelListJob?.cancel()

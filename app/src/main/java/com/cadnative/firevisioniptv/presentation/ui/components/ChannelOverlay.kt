@@ -9,6 +9,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -28,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import android.view.KeyEvent
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,6 +41,7 @@ import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -59,6 +64,7 @@ fun ChannelOverlay(
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
     onInteraction: () -> Unit,
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -140,7 +146,8 @@ fun ChannelOverlay(
                 isVisible = isVisible,
                 onChannelClick = onChannelClick,
                 onCategorySelected = onCategorySelected,
-                onFavoriteClick = onFavoriteClick
+                onFavoriteClick = onFavoriteClick,
+                onDismiss = onDismiss
             )
         }
     }
@@ -271,8 +278,10 @@ private fun BottomChannelPanel(
     onChannelClick: (String) -> Unit,
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val isMobile = isMobileDevice(LocalContext.current)
     val channelListState = rememberLazyListState()
     val categoryFocusRequester = remember { FocusRequester() }
     val channelFocusRequester = remember { FocusRequester() }
@@ -304,28 +313,56 @@ private fun BottomChannelPanel(
         }
     }
 
+    // Stable reference to onDismiss so pointerInput key doesn't change every recomposition
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { translationY = dragOffsetY.coerceAtLeast(0f) }
             .background(
                 color = SurfaceDark.copy(alpha = 0.95f),
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
             )
             .padding(top = 16.dp, bottom = 24.dp)
     ) {
-        // Drag handle indicator
+        // Drag handle area — swipe target on mobile, tap to dismiss
         Box(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .width(40.dp)
-                .height(4.dp)
-                .background(
-                    TextDim.copy(alpha = 0.4f),
-                    RoundedCornerShape(2.dp)
-                )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+                .fillMaxWidth()
+                .height(32.dp)
+                .then(
+                    if (isMobile) Modifier
+                        .clickable { currentOnDismiss() }
+                        .pointerInput(Unit) {
+                            val thresholdPx = 80.dp.toPx()
+                            detectVerticalDragGestures(
+                                onDragStart = { dragOffsetY = 0f },
+                                onDragEnd = {
+                                    if (dragOffsetY > thresholdPx) currentOnDismiss()
+                                    dragOffsetY = 0f
+                                },
+                                onDragCancel = { dragOffsetY = 0f },
+                                onVerticalDrag = { _, dragAmount ->
+                                    dragOffsetY = (dragOffsetY + dragAmount).coerceAtLeast(0f)
+                                }
+                            )
+                        }
+                    else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(
+                        TextDim.copy(alpha = 0.4f),
+                        RoundedCornerShape(2.dp)
+                    )
+            )
+        }
 
         // Section title
         Text(

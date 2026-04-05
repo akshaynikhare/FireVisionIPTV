@@ -36,20 +36,20 @@ class AmazonDrmManager(private val context: Context) {
                     onLicenseResult?.invoke(false)
                 }
                 LicenseResponse.RequestStatus.ERROR_VERIFICATION -> {
-                    Log.w(TAG, "License verification error — allowing app to continue")
-                    onLicenseResult?.invoke(true)
+                    Log.w(TAG, "License verification error — denying access")
+                    onLicenseResult?.invoke(false)
                 }
                 LicenseResponse.RequestStatus.ERROR_INVALID_LICENSING_KEYS -> {
-                    Log.e(TAG, "Invalid licensing keys")
-                    onLicenseResult?.invoke(true)
+                    Log.e(TAG, "Invalid licensing keys — denying access")
+                    onLicenseResult?.invoke(false)
                 }
                 LicenseResponse.RequestStatus.EXPIRED -> {
                     Log.w(TAG, "License expired")
                     onLicenseResult?.invoke(false)
                 }
                 else -> {
-                    Log.w(TAG, "Unknown license status: $status — allowing app")
-                    onLicenseResult?.invoke(true)
+                    Log.w(TAG, "Unknown license status: $status — denying access")
+                    onLicenseResult?.invoke(false)
                 }
             }
         }

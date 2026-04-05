@@ -15,18 +15,16 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.PairingScreen
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
 import androidx.lifecycle.lifecycleScope
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,6 +57,11 @@ class PairingActivity : ComponentActivity() {
     private var showCountdown by mutableStateOf(false)
     private var qrCodeBitmap by mutableStateOf<Bitmap?>(null)
     private var serverUrl by mutableStateOf("")
+    private var pairingUrl by mutableStateOf("")
+    private var isTv = false
+    private var isPaired by mutableStateOf(false)
+    private var pairedUsername by mutableStateOf("")
+    private var channelManagerQrBitmap by mutableStateOf<Bitmap?>(null)
 
     @Volatile private var currentPin: String? = null
     @Volatile private var expiresAt: Long = 0
@@ -74,6 +77,7 @@ class PairingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         serverUrl = AppPreferences.getServerUrl(this)
+        isTv = isTvDevice(this)
 
         setContent {
             FireVisionTheme {
@@ -87,8 +91,14 @@ class PairingActivity : ComponentActivity() {
                     showCountdown = showCountdown,
                     qrCodeBitmap = qrCodeBitmap,
                     serverUrl = serverUrl,
+                    isTvDevice = isTv,
+                    pairingUrl = pairingUrl,
+                    isPaired = isPaired,
+                    pairedUsername = pairedUsername,
+                    channelManagerQrBitmap = channelManagerQrBitmap,
                     onRetryClick = { requestNewPairing() },
-                    onUseDefaultClick = { useDefaultChannelList() }
+                    onUseDefaultClick = { useDefaultChannelList() },
+                    onContinue = { navigateToMain() }
                 )
             }
         }
@@ -137,57 +147,51 @@ class PairingActivity : ComponentActivity() {
         showRetryButton = false
 
         lifecycleScope.launch(Dispatchers.IO) {
-            var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
-                val url = URL("$baseUrl/api/v1/tv/pairing/request")
-                connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = CONNECT_TIMEOUT_MS
-                connection.readTimeout = READ_TIMEOUT_MS
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.doOutput = true
-
                 val requestData = JSONObject().apply {
                     put("deviceName", Build.MODEL)
                     put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
                 }
 
-                connection.outputStream.use { os ->
-                    os.write(requestData.toString().toByteArray(Charsets.UTF_8))
-                }
+                val response = PinnedHttpClient.post(
+                    "$baseUrl/api/v1/tv/pairing/request",
+                    requestData.toString()
+                )
 
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-                    val jsonResponse = JSONObject(response)
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val jsonResponse = JSONObject(resp.body?.string() ?: "{}")
 
-                    if (jsonResponse.optBoolean("success", false)) {
-                        currentPin = jsonResponse.getString("pin")
-                        val expiresAtStr = jsonResponse.getString("expiresAt")
-                        expiresAt = parseISO8601(expiresAtStr)
+                        if (jsonResponse.optBoolean("success", false)) {
+                            currentPin = jsonResponse.getString("pin")
+                            val expiresAtStr = jsonResponse.getString("expiresAt")
+                            expiresAt = parseISO8601(expiresAtStr)
 
-                        withContext(Dispatchers.Main) {
-                            isLoading = false
-                            pin = currentPin ?: "------"
-                            statusMessage = "Waiting for confirmation..."
-                            statusColor = androidx.compose.ui.graphics.Color.White
-                            showCountdown = true
-                            generateSignupQRCode(baseUrl, currentPin ?: "")
-                            startPolling()
-                            startCountdown()
+                            withContext(Dispatchers.Main) {
+                                isLoading = false
+                                pin = currentPin ?: "------"
+                                statusMessage = "Waiting for confirmation..."
+                                statusColor = androidx.compose.ui.graphics.Color.White
+                                showCountdown = true
+                                pairingUrl = "$baseUrl/pair?pin=${currentPin ?: ""}"
+                                if (isTv) {
+                                    generateSignupQRCode(baseUrl, currentPin ?: "")
+                                }
+                                startPolling()
+                                startCountdown()
+                            }
+                        } else {
+                            showError("Failed to generate PIN: ${jsonResponse.optString("error", "Unknown error")}")
                         }
                     } else {
-                        showError("Failed to generate PIN: ${jsonResponse.optString("error", "Unknown error")}")
+                        showError("Server error: ${resp.code}")
                     }
-                } else {
-                    showError("Server error: $responseCode")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error requesting pairing", e)
                 showError("Connection error: ${e.message}")
             } finally {
-                connection?.disconnect()
                 isRequestingPin = false
             }
         }
@@ -213,35 +217,29 @@ class PairingActivity : ComponentActivity() {
 
     private fun checkPairingStatus() {
         lifecycleScope.launch(Dispatchers.IO) {
-            var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
-                val url = URL("$baseUrl/api/v1/tv/pairing/status/$currentPin")
-                connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = CONNECT_TIMEOUT_MS
-                connection.readTimeout = POLL_READ_TIMEOUT_MS
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("Accept", "application/json")
+                val response = PinnedHttpClient.get(
+                    "$baseUrl/api/v1/tv/pairing/status/$currentPin",
+                    mapOf("Accept" to "application/json")
+                )
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val jsonResponse = JSONObject(resp.body?.string() ?: "{}")
+                        val paired = jsonResponse.optBoolean("paired", false)
+                        val status = jsonResponse.optString("status", "unknown")
 
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-                    val jsonResponse = JSONObject(response)
-                    val paired = jsonResponse.optBoolean("paired", false)
-                    val status = jsonResponse.optString("status", "unknown")
-
-                    if (paired && status == "completed") {
-                        val channelListCode = jsonResponse.getString("channelListCode")
-                        val username = jsonResponse.optString("username", "User")
-                        onPairingSuccess(channelListCode, username)
-                    } else if (status == "expired") {
-                        showError("PIN expired. Please generate a new one.")
+                        if (paired && status == "completed") {
+                            val channelListCode = jsonResponse.getString("channelListCode")
+                            val username = jsonResponse.optString("username", "User")
+                            onPairingSuccess(channelListCode, username)
+                        } else if (status == "expired") {
+                            showError("PIN expired. Please generate a new one.")
+                        }
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error checking pairing status", e)
-            } finally {
-                connection?.disconnect()
             }
         }
     }
@@ -252,21 +250,43 @@ class PairingActivity : ComponentActivity() {
 
         runOnUiThread {
             AppPreferences.setTvCode(this, channelListCode)
-
-            statusMessage = "Paired successfully!"
-            statusColor = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            pairedUsername = username
+            isPaired = true
             showCountdown = false
 
-            Toast.makeText(this, "Welcome, $username!", Toast.LENGTH_LONG).show()
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                val intent = Intent(this@PairingActivity, ComposeMainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-                finish()
-            }, 2000)
+            if (isTv) {
+                generateChannelManagerQrCode()
+            }
         }
+    }
+
+    private fun generateChannelManagerQrCode() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val channelManagerUrl = "$serverUrl/user/channels"
+                val writer = QRCodeWriter()
+                val bitMatrix = writer.encode(channelManagerUrl, BarcodeFormat.QR_CODE, 512, 512)
+                val width = bitMatrix.width
+                val height = bitMatrix.height
+                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                for (x in 0 until width) {
+                    for (y in 0 until height) {
+                        bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                    }
+                }
+                withContext(Dispatchers.Main) { channelManagerQrBitmap = bmp }
+            } catch (e: WriterException) {
+                Log.e(TAG, "Error generating channel manager QR code", e)
+            }
+        }
+    }
+
+    private fun navigateToMain() {
+        val intent = Intent(this, ComposeMainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     private fun showError(message: String) {
@@ -313,15 +333,41 @@ class PairingActivity : ComponentActivity() {
             pollRunnable?.let { handler.removeCallbacks(it) }
         }
 
-        AppPreferences.setTvCode(this, AppPreferences.DEFAULT_TV_CODE)
-
-        Toast.makeText(this, "Using default channel list", Toast.LENGTH_SHORT).show()
-
-        val intent = Intent(this, ComposeMainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Fetch demo code from server
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
+                val response = PinnedHttpClient.get(
+                    "$baseUrl/api/v1/app/demo-code",
+                    mapOf("Accept" to "application/json")
+                )
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val json = JSONObject(resp.body?.string() ?: "{}")
+                        val demoCode = json.optString("code", "")
+                        if (demoCode.isNotEmpty()) {
+                            AppPreferences.setDemoMode(this@PairingActivity, demoCode)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@PairingActivity, "Using demo channel list", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(this@PairingActivity, ComposeMainActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                                startActivity(intent)
+                                finish()
+                            }
+                            return@launch
+                        }
+                    }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@PairingActivity, "Demo channels unavailable", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@PairingActivity, "Network error — try again", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
-        startActivity(intent)
-        finish()
     }
 
     private fun parseISO8601(dateStr: String): Long {

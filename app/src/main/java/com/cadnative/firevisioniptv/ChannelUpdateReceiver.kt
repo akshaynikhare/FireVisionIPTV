@@ -5,9 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.media.tv.TvContract
 import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.cadnative.firevisioniptv.worker.ChannelSyncWorker
 
 class ChannelUpdateReceiver : BroadcastReceiver() {
 
@@ -17,31 +18,27 @@ class ChannelUpdateReceiver : BroadcastReceiver() {
         when (action) {
             TvContract.ACTION_INITIALIZE_PROGRAMS -> {
                 Log.d(TAG, "Initializing channels...")
-                syncChannels(context)
+                enqueueSync(context)
             }
             Intent.ACTION_BOOT_COMPLETED -> {
                 Log.d(TAG, "Device booted, syncing channels...")
-                syncChannels(context)
+                enqueueSync(context)
             }
         }
     }
 
-    private fun syncChannels(context: Context) {
-        val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val channelManager = ChannelManager.create(context)
-                channelManager.syncChannelsToTif()
-                Log.d(TAG, "Channel sync completed successfully")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error syncing channels", e)
-            } finally {
-                pendingResult.finish()
-            }
-        }
+    private fun enqueueSync(context: Context) {
+        val syncRequest = OneTimeWorkRequestBuilder<ChannelSyncWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            BOOT_SYNC_WORK,
+            ExistingWorkPolicy.KEEP,
+            syncRequest
+        )
+        Log.d(TAG, "Channel sync enqueued via WorkManager")
     }
 
     companion object {
         private const val TAG = "ChannelUpdateReceiver"
+        private const val BOOT_SYNC_WORK = "boot_channel_sync"
     }
 }

@@ -1,5 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.view.KeyEvent
 import android.view.TextureView
@@ -25,6 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -34,6 +38,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -41,11 +47,17 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -53,7 +65,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -69,10 +83,13 @@ import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
 private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
@@ -139,6 +156,7 @@ fun PlayerScreen(
     // Initialize ExoPlayer
     val exoPlayer = remember {
         ExoPlayer.Builder(context)
+            .setMediaSourceFactory(HlsMediaSource.Factory(DefaultDataSource.Factory(context)))
             .build()
             .apply {
                 playWhenReady = true
@@ -163,6 +181,15 @@ fun PlayerScreen(
         )
     }
 
+    // Track player active state for PiP
+    DisposableEffect(Unit) {
+        com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerActive = true
+        onDispose {
+            com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerActive = false
+            com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerPlaying = false
+        }
+    }
+
     // Load channel
     LaunchedEffect(channelId) {
         viewModel.loadChannel(channelId)
@@ -181,7 +208,7 @@ fun PlayerScreen(
             // Build stream slots: primary + alternates, each with optional proxy
             val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
             val tvCode = AppPreferences.getTvCode(context)
-            val canProxy = tvCode.isNotEmpty() && tvCode != AppPreferences.DEFAULT_TV_CODE
+            val canProxy = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(context)
 
             fun buildProxyUrl(streamUrl: String): String? {
                 if (!canProxy) return null
@@ -219,6 +246,7 @@ fun PlayerScreen(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerPlaying = isPlaying
                 viewModel.updatePlaybackState(
                     isPlaying = isPlaying,
                     position = exoPlayer.currentPosition,
@@ -291,12 +319,83 @@ fun PlayerScreen(
         if (!uiState.showChannelOverlay) focusRequester.requestFocus()
     }
 
+    // Mobile-specific state
+    val isMobile = isMobileDevice(context)
+    val haptic = LocalHapticFeedback.current
+    val activity = context as? Activity
+    var isRotationLocked by remember { mutableStateOf(false) }
+
+    // Immersive mode + reset orientation when leaving player on mobile
+    DisposableEffect(isMobile) {
+        if (isMobile) {
+            (context as? Activity)?.window?.let { window ->
+                val controller = WindowInsetsControllerCompat(window, window.decorView)
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
+        onDispose {
+            if (isMobile) {
+                (context as? Activity)?.let { act ->
+                    act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    act.window?.let { window ->
+                        val controller = WindowInsetsControllerCompat(window, window.decorView)
+                        controller.show(WindowInsetsCompat.Type.systemBars())
+                    }
+                }
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim)
             .focusRequester(focusRequester)
             .focusable()
+            .then(
+                if (isMobile) Modifier.pointerInput(uiState.showChannelOverlay) {
+                    var totalDrag = 0f
+                    coroutineScope {
+                        launch {
+                            detectTapGestures(
+                                onTap = {
+                                    if (uiState.showChannelOverlay) {
+                                        viewModel.hideOverlay()
+                                    } else {
+                                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                        favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                                    }
+                                },
+                                onLongPress = {
+                                    if (!uiState.showChannelOverlay) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.toggleFavorite()
+                                        favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
+                                        favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                                    }
+                                }
+                            )
+                        }
+                        launch {
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDrag = 0f },
+                                onDragEnd = {
+                                    if (!uiState.showChannelOverlay) {
+                                        val now = System.currentTimeMillis()
+                                        if (kotlin.math.abs(totalDrag) > 100f && now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
+                                            lastChannelSwitchTime = now
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            if (totalDrag > 0) viewModel.previousChannel() else viewModel.nextChannel()
+                                        }
+                                    }
+                                },
+                                onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount }
+                            )
+                        }
+                    }
+                } else Modifier
+            )
             .onKeyEvent { keyEvent ->
                 val action = keyEvent.nativeKeyEvent.action
                 val keyCode = keyEvent.nativeKeyEvent.keyCode
@@ -436,7 +535,8 @@ fun PlayerScreen(
             exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
         ) {
             DeadStreamOverlay(
-                message = uiState.deadStreamMessage,
+                title = uiState.deadStreamTitle,
+                explanation = uiState.deadStreamExplanation,
                 countdown = uiState.deadStreamCountdown,
                 onDismiss = { viewModel.cancelDeadStreamCountdown() }
             )
@@ -496,6 +596,80 @@ fun PlayerScreen(
             )
         }
 
+        // Channel list button — bottom-center, mobile only (replaces double-tap for overlay)
+        if (isMobile) {
+            AnimatedVisibility(
+                visible = uiState.channel != null
+                        && !uiState.showChannelOverlay
+                        && !uiState.isStreamDead
+                        && !uiState.isRecovering
+                        && showFavButton,
+                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(24.dp)
+            ) {
+                IconButton(
+                    onClick = { viewModel.showOverlay() },
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = "Channel list",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        // Rotation button — bottom-right, mobile only
+        if (isMobile) {
+            AnimatedVisibility(
+                visible = uiState.channel != null
+                        && !uiState.showChannelOverlay
+                        && !uiState.isStreamDead
+                        && !uiState.isRecovering
+                        && showFavButton,
+                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                IconButton(
+                    onClick = {
+                        activity?.let {
+                            if (isRotationLocked) {
+                                it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                                isRotationLocked = false
+                            } else {
+                                it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                isRotationLocked = true
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ScreenRotation,
+                        contentDescription = if (isRotationLocked) "Unlock rotation" else "Lock to landscape",
+                        tint = if (isRotationLocked) Amber else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
         // Channel overlay
         ChannelOverlay(
             isVisible = uiState.showChannelOverlay,
@@ -511,6 +685,7 @@ fun PlayerScreen(
             onCategorySelected = { viewModel.loadChannelList(it) },
             onFavoriteClick = { viewModel.toggleOverlayFavorite(it) },
             onInteraction = { viewModel.resetAutoHideTimer() },
+            onDismiss = { viewModel.hideOverlay() },
             modifier = Modifier.fillMaxSize()
         )
     }

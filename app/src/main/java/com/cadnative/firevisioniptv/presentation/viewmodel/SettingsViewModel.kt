@@ -18,6 +18,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
@@ -63,7 +64,7 @@ class SettingsViewModel @Inject constructor(
     companion object {
         private const val TAG = "SettingsViewModel"
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
-        private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
+        
         private const val UPDATE_CHECK_TIMEOUT = 15_000
         private const val APK_FILENAME = "FireVisionIPTV.apk"
         private const val GITHUB_RELEASES_API = "https://api.github.com/repos/akshaynikhare/FireVisionIPTV/releases/latest"
@@ -102,12 +103,17 @@ class SettingsViewModel @Inject constructor(
                         appVersion = current.appVersion,
                         qrCodeBitmap = current.qrCodeBitmap,
                         isPaired = current.isPaired,
+                        isDefaultMode = current.isDefaultMode,
                         settingsSaved = current.settingsSaved,
                         isCheckingForUpdate = current.isCheckingForUpdate,
                         updateInfo = current.updateInfo,
                         updateChecked = current.updateChecked,
+                        isDownloadingUpdate = current.isDownloadingUpdate,
+                        downloadError = current.downloadError,
                         isClearingCache = current.isClearingCache,
-                        cacheCleared = current.cacheCleared
+                        cacheCleared = current.cacheCleared,
+                        isTestingConnection = current.isTestingConnection,
+                        connectionTestResult = current.connectionTestResult
                     )
                 }
             }
@@ -118,13 +124,15 @@ class SettingsViewModel @Inject constructor(
         val ctx = application.applicationContext
         val serverUrl = AppPreferences.getServerUrl(ctx)
         val tvCode = AppPreferences.getTvCode(ctx)
-        val isPaired = tvCode.isNotEmpty() && tvCode != DEFAULT_TV_CODE
+        val isPaired = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(ctx)
+        val isDefaultMode = AppPreferences.isDemoMode(ctx)
 
         _uiState.update {
             it.copy(
                 serverUrl = serverUrl,
                 tvCode = tvCode,
                 isPaired = isPaired,
+                isDefaultMode = isDefaultMode,
                 appVersion = getAppVersion()
             )
         }
@@ -145,7 +153,7 @@ class SettingsViewModel @Inject constructor(
         val code = _uiState.value.tvCode.trim()
 
         if (url.isEmpty() || code.isEmpty()) return false
-        if (!url.startsWith("http://") && !url.startsWith("https://")) return false
+        if (!url.startsWith("https://")) return false
         if (!android.util.Patterns.WEB_URL.matcher(url).matches()) return false
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -156,12 +164,13 @@ class SettingsViewModel @Inject constructor(
                 .apply()
         }
 
-        val isPaired = code.isNotEmpty() && code != DEFAULT_TV_CODE
+        val isPaired = code.isNotEmpty() && !AppPreferences.isDemoMode(application.applicationContext)
         _uiState.update {
             it.copy(
                 serverUrl = url,
                 tvCode = code,
                 isPaired = isPaired,
+                isDefaultMode = AppPreferences.isDemoMode(application.applicationContext),
                 settingsSaved = true,
                 error = null
             )
@@ -342,18 +351,14 @@ class SettingsViewModel @Inject constructor(
             val tvCode = AppPreferences.getTvCode(ctx)
             val versionCode = getVersionCode()
 
-            val url = java.net.URL("$baseUrl/api/v1/app/version?currentVersion=$versionCode")
-            val connection = url.openConnection() as java.net.HttpURLConnection
-            connection.connectTimeout = UPDATE_CHECK_TIMEOUT
-            connection.readTimeout = UPDATE_CHECK_TIMEOUT
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("Accept", "application/json")
-            connection.setRequestProperty("X-Session-ID", tvCode)
+            val response = PinnedHttpClient.get(
+                "$baseUrl/api/v1/app/version?currentVersion=$versionCode",
+                mapOf("Accept" to "application/json", "X-Session-ID" to tvCode)
+            )
 
-            try {
-                if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = org.json.JSONObject(response)
+            response.use { resp ->
+                if (resp.isSuccessful) {
+                    val json = org.json.JSONObject(resp.body?.string() ?: "{}")
 
                     if (json.optBoolean("success", false) && json.optBoolean("updateAvailable", false)) {
                         val latest = json.optJSONObject("latestVersion")
@@ -372,8 +377,6 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     null
                 }
-            } finally {
-                connection.disconnect()
             }
         } catch (_: Exception) {
             null // fall through to GitHub check
@@ -382,18 +385,15 @@ class SettingsViewModel @Inject constructor(
 
     private fun checkFromGitHub(): UpdateInfo? {
         return try {
-            val url = java.net.URL(GITHUB_RELEASES_API)
-            val connection = url.openConnection() as java.net.HttpURLConnection
-            connection.connectTimeout = UPDATE_CHECK_TIMEOUT
-            connection.readTimeout = UPDATE_CHECK_TIMEOUT
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("Accept", "application/vnd.github+json")
+            val response = PinnedHttpClient.get(
+                GITHUB_RELEASES_API,
+                mapOf("Accept" to "application/vnd.github+json")
+            )
 
-            try {
-                if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) return null
+            response.use { resp ->
+                if (!resp.isSuccessful) return null
 
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = org.json.JSONObject(response)
+                val json = org.json.JSONObject(resp.body?.string() ?: "{}")
 
                 val tagName = json.optString("tag_name", "")
                 val latestVersion = tagName.removePrefix("v")
@@ -429,8 +429,6 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     null
                 }
-            } finally {
-                connection.disconnect()
             }
         } catch (_: Exception) {
             null
@@ -543,7 +541,7 @@ class SettingsViewModel @Inject constructor(
                 ctx,
                 downloadReceiver,
                 IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_EXPORTED
+                ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading update", e)
@@ -560,6 +558,13 @@ class SettingsViewModel @Inject constructor(
                 APK_FILENAME
             )
             if (!file.exists()) return
+
+            if (!verifyApkSignature(context, file)) {
+                Log.e(TAG, "APK signature verification failed — refusing to install")
+                file.delete()
+                _uiState.update { it.copy(downloadError = "Update verification failed — signature mismatch") }
+                return
+            }
 
             val apkUri = FileProvider.getUriForFile(
                 context,
@@ -578,6 +583,41 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    @Suppress("DEPRECATION")
+    private fun verifyApkSignature(context: Context, apkFile: java.io.File): Boolean {
+        return try {
+            val currentSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(
+                    context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
+                ).signingInfo?.apkContentsSigners
+            } else {
+                context.packageManager.getPackageInfo(
+                    context.packageName, PackageManager.GET_SIGNATURES
+                ).signatures
+            }
+
+            val apkSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners
+            } else {
+                context.packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath, PackageManager.GET_SIGNATURES
+                )?.signatures
+            }
+
+            if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
+                Log.e(TAG, "Could not retrieve signatures for verification")
+                return false
+            }
+
+            currentSigs[0].toByteArray().contentEquals(apkSigs[0].toByteArray())
+        } catch (e: Exception) {
+            Log.e(TAG, "Signature verification error", e)
+            false
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         downloadReceiver?.let { receiver ->
@@ -585,6 +625,30 @@ class SettingsViewModel @Inject constructor(
         }
         downloadReceiver = null
         _uiState.value.qrCodeBitmap?.recycle()
+    }
+
+    fun testConnection() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTestingConnection = true, connectionTestResult = null) }
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val serverUrl = _uiState.value.serverUrl.trim().trimEnd('/')
+                    val response = PinnedHttpClient.get("$serverUrl/health")
+                    response.use { resp ->
+                        if (resp.code in 200..299) "Connected" else "Server returned ${resp.code}"
+                    }
+                } catch (e: java.net.ConnectException) {
+                    "Connection refused — check server URL"
+                } catch (e: java.net.UnknownHostException) {
+                    "Server not found — check URL"
+                } catch (e: java.net.SocketTimeoutException) {
+                    "Connection timed out"
+                } catch (e: Exception) {
+                    "Failed: ${e.message}"
+                }
+            }
+            _uiState.update { it.copy(isTestingConnection = false, connectionTestResult = result) }
+        }
     }
 
     fun clearError() {

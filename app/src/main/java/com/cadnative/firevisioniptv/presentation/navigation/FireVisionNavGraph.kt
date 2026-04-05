@@ -22,6 +22,7 @@ import com.cadnative.firevisioniptv.presentation.ui.screens.HomeScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PairingScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PlayerScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.SearchScreen
+import com.cadnative.firevisioniptv.presentation.ui.screens.SelfHostSetupScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsScreen
 import com.cadnative.firevisioniptv.presentation.viewmodel.PairingViewModel
 import kotlinx.coroutines.delay
@@ -76,6 +77,8 @@ fun FireVisionNavGraph(
                 showCountdown = uiState.showCountdown,
                 qrCodeBitmap = uiState.qrCodeBitmap,
                 serverUrl = uiState.serverUrl,
+                isTvDevice = uiState.isTvDevice,
+                pairingUrl = uiState.pairingUrl,
                 onRetryClick = { viewModel.requestNewPairing() },
                 onUseDefaultClick = { viewModel.useDefaultChannelList() }
             )
@@ -132,6 +135,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 }
             )
         }
@@ -149,6 +155,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 },
                 initialCategory = categoryId
             )
@@ -188,6 +197,19 @@ fun FireVisionNavGraph(
                     navController.navigate(Screen.Pairing.route) {
                         popUpTo(Screen.Home.route) { inclusive = false }
                     }
+                },
+                onNavigateToSelfHost = {
+                    navController.navigate(Screen.SelfHostSetup.route)
+                }
+            )
+        }
+
+        // ── Self-Host Setup ───────────────────────────────────────────
+        composable(route = Screen.SelfHostSetup.route) {
+            SelfHostSetupScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
                 }
             )
         }

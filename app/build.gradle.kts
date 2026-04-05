@@ -48,6 +48,10 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     lint {
         abortOnError = false
         checkReleaseBuilds = false
@@ -120,6 +124,7 @@ dependencies {
     // Media3 ExoPlayer (updated)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.ui)
 
     // Jetpack Compose for TV
@@ -186,6 +191,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
 }
 
 sentry {
@@ -212,10 +218,36 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
     val fileFilter = listOf(
         "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
-        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*"
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*",
+        // Hilt/DI generated code
+        "**/*_Hilt*.*", "**/Hilt_*.*", "**/*_Factory.*",
+        "**/*_MembersInjector.*", "**/Dagger*.*",
+        "**/di/**", "**/hilt_aggregated_deps/**", "**/dagger/**",
+        // Compose UI — requires instrumented tests, not unit tests
+        "**/presentation/ui/screens/**",
+        "**/presentation/ui/components/**",
+        "**/presentation/ui/theme/**",
+        "**/presentation/ui/animation/**",
+        "**/presentation/ui/utils/**",
+        "**/presentation/navigation/**",
+        // Android framework classes not testable in unit tests
+        "**/*Activity*.*",
+        "**/*Application*.*",
+        "**/*Service*.*",
+        "**/*Receiver*.*",
+        "**/worker/**",
+        "**/ChannelManager*.*",
+        "**/update/**",
+        "**/security/**",
+        // Room-generated code — requires instrumented tests, not unit tests
+        "**/*Dao_Impl*.*",
+        "**/*Database_Impl*.*",
+        // Hardware-dependent services — not testable in JVM unit tests
+        "**/ChannelThumbnailExtractor*.*",
+        "**/drm/**"
     )
     classDirectories.setFrom(
-        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        fileTree("${layout.buildDirectory.get()}/intermediates/classes/debug/transformDebugClassesWithAsm/dirs") {
             exclude(fileFilter)
         }
     )

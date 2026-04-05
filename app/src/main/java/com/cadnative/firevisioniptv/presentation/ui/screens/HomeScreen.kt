@@ -28,7 +28,10 @@ import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import androidx.compose.ui.platform.LocalContext
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
@@ -81,10 +84,15 @@ fun HomeScreen(
                     errorType = uiState.errorType,
                     onPairDevice = onPairDevice
                 )
-                "empty" -> EmptyState(
-                    message = "No channels available",
-                    onRetry = { viewModel.refresh() }
-                )
+                "empty" -> {
+                    val ctx = LocalContext.current
+                    EmptyPlaylistState(
+                        qrCodeBitmap = uiState.guideQrBitmap,
+                        onRetry = { viewModel.refresh() },
+                        isMobile = isMobileDevice(ctx),
+                        channelManagerUrl = AppPreferences.getServerUrl(ctx) + "/user/channels"
+                    )
+                }
                 else -> HomeContent(
                     channels = uiState.channels,
                     featuredChannels = uiState.featuredChannels,
@@ -210,9 +218,14 @@ private fun HeroBanner(
 ) {
     if (channels.isEmpty()) return
 
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val cardWidth = (screenWidth * 0.22f).coerceIn(200.dp, 320.dp)
-    val cardHeight = (cardWidth * 0.6f).coerceIn(120.dp, 192.dp)
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val screenWidth = screenWidthDp.dp
+    val cardWidth = if (screenWidthDp < 600) {
+        (screenWidth * 0.42f).coerceIn(140.dp, 220.dp)
+    } else {
+        (screenWidth * 0.22f).coerceIn(200.dp, 320.dp)
+    }
+    val cardHeight = (cardWidth * 0.6f).coerceIn(90.dp, 192.dp)
 
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Text(
@@ -245,6 +258,10 @@ private fun PopularCategoriesSlider(
     horizontalPadding: Dp = 40.dp,
     modifier: Modifier = Modifier
 ) {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val catCardWidth = if (screenWidthDp < 600) 140.dp else 180.dp
+    val catCardHeight = if (screenWidthDp < 600) 80.dp else 100.dp
+
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Text(
             text = "Popular Categories",
@@ -265,8 +282,8 @@ private fun PopularCategoriesSlider(
                     onClick = { onCategoryClick(category.name) },
                     subtitle = "${category.channelCount} live",
                     modifier = Modifier
-                        .width(180.dp)
-                        .height(100.dp)
+                        .width(catCardWidth)
+                        .height(catCardHeight)
                 )
             }
         }
@@ -285,6 +302,9 @@ private fun ChannelRow(
     modifier: Modifier = Modifier
 ) {
     val catColor = categoryColor(title)
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val cardWidth = if (screenWidthDp < 600) 140.dp else 180.dp
+    val cardHeight = if (screenWidthDp < 600) 90.dp else 110.dp
 
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         Row(
@@ -318,8 +338,8 @@ private fun ChannelRow(
                     onClick = { onChannelClick(channel.id) },
                     onFavoriteClick = { onToggleFavorite(channel.id) },
                     modifier = Modifier
-                        .width(180.dp)
-                        .height(110.dp)
+                        .width(cardWidth)
+                        .height(cardHeight)
                 )
             }
         }

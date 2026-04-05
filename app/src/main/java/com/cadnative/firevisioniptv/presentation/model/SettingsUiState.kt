@@ -23,6 +23,7 @@ data class SettingsUiState(
     val appVersion: String = "1.0.0",
     val qrCodeBitmap: Bitmap? = null,
     val isPaired: Boolean = false,
+    val isDefaultMode: Boolean = false,
     val settingsSaved: Boolean = false,
     // App update
     val isCheckingForUpdate: Boolean = false,
@@ -32,7 +33,10 @@ data class SettingsUiState(
     val downloadError: String? = null,
     // Cache
     val isClearingCache: Boolean = false,
-    val cacheCleared: Boolean = false
+    val cacheCleared: Boolean = false,
+    // Connection test
+    val isTestingConnection: Boolean = false,
+    val connectionTestResult: String? = null
 )
 
 data class UpdateInfo(

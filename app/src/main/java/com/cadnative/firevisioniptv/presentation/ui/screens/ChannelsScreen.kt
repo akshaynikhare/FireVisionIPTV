@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
@@ -27,7 +28,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import androidx.compose.ui.platform.LocalContext
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
@@ -36,6 +40,7 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    onPairDevice: () -> Unit = {},
     initialCategory: String? = null,
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
@@ -58,8 +63,14 @@ fun ChannelsScreen(
                     )
                 },
                 navigationIcon = {
-                    if (uiState.selectedCategory != null) {
-                        IconButton(onClick = { viewModel.loadChannels(null) }) {
+                    if (uiState.selectedCategory != null || initialCategory != null) {
+                        IconButton(onClick = {
+                            if (initialCategory != null) {
+                                onNavigateBack()
+                            } else {
+                                viewModel.loadChannels(null)
+                            }
+                        }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back"
@@ -87,7 +98,8 @@ fun ChannelsScreen(
                     },
                     onAllSelected = {
                         viewModel.loadChannels(null)
-                    }
+                    },
+                    showAllChip = initialCategory == null
                 )
             }
 
@@ -108,12 +120,26 @@ fun ChannelsScreen(
                         "loading" -> LoadingIndicator(message = "Loading channels...")
                         "error" -> ErrorState(
                             message = uiState.error ?: "Unknown error",
-                            onRetry = { viewModel.refresh() }
+                            onRetry = { viewModel.refresh() },
+                            errorType = uiState.errorType,
+                            onPairDevice = onPairDevice
                         )
-                        "empty" -> EmptyState(
-                            message = "No channels available",
-                            onRetry = { viewModel.refresh() }
-                        )
+                        "empty" -> {
+                            if (uiState.selectedCategory != null) {
+                                EmptyState(
+                                    message = "No channels in this category",
+                                    onRetry = { viewModel.refresh() }
+                                )
+                            } else {
+                                val ctx = LocalContext.current
+                                EmptyPlaylistState(
+                                    qrCodeBitmap = uiState.guideQrBitmap,
+                                    onRetry = { viewModel.refresh() },
+                                    isMobile = isMobileDevice(ctx),
+                                    channelManagerUrl = AppPreferences.getServerUrl(ctx) + "/user/channels"
+                                )
+                            }
+                        }
                         else -> ChannelsGrid(
                             channels = uiState.channels,
                             onChannelClick = onChannelClick,
@@ -134,13 +160,15 @@ private fun CategoryChips(
     selectedCategory: String?,
     onCategorySelected: (String) -> Unit,
     onAllSelected: () -> Unit,
+    showAllChip: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
 
     // Auto-scroll to keep the selected category visible
+    val allChipOffset = if (showAllChip) 1 else 0
     val selectedIndex = if (selectedCategory == null) 0
-        else categories.indexOf(selectedCategory).let { if (it >= 0) it + 1 else 0 }
+        else categories.indexOf(selectedCategory).let { if (it >= 0) it + allChipOffset else 0 }
     LaunchedEffect(selectedCategory) {
         listState.scrollToItem(maxOf(0, selectedIndex - 1))
     }
@@ -153,43 +181,45 @@ private fun CategoryChips(
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item {
-            var isFocused by remember { mutableStateOf(false) }
-            val scale by animateFloatAsState(
-                targetValue = if (isFocused) 1.12f else 1f,
-                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "allChipScale"
-            )
-            val isSelected = selectedCategory == null
-            val borderStroke: BorderStroke? = when {
-                isFocused -> BorderStroke(2.5.dp, FocusBorder)
-                !isSelected -> BorderStroke(1.dp, subtleBorder)
-                else -> null
+        if (showAllChip) {
+            item {
+                var isFocused by remember { mutableStateOf(false) }
+                val scale by animateFloatAsState(
+                    targetValue = if (isFocused) 1.12f else 1f,
+                    animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                    label = "allChipScale"
+                )
+                val isSelected = selectedCategory == null
+                val borderStroke: BorderStroke? = when {
+                    isFocused -> BorderStroke(2.5.dp, FocusBorder)
+                    !isSelected -> BorderStroke(1.dp, subtleBorder)
+                    else -> null
+                }
+                FilterChip(
+                    selected = isSelected,
+                    onClick = onAllSelected,
+                    label = {
+                        Text(
+                            text = "All",
+                            fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
+                            color = when {
+                                isFocused && !isSelected -> Amber
+                                else -> Color.Unspecified
+                            }
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Amber,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
+                    ),
+                    border = borderStroke,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .onFocusChanged { isFocused = it.isFocused }
+                )
             }
-            FilterChip(
-                selected = isSelected,
-                onClick = onAllSelected,
-                label = {
-                    Text(
-                        text = "All",
-                        fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
-                        color = when {
-                            isFocused && !isSelected -> Amber
-                            else -> Color.Unspecified
-                        }
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Amber,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
-                ),
-                border = borderStroke,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier
-                    .graphicsLayer { scaleX = scale; scaleY = scale }
-                    .onFocusChanged { isFocused = it.isFocused }
-            )
         }
         items(categories) { category ->
             var isFocused by remember { mutableStateOf(false) }
@@ -240,10 +270,11 @@ private fun ChannelsGrid(
     onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp),
+        columns = GridCells.Adaptive(minSize = if (screenWidthDp < 600) 100.dp else 140.dp),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
+        contentPadding = PaddingValues(if (screenWidthDp < 600) 12.dp else 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

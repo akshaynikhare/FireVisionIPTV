@@ -100,4 +100,7 @@ interface FireVisionApiService {
         @Path("channelListCode") channelListCode: String,
         @Query("hours") hours: Int = 12
     ): Response<EpgGuideResponse>
+
+    @GET("api/v1/app/demo-code")
+    suspend fun getDemoCode(): Response<Map<String, String>>
 }

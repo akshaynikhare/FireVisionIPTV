@@ -11,6 +11,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,10 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
+import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -41,6 +39,8 @@ data class PairingUiState(
     val showCountdown: Boolean = false,
     val qrCodeBitmap: Bitmap? = null,
     val serverUrl: String = "",
+    val pairingUrl: String = "",
+    val isTvDevice: Boolean = true,
     val isPaired: Boolean = false
 )
 
@@ -64,9 +64,11 @@ class PairingViewModel @Inject constructor(
     @Volatile
     private var expiresAt: Long = 0
 
+    private val isTv = isTvDevice(context)
+
     init {
         val serverUrl = AppPreferences.getServerUrl(context)
-        _uiState.update { it.copy(serverUrl = serverUrl) }
+        _uiState.update { it.copy(serverUrl = serverUrl, isTvDevice = isTv) }
         requestNewPairing()
     }
 
@@ -88,64 +90,55 @@ class PairingViewModel @Inject constructor(
         }
 
         requestJob = viewModelScope.launch(Dispatchers.IO) {
-            var connection: HttpURLConnection? = null
             try {
                 val baseUrl = AppPreferences.getServerUrl(context)
-                val url = URL("$baseUrl/api/v1/tv/pairing/request")
-                connection = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    connectTimeout = 15000
-                    readTimeout = 15000
-                    setRequestProperty("Content-Type", "application/json")
-                    doOutput = true
-                }
-
                 val requestData = JSONObject().apply {
                     put("deviceName", Build.MODEL)
                     put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
                 }
 
-                connection.outputStream.use { os ->
-                    os.write(requestData.toString().toByteArray(Charsets.UTF_8))
-                }
+                val response = PinnedHttpClient.post(
+                    "$baseUrl/api/v1/tv/pairing/request",
+                    requestData.toString()
+                )
 
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = BufferedReader(InputStreamReader(connection.inputStream))
-                        .use { it.readText() }
-                    val json = JSONObject(response)
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val json = JSONObject(resp.body?.string() ?: "{}")
 
-                    if (json.optBoolean("success", false)) {
-                        val pin = json.getString("pin")
-                        val expiresAtStr = json.getString("expiresAt")
-                        val expiry = parseISO8601(expiresAtStr)
-                        expiresAt = expiry
+                        if (json.optBoolean("success", false)) {
+                            val pin = json.getString("pin")
+                            val expiresAtStr = json.getString("expiresAt")
+                            val expiry = parseISO8601(expiresAtStr)
+                            expiresAt = expiry
 
-                        _uiState.update {
-                            it.copy(
-                                pin = pin,
-                                statusMessage = "Waiting for confirmation...",
-                                statusColor = Color.White,
-                                isLoading = false,
-                                showCountdown = true
+                            _uiState.update {
+                                it.copy(
+                                    pin = pin,
+                                    statusMessage = "Waiting for confirmation...",
+                                    statusColor = Color.White,
+                                    isLoading = false,
+                                    showCountdown = true,
+                                    pairingUrl = "$baseUrl/pair?pin=$pin"
+                                )
+                            }
+
+                            if (isTv) {
+                                generateQrCode(baseUrl, pin)
+                            }
+                            startPolling(pin)
+                            startCountdown(expiry)
+                        } else {
+                            showError(
+                                "Failed to generate PIN: ${json.optString("error", "Unknown error")}"
                             )
                         }
-
-                        generateQrCode(baseUrl, pin)
-                        startPolling(pin)
-                        startCountdown(expiry)
                     } else {
-                        showError(
-                            "Failed to generate PIN: ${json.optString("error", "Unknown error")}"
-                        )
+                        showError("Server error: ${resp.code}")
                     }
-                } else {
-                    showError("Server error: $responseCode")
                 }
             } catch (e: Exception) {
                 showError("Connection error: ${e.message}")
-            } finally {
-                connection?.disconnect()
             }
         }
     }
@@ -154,13 +147,40 @@ class PairingViewModel @Inject constructor(
         pollingJob?.cancel()
         countdownJob?.cancel()
 
-        AppPreferences.setTvCode(context, DEFAULT_TV_CODE)
+        _uiState.update { it.copy(isLoading = true, statusMessage = "Fetching demo channels...") }
 
-        _uiState.update {
-            it.copy(
-                isPaired = true,
-                statusMessage = "Using default channel list"
-            )
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val baseUrl = AppPreferences.getServerUrl(context)
+                val response = PinnedHttpClient.get(
+                    "$baseUrl/api/v1/app/demo-code",
+                    mapOf("Accept" to "application/json")
+                )
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val json = JSONObject(resp.body?.string() ?: "{}")
+                        val demoCode = json.optString("code", "")
+                        if (demoCode.isNotEmpty()) {
+                            AppPreferences.setDemoMode(context, demoCode)
+                            _uiState.update {
+                                it.copy(isPaired = true, isLoading = false, statusMessage = "Using demo channel list")
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
+                            }
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, statusMessage = "Network error — try again", showRetryButton = true)
+                }
+            }
         }
     }
 
@@ -170,39 +190,31 @@ class PairingViewModel @Inject constructor(
             while (isActive && System.currentTimeMillis() < expiresAt) {
                 delay(POLL_INTERVAL_MS)
 
-                var connection: HttpURLConnection? = null
                 try {
                     val baseUrl = AppPreferences.getServerUrl(context)
-                    val url = URL("$baseUrl/api/v1/tv/pairing/status/$pin")
-                    connection = (url.openConnection() as HttpURLConnection).apply {
-                        requestMethod = "GET"
-                        connectTimeout = 10000
-                        readTimeout = 10000
-                        setRequestProperty("Accept", "application/json")
-                    }
+                    val response = PinnedHttpClient.get(
+                        "$baseUrl/api/v1/tv/pairing/status/$pin",
+                        mapOf("Accept" to "application/json")
+                    )
+                    response.use { resp ->
+                        if (resp.isSuccessful) {
+                            val json = JSONObject(resp.body?.string() ?: "{}")
+                            val paired = json.optBoolean("paired", false)
+                            val status = json.optString("status", "unknown")
 
-                    val responseCode = connection.responseCode
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val response = BufferedReader(InputStreamReader(connection.inputStream))
-                            .use { it.readText() }
-                        val json = JSONObject(response)
-                        val paired = json.optBoolean("paired", false)
-                        val status = json.optString("status", "unknown")
-
-                        if (paired && status == "completed") {
-                            val channelListCode = json.getString("channelListCode")
-                            val username = json.optString("username", "User")
-                            onPairingSuccess(channelListCode, username)
-                            return@launch
-                        } else if (status == "expired") {
-                            showError("PIN expired. Please generate a new one.")
-                            return@launch
+                            if (paired && status == "completed") {
+                                val channelListCode = json.getString("channelListCode")
+                                val username = json.optString("username", "User")
+                                onPairingSuccess(channelListCode, username)
+                                return@launch
+                            } else if (status == "expired") {
+                                showError("PIN expired. Please generate a new one.")
+                                return@launch
+                            }
                         }
                     }
                 } catch (e: Exception) {
                     android.util.Log.w("PairingViewModel", "Poll attempt failed: ${e.message}")
-                } finally {
-                    connection?.disconnect()
                 }
             }
 
@@ -314,7 +326,6 @@ class PairingViewModel @Inject constructor(
     }
 
     companion object {
-        private const val DEFAULT_TV_CODE = AppPreferences.DEFAULT_TV_CODE
         private const val POLL_INTERVAL_MS = 3000L
     }
 }

@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -16,13 +17,10 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import org.json.JSONObject
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.lang.ref.WeakReference
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlin.math.ln
 import kotlin.math.pow
 
@@ -54,38 +52,34 @@ class UpdateManager(activity: Activity) {
         val tvCode = AppPreferences.getTvCode(activity)
 
         Thread {
-            var connection: HttpURLConnection? = null
             try {
-                val url = URL("$baseUrl/api/v1/app/version?currentVersion=$currentVersionCode")
-                connection = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = TIMEOUT
-                    readTimeout = TIMEOUT
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty("X-TV-Code", tvCode)
-                }
+                val response = PinnedHttpClient.get(
+                    "$baseUrl/api/v1/app/version?currentVersion=$currentVersionCode",
+                    mapOf("Accept" to "application/json", "X-TV-Code" to tvCode)
+                )
 
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-                    val json = JSONObject(response)
+                response.use { resp ->
+                    if (resp.isSuccessful) {
+                        val json = JSONObject(resp.body?.string() ?: "{}")
 
-                    if (json.optBoolean("success", false)) {
-                        val latest = json.optJSONObject("latestVersion")
-                        val versionInfo = AppVersionInfo(
-                            updateAvailable = json.optBoolean("updateAvailable", false),
-                            isMandatory = json.optBoolean("isMandatory", false),
-                            versionName = latest?.optString("versionName", "") ?: "",
-                            downloadUrl = latest?.optString("downloadUrl", "") ?: "",
-                            fileSize = latest?.optLong("apkFileSize", 0) ?: 0,
-                            releaseNotes = latest?.optString("releaseNotes", "") ?: ""
-                        )
+                        if (json.optBoolean("success", false)) {
+                            val latest = json.optJSONObject("latestVersion")
+                            val versionInfo = AppVersionInfo(
+                                updateAvailable = json.optBoolean("updateAvailable", false),
+                                isMandatory = json.optBoolean("isMandatory", false),
+                                versionName = latest?.optString("versionName", "") ?: "",
+                                downloadUrl = latest?.optString("downloadUrl", "") ?: "",
+                                fileSize = latest?.optLong("apkFileSize", 0) ?: 0,
+                                releaseNotes = latest?.optString("releaseNotes", "") ?: ""
+                            )
 
-                        val uiActivity = activityRef.get() ?: return@Thread
-                        uiActivity.runOnUiThread {
-                            if (versionInfo.updateAvailable) {
-                                showUpdateDialog(versionInfo)
-                            } else if (showNoUpdateDialog) {
-                                Toast.makeText(uiActivity, "You are using the latest version", Toast.LENGTH_SHORT).show()
+                            val uiActivity = activityRef.get() ?: return@Thread
+                            uiActivity.runOnUiThread {
+                                if (versionInfo.updateAvailable) {
+                                    showUpdateDialog(versionInfo)
+                                } else if (showNoUpdateDialog) {
+                                    Toast.makeText(uiActivity, "You are using the latest version", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
@@ -98,8 +92,6 @@ class UpdateManager(activity: Activity) {
                         Toast.makeText(errActivity, "Failed to check for updates", Toast.LENGTH_SHORT).show()
                     }
                 }
-            } finally {
-                connection?.disconnect()
             }
         }.start()
     }
@@ -196,7 +188,7 @@ class UpdateManager(activity: Activity) {
                 activity,
                 downloadReceiver,
                 IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_EXPORTED
+                ContextCompat.RECEIVER_NOT_EXPORTED
             )
 
         } catch (e: Exception) {
@@ -219,6 +211,13 @@ class UpdateManager(activity: Activity) {
                 return
             }
 
+            if (!verifyApkSignature(activity, file)) {
+                Log.e(TAG, "APK signature verification failed — refusing to install")
+                Toast.makeText(activity, "Update verification failed — signature mismatch", Toast.LENGTH_LONG).show()
+                file.delete()
+                return
+            }
+
             val apkUri = FileProvider.getUriForFile(
                 activity,
                 "${activity.packageName}.provider",
@@ -235,6 +234,41 @@ class UpdateManager(activity: Activity) {
         } catch (e: Exception) {
             Log.e(TAG, "Error installing update", e)
             Toast.makeText(activity, "Failed to install update", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun verifyApkSignature(context: Context, apkFile: File): Boolean {
+        return try {
+            val currentSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(
+                    context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
+                ).signingInfo?.apkContentsSigners
+            } else {
+                context.packageManager.getPackageInfo(
+                    context.packageName, PackageManager.GET_SIGNATURES
+                ).signatures
+            }
+
+            val apkSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners
+            } else {
+                context.packageManager.getPackageArchiveInfo(
+                    apkFile.absolutePath, PackageManager.GET_SIGNATURES
+                )?.signatures
+            }
+
+            if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
+                Log.e(TAG, "Could not retrieve signatures for verification")
+                return false
+            }
+
+            currentSigs[0].toByteArray().contentEquals(apkSigs[0].toByteArray())
+        } catch (e: Exception) {
+            Log.e(TAG, "Signature verification error", e)
+            false
         }
     }
 
