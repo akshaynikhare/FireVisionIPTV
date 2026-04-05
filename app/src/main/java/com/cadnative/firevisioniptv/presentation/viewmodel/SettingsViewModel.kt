@@ -106,8 +106,12 @@ class SettingsViewModel @Inject constructor(
                         isCheckingForUpdate = current.isCheckingForUpdate,
                         updateInfo = current.updateInfo,
                         updateChecked = current.updateChecked,
+                        isDownloadingUpdate = current.isDownloadingUpdate,
+                        downloadError = current.downloadError,
                         isClearingCache = current.isClearingCache,
-                        cacheCleared = current.cacheCleared
+                        cacheCleared = current.cacheCleared,
+                        isTestingConnection = current.isTestingConnection,
+                        connectionTestResult = current.connectionTestResult
                     )
                 }
             }
