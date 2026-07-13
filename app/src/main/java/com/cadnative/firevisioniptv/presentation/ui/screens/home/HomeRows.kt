@@ -58,6 +58,7 @@ internal fun FeaturedRow(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit,
     onChannelFocused: (ChannelUiModel) -> Unit,
     focusChannelId: String?,
     horizontalPadding: Dp,
@@ -95,6 +96,7 @@ internal fun FeaturedRow(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
                     onFavoriteClick = { onToggleFavorite(channel.id) },
+                    onMultiviewClick = { onMultiviewClick(channel.id) },
                     modifier = Modifier
                         .width(cardWidth)
                         .height(cardHeight)
@@ -157,6 +159,7 @@ internal fun ChannelRow(
     channels: List<ChannelUiModel>,
     onChannelClick: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit,
     focusChannelId: String?,
     horizontalPadding: Dp,
     modifier: Modifier = Modifier,
@@ -197,6 +200,7 @@ internal fun ChannelRow(
                     channel = channel,
                     onClick = { onChannelClick(channel.id) },
                     onFavoriteClick = { onToggleFavorite(channel.id) },
+                    onMultiviewClick = { onMultiviewClick(channel.id) },
                     modifier = Modifier
                         .width(cardWidth)
                         .height(cardHeight)

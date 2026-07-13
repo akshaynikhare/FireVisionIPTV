@@ -37,6 +37,7 @@ fun FavoritesScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit = {},
+    onMultiviewClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
@@ -91,7 +92,8 @@ fun FavoritesScreen(
                         gridState = gridState,
                         onChannelClick = onChannelClick,
                         onCategoryClick = onCategoryClick,
-                        onRemoveFavorite = viewModel::removeFavorite
+                        onRemoveFavorite = viewModel::removeFavorite,
+                        onMultiviewClick = onMultiviewClick
                     )
                 }
             }
@@ -108,6 +110,7 @@ private fun FavoritesContent(
     onChannelClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit,
     onRemoveFavorite: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
@@ -139,7 +142,8 @@ private fun FavoritesContent(
                                 imageUrl = category.imageUrl,
                                 isFavorite = true,
                                 onClick = { onCategoryClick(category.name) },
-                                subtitle = "${category.channelCount} channels",
+                                subtitle = "${category.channelCount} " +
+                                    if (category.channelCount == 1) "channel" else "channels",
                                 modifier = Modifier
                                     .width(if (isCompact) Dimens.CategoryCardWidthMobile else Dimens.CategoryCardWidthTv)
                                     .height(if (isCompact) Dimens.CategoryCardHeightMobile else Dimens.CategoryCardHeightTv)
@@ -159,6 +163,7 @@ private fun FavoritesContent(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },
                 onFavoriteClick = { onRemoveFavorite(channel.id) },
+                onMultiviewClick = { onMultiviewClick(channel.id) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(Dimens.GridCardHeight)

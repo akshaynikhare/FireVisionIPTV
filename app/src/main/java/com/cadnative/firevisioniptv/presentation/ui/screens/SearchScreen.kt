@@ -43,6 +43,7 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.SearchViewModel
 fun SearchScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
@@ -199,8 +200,8 @@ fun SearchScreen(
         val searchState = when {
             uiState.isLoading -> "loading"
             uiState.error != null -> "error"
-            searchQuery.isEmpty() && uiState.recentSearches.isNotEmpty() -> "recent"
-            searchQuery.isEmpty() -> "prompt"
+            searchQuery.isBlank() && uiState.recentSearches.isNotEmpty() -> "recent"
+            searchQuery.isBlank() -> "prompt"
             uiState.results.isEmpty() -> "no_results"
             else -> "results"
         }
@@ -270,6 +271,7 @@ fun SearchScreen(
                                     channel = channel,
                                     onClick = { onChannelClick(channel.id) },
                                     onFavoriteClick = { viewModel.toggleFavorite(channel.id) },
+                                    onMultiviewClick = { onMultiviewClick(channel.id) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(Dimens.GridCardHeight)

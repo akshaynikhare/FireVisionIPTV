@@ -33,6 +33,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onChannelClick: (String) -> Unit,
     onPairDevice: () -> Unit = {},
+    onMultiviewClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
@@ -98,7 +99,8 @@ fun HomeScreen(
                     lastPlayedChannelId = uiState.lastPlayedChannelId,
                     onChannelClick = openChannel,
                     onNavigateToChannels = onNavigateToChannels,
-                    onToggleFavorite = viewModel::toggleFavorite
+                    onToggleFavorite = viewModel::toggleFavorite,
+                    onMultiviewClick = onMultiviewClick
                 )
             }
         }

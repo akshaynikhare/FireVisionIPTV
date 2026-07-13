@@ -85,13 +85,21 @@ fun ChannelCard(
     channel: ChannelUiModel,
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMultiviewClick: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
     var selectKeyDownTime by remember { mutableLongStateOf(0L) }
+    var showContextMenu by remember { mutableStateOf(false) }
     val isMobile = isMobileDevice(LocalContext.current)
     val haptic = LocalHapticFeedback.current
+
+    // With a multiview callback the long-press opens the context menu;
+    // without one (player overlay) it keeps the legacy instant-favorite.
+    val onLongPressAction = {
+        if (onMultiviewClick != null) showContextMenu = true else onFavoriteClick()
+    }
 
     val catColor = categoryColor(channel.category)
     val catIcon = categoryIcon(channel.category)
@@ -124,7 +132,7 @@ fun ChannelCard(
                     onClick = onClick,
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onFavoriteClick()
+                        onLongPressAction()
                     }
                 ),
             shape = cardShape,
@@ -149,11 +157,11 @@ fun ChannelCard(
                     val code = keyEvent.nativeKeyEvent.keyCode
                     val action = keyEvent.nativeKeyEvent.action
 
-                    // Menu / Bookmark → instant favorite toggle
+                    // Menu / Bookmark → context menu (or legacy favorite toggle)
                     if (action == KeyEvent.ACTION_DOWN &&
                         (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
                     ) {
-                        onFavoriteClick()
+                        onLongPressAction()
                         return@onPreviewKeyEvent true
                     }
 
@@ -170,7 +178,7 @@ fun ChannelCard(
                                     !longPressHandled
                                 ) {
                                     longPressHandled = true
-                                    onFavoriteClick()
+                                    onLongPressAction()
                                     return@onPreviewKeyEvent true
                                 }
                                 return@onPreviewKeyEvent false
@@ -199,6 +207,18 @@ fun ChannelCard(
                 focused = isFocused
             )
         }
+    }
+
+    if (showContextMenu) {
+        ChannelContextMenu(
+            channel = channel,
+            onToggleFavorite = { onFavoriteClick() },
+            onOpenMultiview = {
+                showContextMenu = false
+                onMultiviewClick?.invoke()
+            },
+            onDismiss = { showContextMenu = false }
+        )
     }
 }
 

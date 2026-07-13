@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
@@ -82,7 +81,6 @@ private val topNavItems = listOf(
     NavItem(Screen.Search, Icons.Default.Search, "Search"),
     NavItem(Screen.Categories, Icons.Default.Category, "Categories"),
     NavItem(Screen.Guide, Icons.Default.GridView, "Guide"),
-    NavItem(Screen.Multiview, Icons.Default.Dashboard, "Multiview"),
 )
 
 private val bottomNavItem = NavItem(Screen.Settings, Icons.Default.Settings, "Settings")

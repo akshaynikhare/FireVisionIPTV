@@ -95,7 +95,7 @@ interface FireVisionApiService {
         @Body request: HealthSyncRequest
     ): Response<Unit>
 
-    @GET("tv/epg/{channelListCode}/json")
+    @GET("api/v1/tv/epg/{channelListCode}/json")
     suspend fun getEpgGuide(
         @Path("channelListCode") channelListCode: String,
         @Query("hours") hours: Int = 12

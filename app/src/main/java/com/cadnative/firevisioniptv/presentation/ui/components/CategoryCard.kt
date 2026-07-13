@@ -42,7 +42,7 @@ fun CategoryCard(
     isFavorite: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    subtitle: String = "$channelCount channels",
+    subtitle: String = "$channelCount " + if (channelCount == 1) "channel" else "channels",
     onToggleFavorite: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -127,7 +127,7 @@ fun CategoryCard(
                     placeholder = remember { ColorPainter(Void800) },
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(0.25f)
+                        .alpha(0.14f)
                 )
             }
 

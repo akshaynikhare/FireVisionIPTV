@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +39,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,6 +62,7 @@ import kotlin.math.min
 fun MultiviewScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    initialChannelId: String? = null,
     viewModel: MultiviewViewModel = hiltViewModel()
 ) {
     val channels by viewModel.channels.collectAsStateWithLifecycle()
@@ -91,7 +94,12 @@ fun MultiviewScreen(
     var assignments by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(channels) {
         if (assignments.isEmpty()) {
-            assignments = channels.take(min(channels.size, 2)).map { it.id }
+            val preferred = initialChannelId?.takeIf { id -> channels.any { it.id == id } }
+            assignments = if (preferred != null) {
+                listOfNotNull(preferred, channels.firstOrNull { it.id != preferred }?.id)
+            } else {
+                channels.take(min(channels.size, 2)).map { it.id }
+            }
         }
     }
     var focusedIndex by remember { mutableIntStateOf(0) }
@@ -143,10 +151,15 @@ fun MultiviewScreen(
             }
         }
 
-        // Grid: 1 row for 2–3 panes, 2×2 for 4.
-        val rows: List<List<Int>> =
-            if (count <= 3) listOf((0 until count).toList())
-            else listOf(listOf(0, 1), listOf(2, 3))
+        // Grid: portrait stacks full-width rows (16:9 streams stay watchable);
+        // landscape uses 1 row for 2–3 panes, 2×2 for 4.
+        val isPortrait =
+            LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+        val rows: List<List<Int>> = when {
+            isPortrait -> (0 until count).map { listOf(it) }
+            count <= 3 -> listOf((0 until count).toList())
+            else -> listOf(listOf(0, 1), listOf(2, 3))
+        }
 
         rows.forEach { rowIndices ->
             Row(

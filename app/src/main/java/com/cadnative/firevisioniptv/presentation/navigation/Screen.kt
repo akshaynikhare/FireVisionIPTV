@@ -12,7 +12,10 @@ sealed class Screen(val route: String) {
     object Channels : Screen("channels")
     object Categories : Screen("categories")
     object Guide : Screen("guide")
-    object Multiview : Screen("multiview")
+    object Multiview : Screen("multiview?channelId={channelId}") {
+        fun createRoute(channelId: String? = null) =
+            if (channelId.isNullOrBlank()) "multiview" else "multiview?channelId=$channelId"
+    }
     object Search : Screen("search")
     object Favorites : Screen("favorites")
     object Settings : Screen("settings")
@@ -38,6 +41,6 @@ sealed class Screen(val route: String) {
 
     companion object {
         /** Route strings for top-level screens that show the sidebar navigation rail. */
-        val sidebarRoutes = setOf("home", "channels", "categories", "guide", "multiview", "search", "favorites", "settings", "channels/category/{categoryId}")
+        val sidebarRoutes = setOf("home", "channels", "categories", "guide", "search", "favorites", "settings", "channels/category/{categoryId}")
     }
 }

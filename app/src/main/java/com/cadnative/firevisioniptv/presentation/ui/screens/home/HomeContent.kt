@@ -46,6 +46,7 @@ fun HomeContent(
     onChannelClick: (String) -> Unit,
     onNavigateToChannels: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -135,6 +136,7 @@ fun HomeContent(
                 channels = bannerChannels,
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
+                onMultiviewClick = onMultiviewClick,
                 onChannelFocused = { focusedFeatured = it },
                 focusChannelId = featuredFocusId,
                 horizontalPadding = horizontalPadding,
@@ -153,6 +155,7 @@ fun HomeContent(
                     channels = recentlyWatched,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
+                    onMultiviewClick = onMultiviewClick,
                     focusChannelId = recentFocusId,
                     horizontalPadding = horizontalPadding,
                     modifier = Modifier
@@ -169,6 +172,7 @@ fun HomeContent(
                     channels = forYou,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
+                    onMultiviewClick = onMultiviewClick,
                     focusChannelId = null,
                     horizontalPadding = horizontalPadding,
                     modifier = Modifier
@@ -200,6 +204,7 @@ fun HomeContent(
                 channels = categoryChannels,
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
+                onMultiviewClick = onMultiviewClick,
                 onSeeAllClick = { onNavigateToChannels(category) },
                 focusChannelId = categoryFocusId,
                 horizontalPadding = horizontalPadding,

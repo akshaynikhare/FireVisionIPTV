@@ -169,8 +169,10 @@ class EpgRepositoryImpl @Inject constructor(
             if (channelListCode.isBlank()) return emptyList()
             val response = apiService.getEpgGuide(channelListCode)
             if (!response.isSuccessful) return emptyList()
-            val data = response.body()?.data ?: return emptyList()
-            data.values.flatten().mapNotNull { it.toDomain() }
+            val channels = response.body()?.channels ?: return emptyList()
+            channels.flatMap { ch ->
+                (ch.programs ?: emptyList()).mapNotNull { it.toDomain(ch.channelId) }
+            }
         } catch (_: Exception) {
             emptyList()
         }
@@ -187,14 +189,14 @@ class EpgRepositoryImpl @Inject constructor(
         cache.putAll(grouped)
     }
 
-    private fun EpgProgramDto.toDomain(): EpgProgram? {
+    private fun EpgProgramDto.toDomain(channelEpgId: String): EpgProgram? {
         return try {
             EpgProgram(
                 channelEpgId = channelEpgId,
                 title = title,
                 description = description,
-                startTime = Instant.parse(startTime),
-                endTime = Instant.parse(endTime),
+                startTime = Instant.parse(start),
+                endTime = Instant.parse(end),
                 icon = icon
             )
         } catch (_: Exception) {

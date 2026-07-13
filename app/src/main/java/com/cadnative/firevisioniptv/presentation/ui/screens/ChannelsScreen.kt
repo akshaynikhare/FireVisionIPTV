@@ -45,6 +45,7 @@ fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
     onPairDevice: () -> Unit = {},
+    onMultiviewClick: (String) -> Unit = {},
     initialCategory: String? = null,
     modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
@@ -150,7 +151,8 @@ fun ChannelsScreen(
                             channels = uiState.channels,
                             gridState = gridState,
                             onChannelClick = onChannelClick,
-                            onToggleFavorite = viewModel::toggleFavorite
+                            onToggleFavorite = viewModel::toggleFavorite,
+                            onMultiviewClick = onMultiviewClick
                         )
                     }
                 }
@@ -277,6 +279,7 @@ private fun ChannelsGrid(
     gridState: LazyGridState,
     onChannelClick: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onMultiviewClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
@@ -298,6 +301,7 @@ private fun ChannelsGrid(
                 channel = channel,
                 onClick = { onChannelClick(channel.id) },
                 onFavoriteClick = { onToggleFavorite(channel.id) },
+                onMultiviewClick = { onMultiviewClick(channel.id) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(Dimens.GridCardHeight)

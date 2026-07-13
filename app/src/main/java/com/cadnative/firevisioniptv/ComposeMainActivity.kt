@@ -31,7 +31,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -283,7 +282,6 @@ private val bottomNavItems = listOf(
     Triple(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
     Triple(Screen.Search, Icons.Default.Search, "Search"),
     Triple(Screen.Categories, Icons.Default.Category, "Categories"),
-    Triple(Screen.Multiview, Icons.Default.Dashboard, "Multiview"),
     Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
 )
 

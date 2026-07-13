@@ -126,7 +126,7 @@ private fun StreamHealthRow(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text("Check Liveliness", fontWeight = FontWeight.SemiBold)
+                Text("Check Liveness", fontWeight = FontWeight.SemiBold)
             }
         }
     }

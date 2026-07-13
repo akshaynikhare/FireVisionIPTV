@@ -133,6 +133,9 @@ fun FireVisionNavGraph(
                 },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onMultiviewClick = { channelId ->
+                    navController.navigate(Screen.Multiview.createRoute(channelId))
                 }
             )
         }
@@ -155,6 +158,9 @@ fun FireVisionNavGraph(
                 },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onMultiviewClick = { channelId ->
+                    navController.navigate(Screen.Multiview.createRoute(channelId))
                 }
             )
         }
@@ -175,6 +181,9 @@ fun FireVisionNavGraph(
                 },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onMultiviewClick = { channelId ->
+                    navController.navigate(Screen.Multiview.createRoute(channelId))
                 },
                 initialCategory = categoryId
             )
@@ -199,9 +208,19 @@ fun FireVisionNavGraph(
         }
 
         // ── Multiview (watch several channels at once) ──────────────────
-        composable(route = Screen.Multiview.route) {
+        composable(
+            route = Screen.Multiview.route,
+            arguments = listOf(
+                navArgument("channelId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
             MultiviewScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                initialChannelId = backStackEntry.arguments?.getString("channelId")
             )
         }
 
@@ -211,6 +230,9 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onMultiviewClick = { channelId ->
+                    navController.navigate(Screen.Multiview.createRoute(channelId))
                 }
             )
         }
@@ -224,6 +246,9 @@ fun FireVisionNavGraph(
                 },
                 onCategoryClick = { categoryName ->
                     navController.navigate(Screen.ChannelsByCategory.createRoute(categoryName))
+                },
+                onMultiviewClick = { channelId ->
+                    navController.navigate(Screen.Multiview.createRoute(channelId))
                 }
             )
         }
