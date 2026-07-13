@@ -20,6 +20,12 @@ data class ChannelsUiState(
     // HomeScreen: Featured & Recently Watched
     val featuredChannels: List<ChannelUiModel> = emptyList(),
     val recentlyWatched: List<ChannelUiModel> = emptyList(),
+    // HomeScreen: personalized "For You" — channels similar to what the user
+    // watches most (same categories as recently-watched), excluding channels
+    // already in Recently Watched. Derived client-side; no backend change.
+    val forYou: List<ChannelUiModel> = emptyList(),
+    // Last channel opened from Home — used to restore focus on return from the player
+    val lastPlayedChannelId: String? = null,
     // HomeScreen: Popular categories slider
     val popularCategories: List<PopularCategoryUiModel> = emptyList(),
     // Category logos (category name → up to 4 channel logo URLs for collage)

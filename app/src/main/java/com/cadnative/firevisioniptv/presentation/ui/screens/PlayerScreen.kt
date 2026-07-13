@@ -2,64 +2,35 @@ package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
-import android.graphics.Bitmap
-import android.view.KeyEvent
-import android.view.TextureView
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.WindowCompat
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,46 +39,49 @@ import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
-import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
-import com.cadnative.firevisioniptv.presentation.ui.components.ChannelOverlay
-import com.cadnative.firevisioniptv.presentation.ui.components.DeadStreamOverlay
-import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
-import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
-import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
+import com.cadnative.firevisioniptv.ComposeMainActivity
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.presentation.ui.components.ChannelOverlay
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.ASPECT_MODES
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.CHANNEL_SWITCH_DEBOUNCE_MS
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlayTimers
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlays
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerStateOverlays
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerTracksPanel
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.VideoPlayer
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.capturePlayerThumbnail
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.handlePlayerKeyEvent
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOverlayState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
-private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
-private const val CHANNEL_SWITCH_DEBOUNCE_MS = 250L
-private const val LONG_PRESS_THRESHOLD_MS = 600L
-private const val FAV_INDICATOR_DURATION_MS = 2000L
-
+/**
+ * Full-screen video player. Stateful root: owns the ExoPlayer lifecycle,
+ * error recovery wiring, and state collection. Input handling and overlay
+ * composables live in `screens/player/`.
+ */
 @Composable
 fun PlayerScreen(
     channelId: String,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    catchupStartMs: Long = 0L,
+    catchupDurationMin: Int = 0,
     onNavigateToSettings: (() -> Unit)? = null,
+    onNavigateToSearch: (() -> Unit)? = null,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val isMobile = isMobileDevice(context)
+    val overlayState = rememberPlayerOverlayState()
 
     // Auto-navigate back when stream is confirmed dead
     LaunchedEffect(uiState.shouldNavigateBack) {
@@ -117,54 +91,38 @@ fun PlayerScreen(
         }
     }
 
-    // Back press state machine
-    var recentlyDismissedOverlay by remember { mutableStateOf(false) }
-
-    LaunchedEffect(recentlyDismissedOverlay) {
-        if (recentlyDismissedOverlay) {
-            delay(2000L)
-            recentlyDismissedOverlay = false
+    // Sleep timer auto-off: leave the player when the cancel window lapses
+    LaunchedEffect(uiState.sleepTimerNavigateBack) {
+        if (uiState.sleepTimerNavigateBack) {
+            viewModel.onSleepTimerNavigatedBack()
+            onNavigateBack()
         }
     }
 
     BackHandler {
         when {
-            uiState.showChannelOverlay -> {
-                viewModel.hideOverlay()
-                recentlyDismissedOverlay = true
-            }
-            recentlyDismissedOverlay -> {
-                onNavigateBack()
-            }
-            else -> {
-                viewModel.showOverlay()
-            }
+            uiState.showChannelOverlay -> viewModel.hideOverlay()
+            uiState.backExitProtection && !isMobile && !overlayState.backPressedOnce ->
+                overlayState.backPressedOnce = true
+            else -> onNavigateBack()
         }
     }
 
-    // Favorite button auto-hide — uses an incrementing token so the timer
-    // properly restarts even when the button is already visible.
-    var favButtonReveal by remember { mutableIntStateOf(1) }
-    val showFavButton = favButtonReveal > 0
-    LaunchedEffect(favButtonReveal) {
-        if (favButtonReveal > 0) {
-            delay(FAV_BUTTON_AUTO_HIDE_MS)
-            favButtonReveal = 0
-        }
-    }
-
-    // Initialize ExoPlayer
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(HlsMediaSource.Factory(DefaultDataSource.Factory(context)))
-            .build()
-            .apply {
-                playWhenReady = true
-            }
-    }
+    val exoPlayer = remember { viewModel.createPlayer() }
 
     // Keep a ref to PlayerView for thumbnail capture
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
+
+    // Aspect/zoom mode index into ASPECT_MODES (Fit → Zoom → Fill)
+    var aspectModeIndex by remember { mutableIntStateOf(0) }
+
+    // Audio/subtitle track selection panel visibility
+    var showTracksPanel by remember { mutableStateOf(false) }
+
+    // Sleep timer expiry: pause playback while the "Still watching?" prompt shows
+    LaunchedEffect(uiState.sleepTimerExpired) {
+        if (uiState.sleepTimerExpired) exoPlayer.pause()
+    }
 
     // Wire ErrorRecoveryManager with proxy and alternate fallback
     val errorRecoveryManager = remember(exoPlayer) {
@@ -183,14 +141,13 @@ fun PlayerScreen(
 
     // Track player active state for PiP
     DisposableEffect(Unit) {
-        com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerActive = true
+        ComposeMainActivity.isPlayerActive = true
         onDispose {
-            com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerActive = false
-            com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerPlaying = false
+            ComposeMainActivity.isPlayerActive = false
+            ComposeMainActivity.isPlayerPlaying = false
         }
     }
 
-    // Load channel
     LaunchedEffect(channelId) {
         viewModel.loadChannel(channelId)
     }
@@ -205,30 +162,42 @@ fun PlayerScreen(
             }
             errorRecoveryManager.reset()
 
-            // Build stream slots: primary + alternates, each with optional proxy
-            val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
-            val tvCode = AppPreferences.getTvCode(context)
-            val canProxy = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(context)
+            // Catch-up: play the Xtream timeshift archive URL for a past program.
+            val catchupUrl = if (catchupStartMs > 0) {
+                buildCatchupUrl(context, channel.id, catchupStartMs, catchupDurationMin)
+            } else null
 
-            fun buildProxyUrl(streamUrl: String): String? {
-                if (!canProxy) return null
-                return "$serverUrl/api/v1/tv/stream/$tvCode?url=${URLEncoder.encode(streamUrl, "UTF-8")}"
+            if (catchupUrl != null) {
+                // Single archive stream — no live alternates/proxy.
+                errorRecoveryManager.setStreamSlots(
+                    listOf(ErrorRecoveryManager.StreamSlot(catchupUrl, null, isPrimary = true))
+                )
+                exoPlayer.setMediaItem(MediaItem.Builder().setUri(catchupUrl).build())
+            } else {
+                // Build stream slots: primary + alternates, each with optional proxy
+                val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
+                val tvCode = AppPreferences.getTvCode(context)
+                val canProxy = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(context)
+
+                fun buildProxyUrl(streamUrl: String): String? {
+                    if (!canProxy) return null
+                    return "$serverUrl/api/v1/tv/stream/$tvCode?url=${URLEncoder.encode(streamUrl, "UTF-8")}"
+                }
+
+                val slots = mutableListOf<ErrorRecoveryManager.StreamSlot>()
+                slots.add(ErrorRecoveryManager.StreamSlot(url, buildProxyUrl(url), isPrimary = true))
+                channel.alternateStreamUrls.take(3).forEach { altUrl ->
+                    slots.add(ErrorRecoveryManager.StreamSlot(altUrl, buildProxyUrl(altUrl), isPrimary = false))
+                }
+                errorRecoveryManager.setStreamSlots(slots)
+
+                exoPlayer.setMediaItem(MediaItem.Builder().setUri(url).build())
             }
-
-            val slots = mutableListOf<ErrorRecoveryManager.StreamSlot>()
-            slots.add(ErrorRecoveryManager.StreamSlot(url, buildProxyUrl(url), isPrimary = true))
-            channel.alternateStreamUrls.take(3).forEach { altUrl ->
-                slots.add(ErrorRecoveryManager.StreamSlot(altUrl, buildProxyUrl(altUrl), isPrimary = false))
-            }
-            errorRecoveryManager.setStreamSlots(slots)
-
-            val mediaItem = MediaItem.Builder()
-                .setUri(url)
-                .build()
-            exoPlayer.setMediaItem(mediaItem)
             exoPlayer.prepare()
-            // Reset fav button visibility on channel switch
-            favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+
+            // Reveal transient chrome on every zap / channel entry
+            overlayState.revealFavButton()
+            overlayState.revealInfoBar()
         }
     }
 
@@ -246,7 +215,7 @@ fun PlayerScreen(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                com.cadnative.firevisioniptv.ComposeMainActivity.isPlayerPlaying = isPlaying
+                ComposeMainActivity.isPlayerPlaying = isPlaying
                 viewModel.updatePlaybackState(
                     isPlaying = isPlaying,
                     position = exoPlayer.currentPosition,
@@ -294,44 +263,14 @@ fun PlayerScreen(
         }
     }
 
-    // Debounce state for channel switching
-    var lastChannelSwitchTime by remember { mutableLongStateOf(0L) }
-
-    // Long-press detection for DPAD_CENTER → toggle favorite
-    var centerKeyDownTime by remember { mutableLongStateOf(0L) }
-    var longPressConsumed by remember { mutableStateOf(false) }
-
-    // Favorite indicator (shown briefly on long-press toggle)
-    var favIndicatorToken by remember { mutableIntStateOf(0) }
-    val showFavIndicator = favIndicatorToken > 0
-    LaunchedEffect(favIndicatorToken) {
-        if (favIndicatorToken > 0) {
-            delay(FAV_INDICATOR_DURATION_MS)
-            favIndicatorToken = 0
-        }
-    }
-
-    // Focus requester so the player Box captures remote key events
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    // Re-grab focus when the channel overlay closes
-    LaunchedEffect(uiState.showChannelOverlay) {
-        if (!uiState.showChannelOverlay) focusRequester.requestFocus()
-    }
-
-    // Mobile-specific state
-    val isMobile = isMobileDevice(context)
-    val haptic = LocalHapticFeedback.current
-    val activity = context as? Activity
-    var isRotationLocked by remember { mutableStateOf(false) }
-
     // Immersive mode + reset orientation when leaving player on mobile
     DisposableEffect(isMobile) {
         if (isMobile) {
             (context as? Activity)?.window?.let { window ->
                 val controller = WindowInsetsControllerCompat(window, window.decorView)
                 controller.hide(WindowInsetsCompat.Type.systemBars())
-                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         }
         onDispose {
@@ -345,6 +284,33 @@ fun PlayerScreen(
                 }
             }
         }
+    }
+
+    // Auto-hide timers for the transient overlays
+    PlayerOverlayTimers(
+        state = overlayState,
+        isMobile = isMobile,
+        onCommitChannelNumber = { viewModel.switchToChannelNumber(it) }
+    )
+
+    // Focus requester so the player Box captures remote key events
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // Re-grab focus when the channel overlay closes
+    LaunchedEffect(uiState.showChannelOverlay) {
+        if (!uiState.showChannelOverlay) focusRequester.requestFocus()
+    }
+    // Re-grab focus when the tracks panel closes
+    LaunchedEffect(showTracksPanel) {
+        if (!showTracksPanel) focusRequester.requestFocus()
+    }
+
+    val haptic = LocalHapticFeedback.current
+
+    val onToggleFavorite = {
+        viewModel.toggleFavorite()
+        overlayState.flashFavIndicator()
+        overlayState.revealFavButton()
     }
 
     Box(
@@ -364,15 +330,13 @@ fun PlayerScreen(
                                         viewModel.hideOverlay()
                                     } else {
                                         if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                        favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                                        overlayState.revealFavButton()
                                     }
                                 },
                                 onLongPress = {
                                     if (!uiState.showChannelOverlay) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.toggleFavorite()
-                                        favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
-                                        favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
+                                        onToggleFavorite()
                                     }
                                 }
                             )
@@ -383,8 +347,10 @@ fun PlayerScreen(
                                 onDragEnd = {
                                     if (!uiState.showChannelOverlay) {
                                         val now = System.currentTimeMillis()
-                                        if (kotlin.math.abs(totalDrag) > 100f && now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
-                                            lastChannelSwitchTime = now
+                                        if (kotlin.math.abs(totalDrag) > 100f &&
+                                            now - overlayState.lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS
+                                        ) {
+                                            overlayState.lastChannelSwitchTime = now
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             if (totalDrag > 0) viewModel.previousChannel() else viewModel.nextChannel()
                                         }
@@ -397,283 +363,68 @@ fun PlayerScreen(
                 } else Modifier
             )
             .onKeyEvent { keyEvent ->
-                val action = keyEvent.nativeKeyEvent.action
-                val keyCode = keyEvent.nativeKeyEvent.keyCode
-
-                // ── Long-press detection for DPAD_CENTER / ENTER → toggle favorite ──
-                if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-                    if (uiState.showChannelOverlay) return@onKeyEvent false
-                    when (action) {
-                        KeyEvent.ACTION_DOWN -> {
-                            if (centerKeyDownTime == 0L) {
-                                centerKeyDownTime = System.currentTimeMillis()
-                                longPressConsumed = false
-                            } else if (!longPressConsumed) {
-                                val held = System.currentTimeMillis() - centerKeyDownTime
-                                if (held >= LONG_PRESS_THRESHOLD_MS) {
-                                    longPressConsumed = true
-                                    viewModel.toggleFavorite()
-                                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
-                                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
-                                }
-                            }
-                            return@onKeyEvent true
-                        }
-                        KeyEvent.ACTION_UP -> {
-                            if (!longPressConsumed) {
-                                // Short press → toggle play/pause
-                                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
-                            }
-                            centerKeyDownTime = 0L
-                            longPressConsumed = false
-                            return@onKeyEvent true
-                        }
-                    }
-                }
-
-                if (action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
-
-                // Menu button: toggle channel overlay (works regardless of overlay state)
-                if (keyCode == KeyEvent.KEYCODE_MENU) {
-                    if (uiState.showChannelOverlay) viewModel.hideOverlay() else viewModel.showOverlay()
-                    return@onKeyEvent true
-                }
-
-                // Settings button: navigate to settings
-                if (keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
-                    onNavigateToSettings.invoke()
-                    return@onKeyEvent true
-                }
-
-                // Remaining keys only apply when overlay is NOT visible
-                if (uiState.showChannelOverlay) return@onKeyEvent false
-
-                val now = System.currentTimeMillis()
-                when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_RIGHT,
-                    KeyEvent.KEYCODE_MEDIA_NEXT,
-                    KeyEvent.KEYCODE_CHANNEL_UP -> {
-                        if (now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
-                            lastChannelSwitchTime = now
-                            viewModel.nextChannel()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_LEFT,
-                    KeyEvent.KEYCODE_MEDIA_PREVIOUS,
-                    KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                        if (now - lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
-                            lastChannelSwitchTime = now
-                            viewModel.previousChannel()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                        exoPlayer.play()
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                        exoPlayer.pause()
-                        true
-                    }
-                    else -> false
-                }
+                // While the tracks panel is open, let its focusable rows handle keys.
+                if (showTracksPanel) return@onKeyEvent false
+                handlePlayerKeyEvent(
+                    keyEvent = keyEvent,
+                    uiState = uiState,
+                    exoPlayer = exoPlayer,
+                    viewModel = viewModel,
+                    state = overlayState,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToSearch = onNavigateToSearch
+                )
             }
     ) {
-        // Video player
         if (uiState.channel != null && !uiState.isLoading && uiState.error == null) {
             VideoPlayer(
                 exoPlayer = exoPlayer,
                 onPlayerViewCreated = { playerViewRef = it },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                resizeMode = ASPECT_MODES[aspectModeIndex].first
             )
         }
 
-        // Loading / initial error states
-        val contentState = when {
-            uiState.isLoading -> "loading"
-            uiState.error != null && !uiState.isStreamDead && !uiState.isRecovering -> "error"
-            else -> "none"
-        }
+        PlayerStateOverlays(
+            uiState = uiState,
+            maxRecoveryAttempts = errorRecoveryManager.maxTotalAttempts,
+            onRetry = {
+                viewModel.clearError()
+                viewModel.loadChannel(channelId)
+            },
+            onDismissDeadStream = { viewModel.cancelDeadStreamCountdown() }
+        )
 
-        Crossfade(
-            targetState = contentState,
-            animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-            label = "playerState"
-        ) { state ->
-            when (state) {
-                "loading" -> LoadingIndicator(message = "Loading channel...")
-                "error" -> ErrorState(
-                    message = uiState.error ?: "Failed to load channel",
-                    onRetry = {
-                        viewModel.clearError()
-                        viewModel.loadChannel(channelId)
-                    }
-                )
-                else -> { }
-            }
-        }
+        PlayerOverlays(
+            uiState = uiState,
+            state = overlayState,
+            isMobile = isMobile,
+            alwaysShowInfoBar = uiState.alwaysShowProgramBar,
+            aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+            onToggleFavorite = onToggleFavorite,
+            onCycleSleepTimer = { minutes ->
+                viewModel.setSleepTimer(minutes)
+                overlayState.revealFavButton()
+            },
+            onCycleAspect = {
+                aspectModeIndex = (aspectModeIndex + 1) % ASPECT_MODES.size
+                overlayState.revealFavButton()
+            },
+            onShowTracks = { showTracksPanel = true },
+            onShowChannelList = { viewModel.showOverlay() }
+        )
 
-        // Recovery overlay
-        AnimatedVisibility(
-            visible = uiState.isRecovering,
-            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-        ) {
-            RecoveringOverlay(attempt = uiState.recoveryAttempt, maxAttempts = errorRecoveryManager.maxTotalAttempts)
-        }
-
-        // Dead stream overlay
-        AnimatedVisibility(
-            visible = uiState.isStreamDead,
-            enter = fadeIn(tween(DURATION_ENTRANCE, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
-        ) {
-            DeadStreamOverlay(
-                title = uiState.deadStreamTitle,
-                explanation = uiState.deadStreamExplanation,
-                countdown = uiState.deadStreamCountdown,
-                onDismiss = { viewModel.cancelDeadStreamCountdown() }
+        if (showTracksPanel) {
+            PlayerTracksPanel(
+                exoPlayer = exoPlayer,
+                onDismiss = { showTracksPanel = false }
             )
         }
 
-        // Favorite indicator — centered brief toast after toggle
-        AnimatedVisibility(
-            visible = showFavIndicator && uiState.channel != null,
-            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-            modifier = Modifier.align(Alignment.Center)
-        ) {
-            val isFav = uiState.channel?.isFavorite == true
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Color.Black.copy(alpha = 0.75f))
-                    .padding(horizontal = 24.dp, vertical = 14.dp)
-            ) {
-                Icon(
-                    imageVector = if (isFav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = null,
-                    tint = if (isFav) MaterialTheme.colorScheme.error else Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = if (isFav) "Added to Favorites" else "Removed from Favorites",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        // Favorite button — bottom-left, auto-hides, focus border, press animation
-        AnimatedVisibility(
-            visible = uiState.channel != null
-                    && !uiState.showChannelOverlay
-                    && !uiState.isStreamDead
-                    && !uiState.isRecovering
-                    && showFavButton,
-            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(24.dp)
-        ) {
-            FavoriteButton(
-                isFavorite = uiState.channel?.isFavorite == true,
-                onClick = {
-                    viewModel.toggleFavorite()
-                    favButtonReveal = if (favButtonReveal == Int.MAX_VALUE) 1 else favButtonReveal + 1
-                    favIndicatorToken = if (favIndicatorToken == Int.MAX_VALUE) 1 else favIndicatorToken + 1
-                }
-            )
-        }
-
-        // Channel list button — bottom-center, mobile only (replaces double-tap for overlay)
-        if (isMobile) {
-            AnimatedVisibility(
-                visible = uiState.channel != null
-                        && !uiState.showChannelOverlay
-                        && !uiState.isStreamDead
-                        && !uiState.isRecovering
-                        && showFavButton,
-                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(24.dp)
-            ) {
-                IconButton(
-                    onClick = { viewModel.showOverlay() },
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.List,
-                        contentDescription = "Channel list",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        // Rotation button — bottom-right, mobile only
-        if (isMobile) {
-            AnimatedVisibility(
-                visible = uiState.channel != null
-                        && !uiState.showChannelOverlay
-                        && !uiState.isStreamDead
-                        && !uiState.isRecovering
-                        && showFavButton,
-                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(24.dp)
-            ) {
-                IconButton(
-                    onClick = {
-                        activity?.let {
-                            if (isRotationLocked) {
-                                it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                                isRotationLocked = false
-                            } else {
-                                it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                                isRotationLocked = true
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ScreenRotation,
-                        contentDescription = if (isRotationLocked) "Unlock rotation" else "Lock to landscape",
-                        tint = if (isRotationLocked) Amber else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        // Channel overlay
         ChannelOverlay(
             isVisible = uiState.showChannelOverlay,
             currentChannel = uiState.channel,
+            lastChannel = uiState.lastChannel,
             channels = uiState.overlayChannels,
             categories = uiState.overlayCategories,
             selectedCategory = uiState.overlaySelectedCategory,
@@ -691,106 +442,26 @@ fun PlayerScreen(
     }
 }
 
-@Composable
-private fun FavoriteButton(
-    isFavorite: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = when {
-            isPressed -> 0.82f
-            isFocused -> 1.1f
-            else -> 1f
-        },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "favBtnScale"
-    )
-
-    val borderWidth by animateFloatAsState(
-        targetValue = if (isFocused) 3f else 0f,
-        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-        label = "favBtnBorder"
-    )
-
-    IconButton(
-        onClick = onClick,
-        interactionSource = interactionSource,
-        modifier = modifier
-            .size(52.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .onFocusChanged { isFocused = it.isFocused }
-            .then(
-                if (borderWidth > 0f) Modifier.border(
-                    BorderStroke(borderWidth.dp, Amber),
-                    CircleShape
-                ) else Modifier
-            )
-            .background(
-                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
-                shape = CircleShape
-            ),
-        colors = IconButtonDefaults.iconButtonColors(
-            contentColor = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-        )
-    ) {
-        Icon(
-            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites"
-        )
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-private fun VideoPlayer(
-    exoPlayer: ExoPlayer,
-    onPlayerViewCreated: (PlayerView) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AndroidView(
-        factory = { context ->
-            PlayerView(context).apply {
-                player = exoPlayer
-                useController = false
-                setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT)
-                keepScreenOn = true
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                onPlayerViewCreated(this)
-            }
-        },
-        modifier = modifier
-    )
-}
-
 /**
- * Capture a bitmap from the PlayerView's TextureView surface.
- * Checks that the TextureView is still available before attempting capture,
- * since the surface may already be released during dispose.
+ * Build an Xtream catch-up (timeshift) URL for a past program:
+ * `{host}/timeshift/{user}/{pass}/{durationMin}/{yyyy-MM-dd:HH-mm}/{streamId}.m3u8`.
+ * Returns null when the source isn't Xtream or credentials are missing.
  */
-@OptIn(UnstableApi::class)
-private fun capturePlayerThumbnail(playerView: PlayerView?): Bitmap? {
-    return try {
-        val textureView = playerView?.videoSurfaceView as? TextureView
-        if (textureView != null && textureView.isAvailable) {
-            textureView.bitmap
-        } else {
-            null
-        }
-    } catch (_: Exception) {
-        null
-    }
+private fun buildCatchupUrl(
+    context: android.content.Context,
+    channelId: String,
+    startMs: Long,
+    durationMin: Int
+): String? {
+    if (!channelId.startsWith("xtream-")) return null
+    val host = AppPreferences.getXtreamHost(context).trimEnd('/')
+    val user = AppPreferences.getXtreamUser(context)
+    val pass = AppPreferences.getXtreamPass(context)
+    if (host.isBlank() || user.isBlank()) return null
+    val streamId = channelId.removePrefix("xtream-")
+    val duration = durationMin.coerceAtLeast(1)
+    val start = java.time.Instant.ofEpochMilli(startMs)
+        .atZone(java.time.ZoneOffset.UTC)
+        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd:HH-mm"))
+    return "$host/timeshift/$user/$pass/$duration/$start/$streamId.m3u8"
 }

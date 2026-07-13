@@ -1,10 +1,10 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -12,23 +12,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
-import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.FOCUS_SCALE_TILE
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 
+/**
+ * Contextual empty state: a tinted icon medallion, an optional title, a clear
+ * message and an optional focusable retry action. [title]/[icon] are additive
+ * and default to sensible values so existing `EmptyState(message)` callers keep
+ * working unchanged.
+ */
 @Composable
 fun EmptyState(
     message: String,
     modifier: Modifier = Modifier,
-    onRetry: (() -> Unit)? = null
+    onRetry: (() -> Unit)? = null,
+    title: String? = null,
+    icon: ImageVector = Icons.Default.Inbox
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -36,43 +43,62 @@ fun EmptyState(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(Dimens.Space3),
             modifier = Modifier
-                .padding(40.dp)
+                .padding(Dimens.ScreenPaddingHorizontalTv)
                 .animateFadeIn()
         ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = message,
-                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
-                modifier = Modifier.size(48.dp)
-            )
+            // Tinted medallion — softer and more on-brand than a bare icon.
+            Box(
+                modifier = Modifier
+                    .size(Dimens.StateMedallionSize)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(Dimens.IconLarge)
+                )
+            }
+
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+            }
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+
             if (onRetry != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                // TV-focusable retry button
+                Spacer(modifier = Modifier.height(Dimens.Space1))
                 var isFocused by remember { mutableStateOf(false) }
-                val scale by animateFloatAsState(
-                    targetValue = if (isFocused) 1.05f else 1f,
-                    animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                    label = "retryBtnScale"
-                )
                 val border = if (isFocused) {
-                    BorderStroke(2.dp, FocusBorder.copy(alpha = 0.5f))
+                    BorderStroke(2.dp, FocusBorder)
                 } else {
                     BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 }
                 OutlinedButton(
                     onClick = onRetry,
                     border = border,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .tvFocusVisuals(
+                            focused = isFocused,
+                            shape = MaterialTheme.shapes.medium,
+                            focusedScale = FOCUS_SCALE_TILE
+                        )
                         .onFocusChanged { isFocused = it.isFocused }
                 ) {
                     Text(

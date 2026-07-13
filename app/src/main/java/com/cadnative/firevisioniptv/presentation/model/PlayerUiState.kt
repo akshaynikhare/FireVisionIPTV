@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.model
 
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
+import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 
 /**
  * UI state for the player screen.
@@ -35,5 +36,18 @@ data class PlayerUiState(
     val activeStreamUrl: String? = null,
     // EPG now/next state
     val nowPlaying: EpgProgram? = null,
-    val nextProgram: EpgProgram? = null
+    val nextProgram: EpgProgram? = null,
+    // Last watched channel (for quick recall)
+    val lastChannel: ChannelUiModel? = null,
+    // Navigation preferences
+    val backExitProtection: Boolean = true,
+    val keyUpDownAction: String = PlayerKeyAction.ZAP,
+    val keyLeftRightAction: String = PlayerKeyAction.ZAP,
+    val longOkAction: String = PlayerKeyAction.FAVORITE,
+    val alwaysShowProgramBar: Boolean = false,
+    // Sleep timer / auto-off
+    val sleepTimerMinutes: Int? = null,
+    val sleepTimerRemainingSeconds: Int? = null,
+    val sleepTimerExpired: Boolean = false,
+    val sleepTimerNavigateBack: Boolean = false
 )

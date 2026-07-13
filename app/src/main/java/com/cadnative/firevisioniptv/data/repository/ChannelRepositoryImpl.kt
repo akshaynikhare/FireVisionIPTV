@@ -1,14 +1,20 @@
 package com.cadnative.firevisioniptv.data.repository
 
+import android.content.Context
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.ChannelLocalDataSource
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.remote.ChannelRemoteDataSource
+import com.cadnative.firevisioniptv.data.source.remote.playlist.M3uDataSource
+import com.cadnative.firevisioniptv.data.source.remote.playlist.PlaylistFetch
+import com.cadnative.firevisioniptv.data.source.remote.playlist.XtreamDataSource
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.domain.repository.ChannelRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -39,6 +45,9 @@ class ChannelRepositoryImpl @Inject constructor(
     private val localDataSource: ChannelLocalDataSource,
     private val favoriteDao: FavoriteDao,
     private val channelMapper: ChannelMapper,
+    private val m3uDataSource: M3uDataSource,
+    private val xtreamDataSource: XtreamDataSource,
+    @ApplicationContext private val context: Context,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : ChannelRepository {
 
@@ -136,32 +145,56 @@ class ChannelRepositoryImpl @Inject constructor(
      */
     override suspend fun refreshChannels(): Result<Unit> = withContext(dispatcher) {
         try {
-            // Fetch from remote
-            val result = remoteDataSource.fetchChannels()
-            
-            when (result) {
-                is Result.Success -> {
-                    // Build new alternates map and swap atomically
-                    val newAlternates = mutableMapOf<String, List<String>>()
-                    result.data.forEach { dto ->
-                        val alts = dto.alternateStreams?.map { it.streamUrl } ?: emptyList()
-                        if (alts.isNotEmpty()) newAlternates[dto.id] = alts
-                    }
-                    alternatesCache = newAlternates
-
-                    val entities = result.data.map { dto ->
-                        channelMapper.toEntity(dto)
-                    }
-                    localDataSource.replaceAllChannels(entities)
-                    Result.Success(Unit)
+            when (AppPreferences.getPlaylistSourceType(context)) {
+                AppPreferences.SOURCE_M3U -> refreshFromPlaylist {
+                    m3uDataSource.fetch(AppPreferences.getM3uUrl(context))
                 }
-                is Result.Error -> {
-                    Result.Error(result.exception)
+                AppPreferences.SOURCE_XTREAM -> refreshFromPlaylist {
+                    xtreamDataSource.fetch(
+                        AppPreferences.getXtreamHost(context),
+                        AppPreferences.getXtreamUser(context),
+                        AppPreferences.getXtreamPass(context)
+                    )
                 }
+                else -> refreshFromServer()
             }
         } catch (e: Exception) {
             Result.Error(e)
         }
+    }
+
+    private suspend fun refreshFromServer(): Result<Unit> {
+        return when (val result = remoteDataSource.fetchChannels()) {
+            is Result.Success -> {
+                // Build new alternates map and swap atomically
+                val newAlternates = mutableMapOf<String, List<String>>()
+                result.data.forEach { dto ->
+                    val alts = dto.alternateStreams?.map { it.streamUrl } ?: emptyList()
+                    if (alts.isNotEmpty()) newAlternates[dto.id] = alts
+                }
+                alternatesCache = newAlternates
+                localDataSource.replaceAllChannels(result.data.map { channelMapper.toEntity(it) })
+                Result.Success(Unit)
+            }
+            is Result.Error -> Result.Error(result.exception)
+        }
+    }
+
+    /**
+     * Ingest a bring-your-own playlist (M3U/Xtream). Channels flow through the same
+     * mapper/storage path; the discovered EPG URL is wired into the client-side EPG.
+     */
+    private suspend fun refreshFromPlaylist(load: () -> PlaylistFetch): Result<Unit> {
+        val fetched: PlaylistFetch = load()
+        if (fetched.channels.isEmpty()) {
+            return Result.Error(Exception("No channels found in playlist"))
+        }
+        alternatesCache = emptyMap()
+        fetched.epgUrl?.takeIf { it.isNotBlank() }?.let {
+            AppPreferences.setEpgXmltvUrl(context, it)
+        }
+        localDataSource.replaceAllChannels(fetched.channels.map { channelMapper.toEntity(it) })
+        return Result.Success(Unit)
     }
     
     /**

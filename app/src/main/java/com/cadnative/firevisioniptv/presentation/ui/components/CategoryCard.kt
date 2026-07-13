@@ -16,12 +16,16 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
@@ -44,7 +48,7 @@ fun CategoryCard(
     var isFocused by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
+        targetValue = 1f, // no size change on focus — border is the cue
         animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
         label = "categoryScale"
     )
@@ -106,10 +110,21 @@ fun CategoryCard(
 
             // Background image overlay
             if (imageUrl != null) {
+                val context = LocalContext.current
+                val density = LocalDensity.current
+                val (targetWidthPx, targetHeightPx) = remember(density) {
+                    with(density) { 240.dp.roundToPx() to 140.dp.roundToPx() }
+                }
                 AsyncImage(
-                    model = imageUrl,
+                    model = remember(imageUrl) {
+                        ImageRequest.Builder(context)
+                            .data(imageUrl)
+                            .size(targetWidthPx, targetHeightPx)
+                            .build()
+                    },
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    placeholder = remember { ColorPainter(Void800) },
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(0.25f)

@@ -36,6 +36,7 @@ class ChannelThumbnailExtractor @Inject constructor(
         private const val THUMBNAIL_HEIGHT = 180
         private const val JPEG_QUALITY = 70
         private const val EXTRACT_TIMEOUT_MS = 30_000L
+        private const val MAX_MANIFEST_BYTES = 512 * 1024L
         private val SAFE_FILENAME_REGEX = Regex("[^a-zA-Z0-9._-]")
     }
 
@@ -225,7 +226,15 @@ class ChannelThumbnailExtractor @Inject constructor(
         return try {
             httpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
-                    response.body?.string()
+                    // Cap the read — some servers answer .m3u8 requests with the raw
+                    // media stream, and an unbounded string() OOMs on TV devices
+                    val body = response.peekBody(MAX_MANIFEST_BYTES).string()
+                    if (body.contains("#EXTM3U")) {
+                        body
+                    } else {
+                        Log.w(TAG, "Response is not an HLS playlist: $url")
+                        null
+                    }
                 } else {
                     Log.w(TAG, "HLS manifest fetch failed: HTTP ${response.code} for $url")
                     null

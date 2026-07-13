@@ -3,7 +3,10 @@ package com.cadnative.firevisioniptv.data.repository
 import android.content.Context
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.dto.EpgProgramDto
+import com.cadnative.firevisioniptv.data.source.local.dao.EpgDao
+import com.cadnative.firevisioniptv.data.source.local.entity.EpgProgramEntity
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
+import com.cadnative.firevisioniptv.data.source.remote.epg.XmltvEpgDataSource
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
@@ -12,53 +15,86 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Offline-first, multi-source EPG repository.
+ *
+ * Room ([EpgDao]) is the persistent store, so the guide survives app restarts and
+ * network failures (last-good fallback) instead of blanking. An in-memory cache,
+ * hydrated from Room on first access, backs the fast synchronous read path.
+ *
+ * Sources are merged: the paired server guide (`/tv/epg`) and — TiviMate/Kodi style —
+ * a user-supplied XMLTV URL parsed on-device. If every source fails, the previously
+ * stored programs remain visible (never wiped). Channel matching is case-insensitive
+ * on the tvg-id.
+ */
 @Singleton
 class EpgRepositoryImpl @Inject constructor(
     private val apiService: FireVisionApiService,
+    private val xmltvDataSource: XmltvEpgDataSource,
+    private val epgDao: EpgDao,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val dispatcher: CoroutineDispatcher
 ) : EpgRepository {
 
+    /** Keyed by normalized (lowercased) tvg-id for case-insensitive matching. */
     private val cache = ConcurrentHashMap<String, List<EpgProgram>>()
-    @Volatile private var cacheLoaded = false
+    @Volatile private var hydrated = false
+    @Volatile private var refreshedThisSession = false
     private val loadMutex = Mutex()
 
     override suspend fun ensureLoaded() = withContext(dispatcher) {
-        if (!cacheLoaded) {
+        ensureReady()
+    }
+
+    override suspend fun refreshNow() = withContext(dispatcher) {
+        if (!hydrated) {
             loadMutex.withLock {
-                if (!cacheLoaded) {
-                    loadGuide()
+                if (!hydrated) {
+                    hydrateFromRoom()
+                    hydrated = true
                 }
             }
+        }
+        loadMutex.withLock {
+            refreshFromSources()
+            refreshedThisSession = true
         }
     }
 
     override suspend fun getNowNext(tvgId: String): Pair<EpgProgram?, EpgProgram?> =
         withContext(dispatcher) {
-            if (!cacheLoaded) {
-                loadMutex.withLock {
-                    if (!cacheLoaded) {
-                        loadGuide()
-                    }
-                }
-            }
-            val programs = cache[tvgId] ?: return@withContext Pair(null, null)
-            val now = Instant.now()
-            val nowProgram = programs.firstOrNull { it.startTime <= now && it.endTime > now }
-            val nextProgram = programs
-                .filter { it.startTime > now }
-                .minByOrNull { it.startTime }
-            Pair(nowProgram, nextProgram)
+            ensureReady()
+            nowNextFrom(cache[keyOf(tvgId)])
         }
 
     override fun getNowNextIfCached(tvgId: String): Pair<EpgProgram?, EpgProgram?>? {
-        if (!cacheLoaded) return null
-        val programs = cache[tvgId] ?: return Pair(null, null)
+        if (!hydrated) return null
+        return nowNextFrom(cache[keyOf(tvgId)])
+    }
+
+    override suspend fun getProgramsWindow(
+        tvgIds: List<String>,
+        from: Instant,
+        to: Instant
+    ): Map<String, List<EpgProgram>> = withContext(dispatcher) {
+        ensureReady()
+        tvgIds.associateWith { tvgId ->
+            (cache[keyOf(tvgId)] ?: emptyList())
+                .filter { it.startTime < to && it.endTime > from }
+                .sortedBy { it.startTime }
+        }
+    }
+
+    private fun keyOf(tvgId: String): String = tvgId.trim().lowercase()
+
+    private fun nowNextFrom(programs: List<EpgProgram>?): Pair<EpgProgram?, EpgProgram?> {
+        if (programs == null) return Pair(null, null)
         val now = Instant.now()
         val nowProgram = programs.firstOrNull { it.startTime <= now && it.endTime > now }
         val nextProgram = programs
@@ -67,20 +103,81 @@ class EpgRepositoryImpl @Inject constructor(
         return Pair(nowProgram, nextProgram)
     }
 
-    private suspend fun loadGuide() {
-        try {
-            val channelListCode = AppPreferences.getTvCode(context)
-            val response = apiService.getEpgGuide(channelListCode)
-            if (response.isSuccessful) {
-                val data = response.body()?.data ?: emptyMap()
-                data.forEach { (tvgId, dtos) ->
-                    cache[tvgId] = dtos.mapNotNull { it.toDomain() }
+    /** Hydrate from Room once (survives restart), then refresh from sources once per session. */
+    private suspend fun ensureReady() {
+        if (!hydrated) {
+            loadMutex.withLock {
+                if (!hydrated) {
+                    hydrateFromRoom()
+                    hydrated = true
                 }
-                cacheLoaded = true
             }
-        } catch (_: Exception) {
-            // Network failure — leave cache empty; graceful degradation
         }
+        if (!refreshedThisSession) {
+            loadMutex.withLock {
+                if (!refreshedThisSession) {
+                    refreshFromSources()
+                    refreshedThisSession = true
+                }
+            }
+        }
+    }
+
+    private suspend fun hydrateFromRoom() {
+        try {
+            rebuildCache(epgDao.getAll().map { it.toDomain() })
+        } catch (_: Exception) {
+            // Cache stays empty; a source refresh may still populate it.
+        }
+    }
+
+    /**
+     * Best-effort refresh across all sources. Merges results; on total failure keeps the
+     * last-good cache and Room rows. Only prunes well-past programs after a successful merge.
+     */
+    private suspend fun refreshFromSources() {
+        val merged = ArrayList<EpgProgram>()
+        merged.addAll(fetchServerGuide())
+        val xmltvUrl = AppPreferences.getEpgXmltvUrl(context)
+        if (xmltvUrl.isNotBlank()) {
+            merged.addAll(runCatching { xmltvDataSource.fetch(xmltvUrl) }.getOrDefault(emptyList()))
+        }
+
+        if (merged.isEmpty()) return // keep last-good
+
+        try {
+            epgDao.upsertAll(merged.map { it.toEntity() })
+            // Prune only well-past programs; future last-good rows are never removed.
+            epgDao.deleteEndedBefore(Instant.now().minus(Duration.ofHours(6)).toEpochMilli())
+            // Rebuild the read cache from the authoritative store so all sources are reflected.
+            rebuildCache(epgDao.getAll().map { it.toDomain() })
+        } catch (_: Exception) {
+            // Persistence failed — retain last-good cache.
+        }
+    }
+
+    private suspend fun fetchServerGuide(): List<EpgProgram> {
+        return try {
+            val channelListCode = AppPreferences.getTvCode(context)
+            if (channelListCode.isBlank()) return emptyList()
+            val response = apiService.getEpgGuide(channelListCode)
+            if (!response.isSuccessful) return emptyList()
+            val data = response.body()?.data ?: return emptyList()
+            data.values.flatten().mapNotNull { it.toDomain() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /** Rebuild the in-memory cache keyed by normalized tvg-id, deduped by start time. */
+    private fun rebuildCache(programs: List<EpgProgram>) {
+        val grouped = programs
+            .groupBy { keyOf(it.channelEpgId) }
+            .mapValues { (_, list) ->
+                list.distinctBy { it.startTime }.sortedBy { it.startTime }
+            }
+        cache.clear()
+        cache.putAll(grouped)
     }
 
     private fun EpgProgramDto.toDomain(): EpgProgram? {
@@ -97,4 +194,22 @@ class EpgRepositoryImpl @Inject constructor(
             null
         }
     }
+
+    private fun EpgProgramEntity.toDomain(): EpgProgram = EpgProgram(
+        channelEpgId = channelEpgId,
+        title = title,
+        description = description,
+        startTime = Instant.ofEpochMilli(startTimeMs),
+        endTime = Instant.ofEpochMilli(endTimeMs),
+        icon = icon
+    )
+
+    private fun EpgProgram.toEntity(): EpgProgramEntity = EpgProgramEntity(
+        channelEpgId = channelEpgId,
+        startTimeMs = startTime.toEpochMilli(),
+        endTimeMs = endTime.toEpochMilli(),
+        title = title,
+        description = description,
+        icon = icon
+    )
 }

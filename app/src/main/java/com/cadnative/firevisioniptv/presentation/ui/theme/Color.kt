@@ -133,6 +133,14 @@ const val EmphasisHigh     = 0.87f
 const val EmphasisMedium   = 0.6f
 const val EmphasisDisabled = 0.38f
 
+// ── Video overlay scrims ─────────────────────────────────────────────
+// For player overlays and toasts rendered on top of video, where theme
+// surfaces don't apply — always dark regardless of app theme.
+val ScrimHeavy = Color(0xBF000000)          // 75% black — toasts, info panels
+val ScrimLight = Color(0x99000000)          // 60% black — number chip, lighter overlays
+val OnVideo    = Color(0xFFFFFFFF)          // text/icons on video scrims
+val VideoOverlayBackground = ScrimHeavy
+
 // ── Background gradient glows ────────────────────────────────────────
 val AmberGlow    = Color(0x0AF7A93A)   // ~4% Flame300
 val SteelBlueGlow = Color(0x0A3D88F5)  // ~4% Info blue

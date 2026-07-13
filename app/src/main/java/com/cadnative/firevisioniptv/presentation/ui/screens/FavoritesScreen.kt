@@ -5,24 +5,30 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.viewmodel.FavoritesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +41,8 @@ fun FavoritesScreen(
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Hoisted so scroll position survives navigation to the player and back
+    val gridState = rememberLazyGridState()
 
     Scaffold(
         topBar = {
@@ -71,7 +79,7 @@ fun FavoritesScreen(
                 label = "favoritesState"
             ) { state ->
                 when (state) {
-                    "loading" -> LoadingIndicator(message = "Loading favorites...")
+                    "loading" -> ChannelsGridLoadingSkeleton()
                     "error" -> ErrorState(
                         message = uiState.error ?: "Failed to load favorites",
                         onRetry = { viewModel.retryLoadFavorites() }
@@ -80,11 +88,10 @@ fun FavoritesScreen(
                     else -> FavoritesContent(
                         favorites = uiState.favorites,
                         favoriteCategories = uiState.favoriteCategories,
+                        gridState = gridState,
                         onChannelClick = onChannelClick,
                         onCategoryClick = onCategoryClick,
-                        onRemoveFavorite = { channelId ->
-                            viewModel.removeFavorite(channelId)
-                        }
+                        onRemoveFavorite = viewModel::removeFavorite
                     )
                 }
             }
@@ -92,36 +99,38 @@ fun FavoritesScreen(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FavoritesContent(
-    favorites: List<com.cadnative.firevisioniptv.presentation.model.ChannelUiModel>,
+    favorites: List<ChannelUiModel>,
     favoriteCategories: List<PopularCategoryUiModel>,
+    gridState: LazyGridState,
     onChannelClick: (String) -> Unit,
     onCategoryClick: (String) -> Unit,
     onRemoveFavorite: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = if (screenWidthDp < 600) 100.dp else 140.dp),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(if (screenWidthDp < 600) 12.dp else 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        state = gridState,
+        columns = GridCells.Adaptive(minSize = if (isCompact) 100.dp else 140.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .focusRestorer(),
+        contentPadding = PaddingValues(
+            horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile else Dimens.ScreenPaddingHorizontalTv,
+            vertical = Dimens.GridGap
+        ),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.GridGap),
+        verticalArrangement = Arrangement.spacedBy(Dimens.GridGap)
     ) {
-        // Favorite Categories section
         if (favoriteCategories.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column {
-                    Text(
-                        text = "Categories",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    SectionTitle("Categories")
+                    Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.CategoryCardGap)
                     ) {
                         items(favoriteCategories, key = { it.name }) { category ->
                             CategoryCard(
@@ -132,25 +141,19 @@ private fun FavoritesContent(
                                 onClick = { onCategoryClick(category.name) },
                                 subtitle = "${category.channelCount} channels",
                                 modifier = Modifier
-                                    .width(180.dp)
-                                    .height(100.dp)
+                                    .width(if (isCompact) Dimens.CategoryCardWidthMobile else Dimens.CategoryCardWidthTv)
+                                    .height(if (isCompact) Dimens.CategoryCardHeightMobile else Dimens.CategoryCardHeightTv)
                             )
                         }
                     }
                     if (favorites.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "Channels",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Spacer(modifier = Modifier.height(Dimens.HeroCardGap))
+                        SectionTitle("Channels")
                     }
                 }
             }
         }
 
-        // Favorite Channels grid
         itemsIndexed(favorites, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(
                 channel = channel,
@@ -158,9 +161,19 @@ private fun FavoritesContent(
                 onFavoriteClick = { onRemoveFavorite(channel.id) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(Dimens.GridCardHeight)
                     .animateItemEntrance(index)
             )
         }
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.primary
+    )
 }

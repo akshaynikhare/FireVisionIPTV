@@ -282,7 +282,7 @@ class PairingViewModel @Inject constructor(
                 val pairingUrl = "$serverUrl/pair?pin=$pin"
                 val writer = QRCodeWriter()
                 val bitMatrix = writer.encode(
-                    pairingUrl, BarcodeFormat.QR_CODE, 512, 512
+                    pairingUrl, BarcodeFormat.QR_CODE, 1024, 1024
                 )
                 val width = bitMatrix.width
                 val height = bitMatrix.height

@@ -88,8 +88,56 @@ interface UserPreferencesRepository {
     
     /**
      * Clear all cached data.
-     * 
+     *
      * @return Result indicating success or failure
      */
     suspend fun clearCache(): Result<Unit>
+
+    /**
+     * Whether pressing back in the player requires a second press to exit.
+     */
+    fun getBackExitProtection(): Flow<Boolean>
+
+    suspend fun setBackExitProtection(enabled: Boolean): Result<Unit>
+
+    /**
+     * Player key actions. Values: [PlayerKeyAction] constants.
+     * upDown = D-pad up/down, leftRight = D-pad left/right, longOk = long-press OK.
+     */
+    fun getPlayerKeyUpDownAction(): Flow<String>
+
+    suspend fun setPlayerKeyUpDownAction(action: String): Result<Unit>
+
+    fun getPlayerKeyLeftRightAction(): Flow<String>
+
+    suspend fun setPlayerKeyLeftRightAction(action: String): Result<Unit>
+
+    fun getPlayerLongOkAction(): Flow<String>
+
+    suspend fun setPlayerLongOkAction(action: String): Result<Unit>
+
+    /**
+     * Default sleep timer applied when playback starts, in minutes (0 = off).
+     */
+    fun getSleepTimerDefaultMinutes(): Flow<Int>
+
+    suspend fun setSleepTimerDefaultMinutes(minutes: Int): Result<Unit>
+
+    /**
+     * When true, the player's now/next program bar stays pinned instead of
+     * auto-hiding after a zap.
+     */
+    fun getAlwaysShowProgramBar(): Flow<Boolean>
+
+    suspend fun setAlwaysShowProgramBar(enabled: Boolean): Result<Unit>
+}
+
+/**
+ * Valid values for the remappable player key actions.
+ */
+object PlayerKeyAction {
+    const val ZAP = "zap"
+    const val LAST_CHANNEL = "last_channel"
+    const val FAVORITE = "favorite"
+    const val PLAY_PAUSE = "play_pause"
 }

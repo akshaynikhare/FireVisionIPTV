@@ -127,6 +127,7 @@ fun FireVisionTheme(
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = FireVisionTypography,
+            shapes = FireVisionShapes,
             content = content
         )
     }

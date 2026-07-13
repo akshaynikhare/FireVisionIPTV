@@ -142,6 +142,9 @@ Schema exported to `app/schemas/` for migration testing.
 ### Code organization
 - New use cases go in `domain/usecase/` — extend `UseCase` or `FlowUseCase` base classes
 - New screens go in `presentation/ui/screens/` with a corresponding ViewModel in `presentation/viewmodel/`
+- UI layering: `components/` (stateless, reusable atoms/molecules) → `screens/<name>/` (one package per complex screen; `XxxScreen.kt` is the thin stateful root, content/sections split into `internal` same-package files). No UI file over ~400 lines
+- Theme tokens are mandatory: colors in `theme/Color.kt`, type styles in `theme/Type.kt`, shapes in `theme/Shape.kt`, spacing/sizes in `theme/Dimens.kt` — never inline `Color(0x…)`, `fontSize`, `RoundedCornerShape(N.dp)`, or magic dp in screens/components
+- Gate animations on `LocalPerfProfile.current.reduceMotion` (low-end Android 9 boxes): skip shimmer/stagger/transitions when true
 - New DTOs go in `data/model/dto/`, entities in `data/source/local/entity/`
 - Mappers in `data/mapper/` (DTO↔Entity) and `presentation/mapper/` (Domain→UI)
 

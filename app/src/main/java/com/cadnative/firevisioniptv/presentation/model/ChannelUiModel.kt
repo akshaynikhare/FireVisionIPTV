@@ -13,5 +13,11 @@ data class ChannelUiModel(
     val healthStatus: ChannelHealthStatus = ChannelHealthStatus.UNKNOWN,
     val thumbnailPath: String? = null,
     val alternateStreamUrls: List<String> = emptyList(),
-    val nowProgramTitle: String? = null
+    val nowProgramTitle: String? = null,
+    val nextProgramTitle: String? = null,
+    // Live EPG window for the currently-airing program (epoch millis).
+    // Used to render "how far into the live program" progress — never a
+    // saved file position. Null when EPG is unavailable.
+    val nowProgramStartMs: Long? = null,
+    val nowProgramEndMs: Long? = null
 )

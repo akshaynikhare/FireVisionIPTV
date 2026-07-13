@@ -59,20 +59,20 @@ class PlaybackManager(
      */
     fun switchChannel(streamUrl: String, savedPosition: Long = 0) {
         stopPositionSaving()
-        player.stop()
-        player.clearMediaItems()
-        
+
+        // Replace the media item in place — no stop()/clearMediaItems() teardown, which
+        // makes zapping feel faster (renderers are reused rather than torn down).
         val mediaItem = androidx.media3.common.MediaItem.Builder()
             .setUri(streamUrl)
             .build()
-        
+
         player.setMediaItem(mediaItem)
         player.prepare()
-        
+
         if (savedPosition > 0) {
             player.seekTo(savedPosition)
         }
-        
+
         player.play()
     }
 

@@ -1,9 +1,13 @@
 package com.cadnative.firevisioniptv.presentation.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -11,6 +15,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.screenEnterTransition
 import com.cadnative.firevisioniptv.presentation.ui.animation.screenExitTransition
 import com.cadnative.firevisioniptv.presentation.ui.animation.screenPopEnterTransition
@@ -19,6 +26,8 @@ import com.cadnative.firevisioniptv.presentation.ui.screens.CategoriesScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.ChannelsScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.FavoritesScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.HomeScreen
+import com.cadnative.firevisioniptv.presentation.ui.screens.MultiviewScreen
+import com.cadnative.firevisioniptv.presentation.ui.screens.guide.GuideScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PairingScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PlayerScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.SearchScreen
@@ -42,11 +51,18 @@ fun FireVisionNavGraph(
     startDestination: String = Screen.Home.route,
     modifier: Modifier = Modifier
 ) {
+    val reduceMotion = LocalPerfProfile.current.reduceMotion
+    val enterSlideOffsetPx = with(LocalDensity.current) { 16.dp.roundToPx() }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
-        enterTransition = { screenEnterTransition() },
+        enterTransition = {
+            if (reduceMotion) screenEnterTransition()
+            else screenEnterTransition() +
+                    slideInVertically(tween(DURATION_ENTRANCE, easing = EaseOutQuart)) { enterSlideOffsetPx }
+        },
         exitTransition = { screenExitTransition() },
         popEnterTransition = { screenPopEnterTransition() },
         popExitTransition = { screenPopExitTransition() }
@@ -80,7 +96,8 @@ fun FireVisionNavGraph(
                 isTvDevice = uiState.isTvDevice,
                 pairingUrl = uiState.pairingUrl,
                 onRetryClick = { viewModel.requestNewPairing() },
-                onUseDefaultClick = { viewModel.useDefaultChannelList() }
+                onUseDefaultClick = { viewModel.useDefaultChannelList() },
+                onUseOwnPlaylistClick = { navController.navigate(Screen.SelfHostSetup.route) }
             )
         }
 
@@ -163,6 +180,31 @@ fun FireVisionNavGraph(
             )
         }
 
+        // ── Guide (EPG program grid) ────────────────────────────────────
+        composable(route = Screen.Guide.route) {
+            GuideScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onChannelClick = { channelId ->
+                    navController.navigate(Screen.Player.createRoute(channelId))
+                },
+                onCatchup = { channelId, startMillis, durationMinutes ->
+                    navController.navigate(
+                        Screen.Player.createCatchupRoute(channelId, startMillis, durationMinutes)
+                    )
+                },
+                onPairDevice = {
+                    navController.navigate(Screen.Pairing.route)
+                }
+            )
+        }
+
+        // ── Multiview (watch several channels at once) ──────────────────
+        composable(route = Screen.Multiview.route) {
+            MultiviewScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         // ── Search ──────────────────────────────────────────────────────
         composable(route = Screen.Search.route) {
             SearchScreen(
@@ -210,6 +252,12 @@ fun FireVisionNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)
+                },
+                onPlaylistLoaded = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Pairing.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -218,19 +266,30 @@ fun FireVisionNavGraph(
         composable(
             route = Screen.Player.route,
             arguments = listOf(
-                navArgument("channelId") { type = NavType.StringType }
+                navArgument("channelId") { type = NavType.StringType },
+                navArgument("catchupStart") { type = NavType.LongType; defaultValue = 0L },
+                navArgument("catchupDur") { type = NavType.IntType; defaultValue = 0 }
             )
         ) { backStackEntry ->
             val channelId = backStackEntry.arguments?.getString("channelId")
+            val catchupStart = backStackEntry.arguments?.getLong("catchupStart") ?: 0L
+            val catchupDur = backStackEntry.arguments?.getInt("catchupDur") ?: 0
             if (channelId.isNullOrEmpty()) {
                 // Guard: pop back if channelId is missing
                 LaunchedEffect(Unit) { navController.popBackStack() }
             } else {
                 PlayerScreen(
                     channelId = channelId,
+                    catchupStartMs = catchupStart,
+                    catchupDurationMin = catchupDur,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = {
                         navController.navigate(Screen.Settings.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate(Screen.Search.route) {
                             launchSingleTop = true
                         }
                     }

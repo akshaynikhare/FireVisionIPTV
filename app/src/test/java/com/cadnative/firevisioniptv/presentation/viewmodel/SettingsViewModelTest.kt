@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
@@ -65,6 +66,7 @@ class SettingsViewModelTest {
         every { AppPreferences.getServerUrl(any()) } returns "https://tv.cadnative.com/"
         every { AppPreferences.getTvCode(any()) } returns "TESTCODE"
         every { AppPreferences.clearPairing(any()) } returns Unit
+        every { AppPreferences.isDemoMode(any()) } returns false
 
         // Mock Application
         every { application.applicationContext } returns mockContext
@@ -88,6 +90,12 @@ class SettingsViewModelTest {
         every { userPreferencesRepository.getFontSize() } returns flowOf(1.0f)
         every { userPreferencesRepository.getAnimationSpeed() } returns flowOf(1.0f)
         every { userPreferencesRepository.getLayoutDensity() } returns flowOf("comfortable")
+        every { userPreferencesRepository.getBackExitProtection() } returns flowOf(true)
+        every { userPreferencesRepository.getPlayerKeyUpDownAction() } returns flowOf(PlayerKeyAction.ZAP)
+        every { userPreferencesRepository.getPlayerKeyLeftRightAction() } returns flowOf(PlayerKeyAction.ZAP)
+        every { userPreferencesRepository.getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
+        every { userPreferencesRepository.getSleepTimerDefaultMinutes() } returns flowOf(0)
+        every { userPreferencesRepository.getAlwaysShowProgramBar() } returns flowOf(false)
 
         // Mock scanner
         every { channelHealthScanner.scanProgress } returns scanProgressFlow
@@ -130,6 +138,7 @@ class SettingsViewModelTest {
     @Test
     fun `init with default tv code sets isDefaultMode`() = runTest {
         every { AppPreferences.getTvCode(any()) } returns "5T6FEP"
+        every { AppPreferences.isDemoMode(any()) } returns true
 
         val vm = createViewModel()
         runCurrent()
@@ -197,6 +206,19 @@ class SettingsViewModelTest {
         runCurrent()
 
         coVerify { userPreferencesRepository.setGridSize(4) }
+    }
+
+    @Test
+    fun `setSleepTimerDefaultMinutes calls repository`() = runTest {
+        coEvery { userPreferencesRepository.setSleepTimerDefaultMinutes(any()) } returns Result.Success(Unit)
+
+        val vm = createViewModel()
+        runCurrent()
+
+        vm.setSleepTimerDefaultMinutes(60)
+        runCurrent()
+
+        coVerify { userPreferencesRepository.setSleepTimerDefaultMinutes(60) }
     }
 
     @Test

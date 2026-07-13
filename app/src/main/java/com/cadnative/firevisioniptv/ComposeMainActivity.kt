@@ -31,13 +31,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,10 +60,13 @@ import com.cadnative.firevisioniptv.drm.AmazonDrmManager
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.detectPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
@@ -132,32 +136,36 @@ class ComposeMainActivity : ComponentActivity() {
 
         setContent {
             val themeStr by userPreferencesRepository.getTheme().collectAsState(initial = "system")
+            // TV is dark-first: 10-foot UI reads better dark and matches the solid-dark nav rail
             val darkTheme = when (themeStr) {
                 "light" -> false
-                "system" -> isSystemInDarkTheme()
+                "system" -> if (remember { isTvDevice(this) }) true else isSystemInDarkTheme()
                 else -> true
             }
-            FireVisionTheme(darkTheme = darkTheme) {
-                var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
-                val navController = rememberNavController()
-                val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
+            val perfProfile = remember { detectPerfProfile(this) }
+            CompositionLocalProvider(LocalPerfProfile provides perfProfile) {
+                FireVisionTheme(darkTheme = darkTheme) {
+                    var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
+                    val navController = rememberNavController()
+                    val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    FireVisionAppShell(
-                        navController = navController,
-                        startDestination = startDestination
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        FireVisionAppShell(
+                            navController = navController,
+                            startDestination = startDestination
+                        )
 
-                    // Deep link navigation (once only, after splash)
-                    if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
-                        LaunchedEffect(targetChannelId) {
-                            navController.navigate(Screen.Player.createRoute(targetChannelId))
+                        // Deep link navigation (once only, after splash)
+                        if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
+                            LaunchedEffect(targetChannelId) {
+                                navController.navigate(Screen.Player.createRoute(targetChannelId))
+                            }
                         }
-                    }
 
-                    // Splash overlay
-                    if (showSplash) {
-                        SplashScreen(onSplashFinished = { showSplash = false })
+                        // Splash overlay
+                        if (showSplash) {
+                            SplashScreen(onSplashFinished = { showSplash = false })
+                        }
                     }
                 }
             }
@@ -165,7 +173,8 @@ class ComposeMainActivity : ComponentActivity() {
     }
 
     private fun isTvCodeConfigured(): Boolean {
-        return AppPreferences.hasChannelSelection(this)
+        // A paired code OR a bring-your-own playlist (M3U/Xtream) counts as configured.
+        return AppPreferences.hasAnySource(this)
     }
 
     private fun isFirstLaunch(): Boolean {
@@ -271,10 +280,10 @@ private fun FireVisionAppShell(
 
 private val bottomNavItems = listOf(
     Triple(Screen.Home, Icons.Default.Home, "Home"),
-    Triple(Screen.Search, Icons.Default.Search, "Search"),
-    Triple(Screen.Channels, Icons.Default.LiveTv, "Channels"),
-    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
     Triple(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
+    Triple(Screen.Search, Icons.Default.Search, "Search"),
+    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
+    Triple(Screen.Multiview, Icons.Default.Dashboard, "Multiview"),
     Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
 )
 

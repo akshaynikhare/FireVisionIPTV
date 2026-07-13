@@ -6,6 +6,8 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.domain.model.PlaybackState
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
+import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
+import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.AnalyticsHelper
 import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
@@ -53,7 +55,16 @@ class PlayerViewModelTest {
     private val channelHealthDao: ChannelHealthDao = mockk(relaxed = true)
     private val thumbnailExtractor: ChannelThumbnailExtractor = mockk(relaxed = true)
     private val epgRepository: EpgRepository = mockk(relaxed = true)
+    private val playerFactory: com.cadnative.firevisioniptv.presentation.ui.player.PlayerFactory = mockk(relaxed = true)
     private val analyticsHelper: AnalyticsHelper = mockk(relaxed = true)
+    private val userPreferencesRepository: UserPreferencesRepository = mockk {
+        every { getBackExitProtection() } returns flowOf(true)
+        every { getPlayerKeyUpDownAction() } returns flowOf(PlayerKeyAction.ZAP)
+        every { getPlayerKeyLeftRightAction() } returns flowOf(PlayerKeyAction.ZAP)
+        every { getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
+        every { getSleepTimerDefaultMinutes() } returns flowOf(0)
+        every { getAlwaysShowProgramBar() } returns flowOf(false)
+    }
 
     private lateinit var viewModel: PlayerViewModel
 
@@ -82,7 +93,8 @@ class PlayerViewModelTest {
             getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
             savePlaybackPositionUseCase, getPlaybackPositionUseCase, toggleFavoriteUseCase,
             reportStreamStatusUseCase, reportStreamPlayUseCase, channelUiMapper,
-            channelHealthDao, thumbnailExtractor, epgRepository, analyticsHelper
+            channelHealthDao, thumbnailExtractor, epgRepository, analyticsHelper,
+            userPreferencesRepository, playerFactory
         )
     }
 
@@ -436,6 +448,72 @@ class PlayerViewModelTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.overlayChannels[0].isFavorite)
+    }
+
+    // ── Sleep Timer ──────────────────────────────────────────────
+
+    @Test
+    fun `setSleepTimer starts countdown and expires into still watching flow`() = runTest {
+        viewModel.setSleepTimer(1)
+        runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.sleepTimerMinutes)
+        assertEquals(60, viewModel.uiState.value.sleepTimerRemainingSeconds)
+
+        // Final minute ticks every second
+        advanceTimeBy(30_000)
+        runCurrent()
+        assertEquals(30, viewModel.uiState.value.sleepTimerRemainingSeconds)
+
+        advanceTimeBy(31_000)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.sleepTimerExpired)
+        assertFalse(viewModel.uiState.value.sleepTimerNavigateBack)
+
+        // Cancel window lapses → navigate back
+        advanceTimeBy(61_000)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.sleepTimerNavigateBack)
+    }
+
+    @Test
+    fun `setSleepTimer null cancels timer`() = runTest {
+        viewModel.setSleepTimer(30)
+        runCurrent()
+        assertEquals(30, viewModel.uiState.value.sleepTimerMinutes)
+
+        viewModel.setSleepTimer(null)
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.sleepTimerMinutes)
+        assertNull(viewModel.uiState.value.sleepTimerRemainingSeconds)
+    }
+
+    @Test
+    fun `cancelSleepTimerExpiry clears expiry within cancel window`() = runTest {
+        viewModel.setSleepTimer(1)
+        advanceTimeBy(61_000)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.sleepTimerExpired)
+
+        viewModel.cancelSleepTimerExpiry()
+        runCurrent()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.sleepTimerExpired)
+        assertNull(state.sleepTimerMinutes)
+        assertFalse(state.sleepTimerNavigateBack)
+
+        // Cancelled window must not fire navigate-back later
+        advanceTimeBy(61_000)
+        runCurrent()
+        assertFalse(viewModel.uiState.value.sleepTimerNavigateBack)
+    }
+
+    @Test
+    fun `onSleepTimerNavigatedBack clears flag`() = runTest {
+        viewModel.onSleepTimerNavigatedBack()
+        assertFalse(viewModel.uiState.value.sleepTimerNavigateBack)
     }
 
     // ── Dead Stream Countdown ────────────────────────────────────

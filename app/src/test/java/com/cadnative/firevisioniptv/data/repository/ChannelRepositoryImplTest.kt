@@ -78,6 +78,9 @@ class ChannelRepositoryImplTest {
             localDataSource = localDataSource,
             favoriteDao = favoriteDao,
             channelMapper = channelMapper,
+            m3uDataSource = mockk(relaxed = true),
+            xtreamDataSource = mockk(relaxed = true),
+            context = mockk(relaxed = true),
             dispatcher = testDispatcher
         )
     }

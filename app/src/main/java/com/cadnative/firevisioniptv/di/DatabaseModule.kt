@@ -6,6 +6,7 @@ import com.cadnative.firevisioniptv.data.source.local.FireVisionDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
+import com.cadnative.firevisioniptv.data.source.local.dao.EpgDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
@@ -46,7 +47,8 @@ object DatabaseModule {
                 FireVisionDatabase.MIGRATION_3_4,
                 FireVisionDatabase.MIGRATION_4_5,
                 FireVisionDatabase.MIGRATION_5_6,
-                FireVisionDatabase.MIGRATION_6_7
+                FireVisionDatabase.MIGRATION_6_7,
+                FireVisionDatabase.MIGRATION_7_8
             )
             .build()
     }
@@ -119,5 +121,10 @@ object DatabaseModule {
     @Provides
     fun provideStreamMetricsDao(database: FireVisionDatabase): StreamMetricsDao {
         return database.streamMetricsDao()
+    }
+
+    @Provides
+    fun provideEpgDao(database: FireVisionDatabase): EpgDao {
+        return database.epgDao()
     }
 }

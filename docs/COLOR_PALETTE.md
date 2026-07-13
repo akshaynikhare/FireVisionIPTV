@@ -141,6 +141,80 @@ Consistent across both dark and light modes (sufficient contrast on all surfaces
 
 ---
 
+## Video Overlay Scrims
+
+For player overlays and toasts rendered on top of video — always dark regardless of app theme. No blur; flat solid scrims only (render-cheap on TV).
+
+| Token                      | Hex          | Usage                                    |
+|----------------------------|--------------|------------------------------------------|
+| `scrim-heavy`              | `#BF000000`  | 75% black — toast pills, info panels     |
+| `scrim-light`              | `#99000000`  | 60% black — number chip, light overlays  |
+| `on-video`                 | `#FFFFFF`    | Text and icons on video scrims           |
+| `video-overlay-background` | = scrim-heavy| Default overlay panel background         |
+
+### Kotlin constants (`Color.kt`)
+
+```kotlin
+val ScrimHeavy = Color(0xBF000000)
+val ScrimLight = Color(0x99000000)
+val OnVideo    = Color(0xFFFFFFFF)
+val VideoOverlayBackground = ScrimHeavy
+```
+
+---
+
+## Shape Tokens
+
+Three-step corner scale (`Shape.kt`), YouTube-TV flat style. Wired into `MaterialTheme(shapes = FireVisionShapes)`.
+
+| Token         | Radius | Usage                        | M3 mapping        |
+|---------------|--------|------------------------------|-------------------|
+| —             | 4dp    | —                            | `extraSmall`      |
+| `ShapeSmall`  | 8dp    | Chips, badges, small buttons | `small`           |
+| `ShapeMedium` | 12dp   | Cards, panels                | `medium`          |
+| `ShapeLarge`  | 20dp   | Toasts/pills, dialogs        | `large`           |
+| —             | 28dp   | —                            | `extraLarge`      |
+
+---
+
+## Dimension Tokens
+
+Spacing and size constants (`Dimens.kt`). Baseline 960×540dp TV display; mobile variants apply when portrait or `screenWidthDp < 600`.
+
+| Token                                    | Value       | Usage                          |
+|------------------------------------------|-------------|--------------------------------|
+| `ScreenPaddingHorizontalTv` / `Mobile`   | 40dp / 16dp | Screen edge padding            |
+| `ScreenPaddingVertical`                  | 28dp        | Scroll content top/bottom      |
+| `RowGap`                                 | 36dp        | Vertical gap between home rows |
+| `RowTitleGap`                            | 16dp        | Row title → cards              |
+| `CardGap`                                | 18dp        | Between cards in a channel row |
+| `HeroCardGap`                            | 24dp        | Between hero/featured cards    |
+| `CategoryCardGap`                        | 14dp        | Between category cards         |
+| `GridGap`                                | 16dp        | Channel grid cell spacing      |
+| `ChannelCardWidthTv` × `HeightTv`        | 180×110dp   | Channel row card (TV)          |
+| `ChannelCardWidthMobile` × `HeightMobile`| 140×90dp    | Channel row card (mobile)      |
+| `GridCardHeight`                         | 120dp       | Channel grid card              |
+| `CategoryCardWidthTv` × `HeightTv`       | 180×100dp   | Category card (TV)             |
+| `CategoryCardWidthMobile` × `HeightMobile`| 140×80dp   | Category card (mobile)         |
+| `IconSmall` / `IconMedium` / `IconLarge` | 16/24/32dp  | Icon size scale                |
+| `ChannelLogoSize`                        | 48dp        | Channel logo in cards/lists    |
+
+---
+
+## Extended Typography
+
+Styles outside the M3 scale (`Type.kt`). Below-16sp sizes are for dense overlay UI only — never primary content.
+
+| Token               | Size | Weight        | Usage                       |
+|---------------------|------|---------------|-----------------------------|
+| `LabelBadge`        | 12sp | Medium        | Category/status card badges |
+| `LabelToast`        | 14sp | Medium        | Player toast pills          |
+| `BodyOverlay`       | 16sp | Medium        | Overlay body text on video  |
+| `DisplayNumberChip` | 44sp | Bold          | Channel-number entry chip   |
+| `DisplayPairingCode`| 52sp | Bold monospace| Pairing PIN display         |
+
+---
+
 ## Theme Mapping
 
 ### Material 3 Color Scheme (`Theme.kt`)

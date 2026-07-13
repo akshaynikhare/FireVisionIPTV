@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.cadnative.firevisioniptv.data.source.local.dao.CategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
+import com.cadnative.firevisioniptv.data.source.local.dao.EpgDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
@@ -15,6 +16,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
 import com.cadnative.firevisioniptv.data.source.local.entity.CategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
+import com.cadnative.firevisioniptv.data.source.local.entity.EpgProgramEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.PlaybackPositionEntity
@@ -47,9 +49,10 @@ import com.cadnative.firevisioniptv.data.source.local.entity.StreamMetricsEntity
         PlaybackPositionEntity::class,
         ChannelHealthEntity::class,
         FavoriteCategoryEntity::class,
-        StreamMetricsEntity::class
+        StreamMetricsEntity::class,
+        EpgProgramEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class FireVisionDatabase : RoomDatabase() {
@@ -190,6 +193,24 @@ abstract class FireVisionDatabase : RoomDatabase() {
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_stream_metrics_channelId` ON `stream_metrics` (`channelId`)")
             }
         }
+
+        /** v7→v8: Add epg_programs table for offline-first EPG cache (last-good survives restarts). */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `epg_programs` (
+                        `channelEpgId` TEXT NOT NULL,
+                        `startTimeMs` INTEGER NOT NULL,
+                        `endTimeMs` INTEGER NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT,
+                        `icon` TEXT,
+                        PRIMARY KEY(`channelEpgId`, `startTimeMs`)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_epg_programs_endTimeMs` ON `epg_programs` (`endTimeMs`)")
+            }
+        }
     }
 
     /**
@@ -225,4 +246,6 @@ abstract class FireVisionDatabase : RoomDatabase() {
     abstract fun favoriteCategoryDao(): FavoriteCategoryDao
 
     abstract fun streamMetricsDao(): StreamMetricsDao
+
+    abstract fun epgDao(): EpgDao
 }

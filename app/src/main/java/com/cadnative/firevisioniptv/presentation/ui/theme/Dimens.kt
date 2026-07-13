@@ -1,0 +1,96 @@
+package com.cadnative.firevisioniptv.presentation.ui.theme
+
+import androidx.compose.ui.unit.dp
+
+/**
+ * Spacing and size tokens. Baseline 960×540dp TV display.
+ * Screens branch on `LocalConfiguration` orientation (portrait = mobile)
+ * or `screenWidthDp < 600` (compact = mobile) — Tv/Mobile variants below
+ * follow that convention.
+ */
+object Dimens {
+    // ── Base spacing scale (4dp grid) — general-purpose ──────────────
+    val Space1 = 4.dp
+    val Space2 = 8.dp
+    val Space3 = 12.dp
+    val Space4 = 16.dp
+    val Space5 = 24.dp
+    val Space6 = 32.dp
+
+    // ── Screen padding ───────────────────────────────────────────────
+    val ScreenPaddingHorizontalTv = 40.dp
+    val ScreenPaddingHorizontalMobile = 16.dp
+    val ScreenPaddingVertical = 28.dp
+
+    // ── Row / section spacing ────────────────────────────────────────
+    val RowGap = 36.dp                 // vertical gap between home rows
+    val RowTitleGap = 16.dp            // row title → cards
+    val CardGap = 18.dp                // between cards in a channel row
+    val HeroCardGap = 24.dp            // between hero/featured cards
+    val CategoryCardGap = 14.dp        // between category cards
+    val GridGap = 16.dp                // channel grid cell spacing
+
+    // ── Channel cards ────────────────────────────────────────────────
+    val ChannelCardWidthTv = 180.dp
+    val ChannelCardHeightTv = 110.dp
+    val ChannelCardWidthMobile = 140.dp
+    val ChannelCardHeightMobile = 90.dp
+    val GridCardHeight = 120.dp
+
+    // ── Category cards ───────────────────────────────────────────────
+    val CategoryCardWidthTv = 180.dp
+    val CategoryCardHeightTv = 100.dp
+    val CategoryCardWidthMobile = 140.dp
+    val CategoryCardHeightMobile = 80.dp
+
+    // ── Icons ────────────────────────────────────────────────────────
+    val IconSmall = 16.dp              // badges, inline indicators
+    val IconMedium = 24.dp             // buttons, list items
+    val IconLarge = 32.dp              // nav rail, prominent actions
+    val ChannelLogoSize = 48.dp
+
+    // ── Side navigation rail ─────────────────────────────────────────
+    val NavRailCollapsedTv = 72.dp
+    val NavRailCollapsedMobile = 52.dp
+    val NavRailExpandedTv = 220.dp
+    val NavRailExpandedMobile = 180.dp
+    val NavRailBrandIconTv = 56.dp
+    val NavRailBrandIconMobile = 40.dp
+    // Nav item pill padding + gaps (were inline 2/6/8/10/14dp)
+    val NavItemGapTv = 6.dp                 // vertical gap between rail items (TV)
+    val NavItemGapMobile = 2.dp             // vertical gap between rail items (mobile)
+    val NavItemPaddingHTv = 14.dp           // pill horizontal padding (TV)
+    val NavItemPaddingHMobile = 10.dp       // pill horizontal padding (mobile)
+    val NavItemPaddingVTv = 10.dp           // pill vertical padding (TV)
+    val NavItemPaddingVMobile = 8.dp        // pill vertical padding (mobile)
+    val NavItemLabelGap = 14.dp             // icon → label spacing when expanded
+    val NavBrandLabelGap = 8.dp             // brand icon → wordmark spacing
+    val NavItemIndicatorWidth = 3.dp        // selected-state leading accent bar
+    val NavItemIndicatorHeight = 20.dp
+
+    // ── Channel card internals ───────────────────────────────────────
+    val CardContentPadding = 10.dp          // text block padding inside a card
+    val CardBadgePadding = 8.dp             // top badges inset (health / favorite)
+    val CardLogoTopPadding = 6.dp           // logo overlay top inset
+    val HealthDotSize = 8.dp                // stream-health status dot
+    val LiveDotSize = 6.dp                  // pulsing LIVE indicator dot
+    val BadgePaddingV = 2.dp                // tight vertical padding inside small pills (LIVE)
+
+    // ── Empty / error / loading states ───────────────────────────────
+    val StateMedallionSize = 72.dp          // tinted icon medallion for empty/error states
+    val SkeletonTitleWidth = 140.dp         // placeholder section-title bar width
+    val SkeletonTitleHeight = 20.dp         // placeholder section-title bar height
+
+    // ── EPG Guide grid (channels × time) ─────────────────────────────
+    val GuideChannelColumnWidth = 200.dp    // sticky left channel column
+    val GuideRowHeight = 76.dp              // one channel row height
+    val GuideTimelineHeight = 44.dp         // top time-axis strip height
+    val GuideMinuteWidth = 6.dp             // horizontal px per timeline minute
+    val GuideCellGap = 4.dp                 // gap between adjacent program cells
+    val GuideCellPadding = 12.dp            // text inset inside a program cell
+    val GuideCellMinWidth = 56.dp           // floor width for very short programs
+    val GuideNowLineWidth = 2.dp            // vertical "now" indicator thickness
+    val GuideChannelLogoSize = 40.dp        // logo in the channel column
+    val GuideDetailPanelHeight = 132.dp     // focused-program detail header
+    val GuideTickLabelInset = 6.dp          // time label offset from tick
+}
