@@ -212,14 +212,18 @@ class ChannelThumbnailExtractor @Inject constructor(
             if (segmentLine != null) {
                 resolveUrl(baseUri, segmentLine)
             } else {
-                Log.w(TAG, "No segment found in HLS playlist: $manifestUrl")
+                Log.w(TAG, "No segment found in HLS playlist: ${redactUrl(manifestUrl)}")
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to resolve HLS manifest: $manifestUrl", e)
+            Log.e(TAG, "Failed to resolve HLS manifest: ${redactUrl(manifestUrl)}", e)
             null
         }
     }
+
+    /** Log-safe URL: drop the path/query, which for Xtream embeds credentials. */
+    private fun redactUrl(url: String): String =
+        runCatching { java.net.URL(url).let { "${it.protocol}://${it.host}" } }.getOrDefault("<url>")
 
     private fun fetchManifestBody(url: String): String? {
         val request = Request.Builder().url(url).get().build()
@@ -232,11 +236,11 @@ class ChannelThumbnailExtractor @Inject constructor(
                     if (body.contains("#EXTM3U")) {
                         body
                     } else {
-                        Log.w(TAG, "Response is not an HLS playlist: $url")
+                        Log.w(TAG, "Response is not an HLS playlist: ${redactUrl(url)}")
                         null
                     }
                 } else {
-                    Log.w(TAG, "HLS manifest fetch failed: HTTP ${response.code} for $url")
+                    Log.w(TAG, "HLS manifest fetch failed: HTTP ${response.code} for ${redactUrl(url)}")
                     null
                 }
             }
