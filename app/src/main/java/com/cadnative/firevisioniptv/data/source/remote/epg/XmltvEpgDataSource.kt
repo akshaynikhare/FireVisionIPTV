@@ -21,6 +21,7 @@ class XmltvEpgDataSource @Inject constructor(
 ) {
     fun fetch(url: String): List<EpgProgram> {
         if (url.isBlank()) return emptyList()
+        if (!isRemoteHostAllowed(url)) return emptyList()
         return try {
             val request = Request.Builder().url(url).get().build()
             okHttpClient.newCall(request).execute().use { response ->
@@ -30,6 +31,28 @@ class XmltvEpgDataSource @Inject constructor(
             }
         } catch (_: Exception) {
             emptyList()
+        }
+    }
+
+    /**
+     * Guards against an imported playlist's `url-tvg` pointing the TV at services on the
+     * device itself or at cloud-metadata endpoints. Blocks loopback, link-local, wildcard,
+     * and multicast targets and non-http(s) schemes. LAN/site-local hosts stay allowed —
+     * home users commonly run their own EPG server on the local network.
+     */
+    private fun isRemoteHostAllowed(url: String): Boolean {
+        return try {
+            val parsed = java.net.URL(url)
+            if (parsed.protocol.lowercase() !in listOf("http", "https")) return false
+            val host = parsed.host ?: return false
+            java.net.InetAddress.getAllByName(host).all { addr ->
+                !addr.isLoopbackAddress &&
+                    !addr.isLinkLocalAddress &&
+                    !addr.isAnyLocalAddress &&
+                    !addr.isMulticastAddress
+            }
+        } catch (_: Exception) {
+            false
         }
     }
 

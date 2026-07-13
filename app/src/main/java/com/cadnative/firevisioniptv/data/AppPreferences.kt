@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.data
 
 import android.content.Context
+import com.cadnative.firevisioniptv.security.SecurePreferences
 
 /**
  * Centralized access to the app's SharedPreferences (FireVisionSettings).
@@ -125,9 +126,13 @@ object AppPreferences {
         prefs.edit()
             .putString(PLAYLIST_SOURCE_TYPE_KEY, SOURCE_XTREAM)
             .putString(XTREAM_HOST_KEY, host.trim().trimEnd('/'))
-            .putString(XTREAM_USER_KEY, username.trim())
-            .putString(XTREAM_PASS_KEY, password.trim())
+            .remove(XTREAM_USER_KEY) // migrate any legacy plaintext creds out of plain prefs
+            .remove(XTREAM_PASS_KEY)
             .apply()
+        // Credentials are sensitive — store them in EncryptedSharedPreferences, never plain prefs.
+        val secure = SecurePreferences(context)
+        secure.putString(XTREAM_USER_KEY, username.trim())
+        secure.putString(XTREAM_PASS_KEY, password.trim())
     }
 
     fun getXtreamHost(context: Context): String {
@@ -135,15 +140,16 @@ object AppPreferences {
         return prefs.getString(XTREAM_HOST_KEY, "") ?: ""
     }
 
-    fun getXtreamUser(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(XTREAM_USER_KEY, "") ?: ""
-    }
+    fun getXtreamUser(context: Context): String = readSecure(context, XTREAM_USER_KEY)
 
-    fun getXtreamPass(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(XTREAM_PASS_KEY, "") ?: ""
-    }
+    fun getXtreamPass(context: Context): String = readSecure(context, XTREAM_PASS_KEY)
+
+    private fun readSecure(context: Context, key: String): String =
+        try {
+            SecurePreferences(context).getString(key, "") ?: ""
+        } catch (_: Exception) {
+            ""
+        }
 
     /** Switch back to the managed (paired) source. */
     fun useManagedSource(context: Context) {
