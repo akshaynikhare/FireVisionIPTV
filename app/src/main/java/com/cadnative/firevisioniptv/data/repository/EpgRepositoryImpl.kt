@@ -62,8 +62,7 @@ class EpgRepositoryImpl @Inject constructor(
             }
         }
         loadMutex.withLock {
-            refreshFromSources()
-            refreshedThisSession = true
+            if (refreshFromSources()) refreshedThisSession = true
         }
     }
 
@@ -116,8 +115,9 @@ class EpgRepositoryImpl @Inject constructor(
         if (!refreshedThisSession) {
             loadMutex.withLock {
                 if (!refreshedThisSession) {
-                    refreshFromSources()
-                    refreshedThisSession = true
+                    // Latch the session gate only when a refresh actually persisted data, so a
+                    // transient failure doesn't wedge an empty/stale guide until app restart.
+                    if (refreshFromSources()) refreshedThisSession = true
                 }
             }
         }
@@ -135,24 +135,31 @@ class EpgRepositoryImpl @Inject constructor(
      * Best-effort refresh across all sources. Merges results; on total failure keeps the
      * last-good cache and Room rows. Only prunes well-past programs after a successful merge.
      */
-    private suspend fun refreshFromSources() {
+    private suspend fun refreshFromSources(): Boolean {
         val merged = ArrayList<EpgProgram>()
         merged.addAll(fetchServerGuide())
-        val xmltvUrl = AppPreferences.getEpgXmltvUrl(context)
+        val xmltvUrl = AppPreferences.getEffectiveEpgUrl(context)
         if (xmltvUrl.isNotBlank()) {
             merged.addAll(runCatching { xmltvDataSource.fetch(xmltvUrl) }.getOrDefault(emptyList()))
         }
 
-        if (merged.isEmpty()) return // keep last-good
+        if (merged.isEmpty()) return false // keep last-good and allow a retry this session
 
-        try {
-            epgDao.upsertAll(merged.map { it.toEntity() })
-            // Prune only well-past programs; future last-good rows are never removed.
-            epgDao.deleteEndedBefore(Instant.now().minus(Duration.ofHours(6)).toEpochMilli())
-            // Rebuild the read cache from the authoritative store so all sources are reflected.
+        return try {
+            val nowMs = Instant.now().toEpochMilli()
+            // Replace the schedule for the refreshed channels (so programs the provider removed
+            // or rescheduled disappear), prune long-past rows, then rebuild the read cache.
+            // The DAO call is a single Room transaction, so Room can't be left half-updated.
+            epgDao.replaceForChannels(
+                programs = merged.map { it.toEntity() },
+                channelEpgIds = merged.map { it.channelEpgId }.distinct(),
+                fromMs = nowMs,
+                prunedBeforeMs = Instant.now().minus(Duration.ofHours(6)).toEpochMilli()
+            )
             rebuildCache(epgDao.getAll().map { it.toDomain() })
+            true
         } catch (_: Exception) {
-            // Persistence failed — retain last-good cache.
+            false // persistence failed — retain last-good cache, allow retry
         }
     }
 

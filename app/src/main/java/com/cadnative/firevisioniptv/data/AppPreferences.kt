@@ -14,6 +14,7 @@ object AppPreferences {
     private const val DEMO_MODE_KEY = "is_demo_mode"
     private const val PLAYER_HINT_COUNT_KEY = "player_hint_count"
     private const val EPG_XMLTV_URL_KEY = "epg_xmltv_url"
+    private const val PLAYLIST_EPG_URL_KEY = "playlist_epg_url"
     private const val PLAYLIST_SOURCE_TYPE_KEY = "playlist_source_type"
     private const val M3U_URL_KEY = "m3u_url"
     private const val XTREAM_HOST_KEY = "xtream_host"
@@ -98,6 +99,27 @@ object AppPreferences {
     fun setEpgXmltvUrl(context: Context, url: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(EPG_XMLTV_URL_KEY, url.trim()).apply()
+    }
+
+    /**
+     * EPG URL derived from an imported playlist's `url-tvg`. Kept separate from the user's
+     * manual [getEpgXmltvUrl] so a playlist refresh never clobbers a manual setting, and a
+     * new playlist with no guide doesn't inherit the previous source's URL.
+     */
+    fun getPlaylistEpgUrl(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(PLAYLIST_EPG_URL_KEY, "") ?: ""
+    }
+
+    fun setPlaylistEpgUrl(context: Context, url: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(PLAYLIST_EPG_URL_KEY, url.trim()).apply()
+    }
+
+    /** Effective guide URL: the user's manual override wins, else the playlist-derived one. */
+    fun getEffectiveEpgUrl(context: Context): String {
+        val manual = getEpgXmltvUrl(context)
+        return if (manual.isNotBlank()) manual else getPlaylistEpgUrl(context)
     }
 
     // ── Bring-your-own playlist source ──────────────────────────────────────

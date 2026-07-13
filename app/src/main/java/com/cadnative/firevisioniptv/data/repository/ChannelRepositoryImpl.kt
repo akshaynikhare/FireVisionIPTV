@@ -173,6 +173,8 @@ class ChannelRepositoryImpl @Inject constructor(
                     if (alts.isNotEmpty()) newAlternates[dto.id] = alts
                 }
                 alternatesCache = newAlternates
+                // Paired server source has no playlist-derived guide — clear any stale one.
+                AppPreferences.setPlaylistEpgUrl(context, "")
                 localDataSource.replaceAllChannels(result.data.map { channelMapper.toEntity(it) })
                 Result.Success(Unit)
             }
@@ -190,9 +192,9 @@ class ChannelRepositoryImpl @Inject constructor(
             return Result.Error(Exception("No channels found in playlist"))
         }
         alternatesCache = emptyMap()
-        fetched.epgUrl?.takeIf { it.isNotBlank() }?.let {
-            AppPreferences.setEpgXmltvUrl(context, it)
-        }
+        // Always refresh the playlist-derived EPG URL (empty when the new playlist has none),
+        // stored separately so it never overwrites the user's manual EPG setting.
+        AppPreferences.setPlaylistEpgUrl(context, fetched.epgUrl?.takeIf { it.isNotBlank() } ?: "")
         localDataSource.replaceAllChannels(fetched.channels.map { channelMapper.toEntity(it) })
         return Result.Success(Unit)
     }

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.cadnative.firevisioniptv.data.source.local.entity.EpgProgramEntity
 
 /**
@@ -47,4 +48,26 @@ interface EpgDao {
     /** Prune programs that ended before the cutoff. Only run after a successful refresh. */
     @Query("DELETE FROM epg_programs WHERE endTimeMs < :cutoffMs")
     suspend fun deleteEndedBefore(cutoffMs: Long)
+
+    /** Delete current/future programs for the given channels — used to replace a stale schedule. */
+    @Query("DELETE FROM epg_programs WHERE channelEpgId IN (:channelEpgIds) AND endTimeMs > :fromMs")
+    suspend fun deleteUpcomingForChannels(channelEpgIds: List<String>, fromMs: Long)
+
+    /**
+     * Atomically replace the schedule for the refreshed channels: drop their current/future
+     * rows (so programs the provider removed or rescheduled disappear), insert the fresh feed,
+     * then prune long-past rows. Wrapped in a transaction so a partial failure can't leave Room
+     * half-updated while the read cache serves the old schedule.
+     */
+    @Transaction
+    suspend fun replaceForChannels(
+        programs: List<EpgProgramEntity>,
+        channelEpgIds: List<String>,
+        fromMs: Long,
+        prunedBeforeMs: Long
+    ) {
+        if (channelEpgIds.isNotEmpty()) deleteUpcomingForChannels(channelEpgIds, fromMs)
+        upsertAll(programs)
+        deleteEndedBefore(prunedBeforeMs)
+    }
 }

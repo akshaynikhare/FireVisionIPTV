@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +31,7 @@ import com.cadnative.firevisioniptv.presentation.model.GuideUiState
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.delay
 
 /**
  * Guide layout: a detail header for the focused program on top, the channels × time
@@ -43,7 +45,15 @@ internal fun GuideContent(
     modifier: Modifier = Modifier
 ) {
     var focused by remember { mutableStateOf<GuideFocusedProgram?>(null) }
-    val now = remember(state.windowStart) { Instant.now() }
+    // Advance the clock so the now-line and live state track real time while the guide is open,
+    // instead of freezing at the instant the screen loaded.
+    var now by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000L)
+            now = Instant.now()
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         GuideDetailPanel(focused = focused)
