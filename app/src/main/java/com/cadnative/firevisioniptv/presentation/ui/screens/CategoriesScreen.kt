@@ -35,35 +35,15 @@ fun CategoriesScreen(
         viewModel.loadChannels()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Categories",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
+    ScreenScaffold(title = "Categories", modifier = modifier) {
+        val contentState = when {
+            uiState.isLoading && uiState.categories.isEmpty() -> "loading"
+            uiState.error != null && uiState.categories.isEmpty() -> "error"
+            uiState.categories.isEmpty() -> "empty"
+            else -> "content"
         }
-    ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            val contentState = when {
-                uiState.isLoading && uiState.categories.isEmpty() -> "loading"
-                uiState.error != null && uiState.categories.isEmpty() -> "error"
-                uiState.categories.isEmpty() -> "empty"
-                else -> "content"
-            }
 
-            Crossfade(
+        Crossfade(
                 targetState = contentState,
                 animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
                 label = "categoriesState"

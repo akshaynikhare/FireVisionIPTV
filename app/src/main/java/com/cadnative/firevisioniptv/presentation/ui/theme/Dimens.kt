@@ -23,6 +23,17 @@ object Dimens {
     val ScreenPaddingVertical = 28.dp          // TV; branch on isCompact
     val ScreenPaddingVerticalMobile = 14.dp    // phone vertical screen padding
 
+    // ── Screen header band (ScreenHeader / ScreenScaffold) ───────────
+    // One title band on every sidebar screen: top padding = ScreenPaddingVertical,
+    // fixed band height, title vertically centered at ScreenPaddingHorizontal*.
+    val HeaderBandHeightTv = 56.dp          // also aligns Search's query bar / keyboard tops
+    val HeaderBandHeightMobile = 44.dp
+    val HeaderContentGap = 16.dp            // header → first content row (TV)
+    val HeaderContentGapMobile = 10.dp
+    val HeaderAccentBarWidth = 3.dp         // leading amber bar (mirrors SectionHeader / NavItemIndicator)
+    val HeaderAccentBarHeight = 24.dp
+    val HeaderAccentBarGap = 10.dp          // bar → title spacing (matches SectionHeader)
+
     // ── Row / section spacing ────────────────────────────────────────
     // *Mobile variants are ~40-55% smaller; screens branch on isCompact.
     val RowGap = 36.dp                 // vertical gap between home rows (TV)
@@ -63,7 +74,6 @@ object Dimens {
     val KeyboardActionKeyMinWidth = 72.dp   // backspace / clear action keys
     val KeyboardColumnGap = 24.dp           // gap between keyboard and results
     val SearchBarHeightTv = 44.dp           // read-only query bar + voice button (TV)
-    val SearchHeaderHeightTv = 56.dp        // header band: aligns the "Search" title (left) with the query bar (right) so keyboard + results tops line up
 
     // ── Side navigation rail ─────────────────────────────────────────
     val NavRailCollapsedTv = 72.dp
@@ -121,7 +131,7 @@ object Dimens {
     val GuideCellMinWidth = 56.dp           // floor width for very short programs
     val GuideNowLineWidth = 2.dp            // vertical "now" indicator thickness
     val GuideChannelLogoSize = 40.dp        // logo in the channel column
-    val GuideDetailPanelHeight = 100.dp     // focused-program detail header (compact)
+    val GuideDetailPanelHeight = 84.dp      // focused-program detail panel; trimmed to offset the new header band
     val GuideTickLabelInset = 6.dp          // time label offset from tick
     val GuideFocusBorderWidth = 2.dp        // border on the focused program/channel cell
     val GuideRowAccentWidth = 3.dp          // category accent bar on the focused row's channel cell

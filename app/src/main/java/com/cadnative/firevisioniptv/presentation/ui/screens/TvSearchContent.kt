@@ -59,7 +59,7 @@ internal fun TvSearchContent(
         // LEFT — title + keyboard
         Column {
             Box(
-                modifier = Modifier.height(Dimens.SearchHeaderHeightTv),
+                modifier = Modifier.height(Dimens.HeaderBandHeightTv),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -83,7 +83,7 @@ internal fun TvSearchContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(Dimens.SearchHeaderHeightTv),
+                    .height(Dimens.HeaderBandHeightTv),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space3)
             ) {
