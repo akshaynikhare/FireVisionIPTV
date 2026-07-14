@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,41 +68,43 @@ private fun StreamHealthRow(
     scanProgress: ScanProgress,
     onCheckLiveliness: () -> Unit
 ) {
-    if (scanProgress.isScanning) {
-        val progress = if (scanProgress.total > 0) {
-            scanProgress.scanned.toFloat() / scanProgress.total
-        } else 0f
+    // The row and its button stay composed while scanning: removing the focused
+    // node drops TV focus and snaps the section rail back to Connection.
+    SettingRowLayout(
+        text = {
+            if (scanProgress.isScanning) {
+                val progress = if (scanProgress.total > 0) {
+                    scanProgress.scanned.toFloat() / scanProgress.total
+                } else 0f
 
-        Text(
-            text = "Scanning channels...",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = HealthChecking,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-            Text(
-                text = "${scanProgress.scanned}/${scanProgress.total}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    } else {
-        SettingRowLayout(
-            text = {
+                Text(
+                    text = "Scanning channels...",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = HealthChecking,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Text(
+                        text = "${scanProgress.scanned}/${scanProgress.total}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
                 Text(
                     text = "Stream Health",
                     color = MaterialTheme.colorScheme.onSurface,
@@ -118,21 +121,33 @@ private fun StreamHealthRow(
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
-            },
-            action = {
-                FocusAwareButton(
-                    onClick = onCheckLiveliness,
-                    enabled = !scanProgress.isScanning,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text("Check Liveness", fontWeight = FontWeight.SemiBold)
-                }
             }
-        )
-    }
+        },
+        action = {
+            // Guarded click instead of enabled=false — a disabled button is not
+            // focusable, which would drop focus just like removing it.
+            FocusAwareButton(
+                onClick = { if (!scanProgress.isScanning) onCheckLiveliness() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                if (scanProgress.isScanning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = if (scanProgress.isScanning) "Scanning..." else "Check Liveness",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -141,58 +156,51 @@ private fun CacheRow(
     cacheCleared: Boolean,
     onClearCache: () -> Unit
 ) {
-    if (isClearingCache) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary
-            )
+    SettingRowLayout(
+        text = {
             Text(
-                text = "Clearing cache...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Local Cache",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
             )
-        }
-    } else {
-        SettingRowLayout(
-            text = {
+            Spacer(modifier = Modifier.height(2.dp))
+            AnimatedVisibility(
+                visible = cacheCleared,
+                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+            ) {
                 Text(
-                    text = "Local Cache",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "Cache cleared — refreshing channels",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Success
+                )
+            }
+            if (!cacheCleared) {
+                Text(
+                    text = "Clear cached channels and thumbnails",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        action = {
+            // Button persists through clearing and completion — removing the
+            // focused node resets TV focus to the section rail.
+            FocusAwareOutlinedButton(onClick = { if (!isClearingCache) onClearCache() }) {
+                if (isClearingCache) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = if (isClearingCache) "Clearing..." else "Clear Cache",
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                AnimatedVisibility(
-                    visible = cacheCleared,
-                    enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                    exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
-                ) {
-                    Text(
-                        text = "Cache cleared — refreshing channels",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Success
-                    )
-                }
-                if (!cacheCleared) {
-                    Text(
-                        text = "Clear cached channels and thumbnails",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            },
-            action = {
-                if (!cacheCleared) {
-                    FocusAwareOutlinedButton(onClick = onClearCache) {
-                        Text("Clear Cache", fontWeight = FontWeight.SemiBold)
-                    }
-                }
             }
-        )
-    }
+        }
+    )
 }
