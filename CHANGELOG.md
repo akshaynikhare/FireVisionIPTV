@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.2.3] - 2026-07-14
+
+### Added
+- enhance UI styles for ChannelCard and HomeHero components
+- implement update available screen and view model for app updates fix: enhance UI components with focus visuals and elevation adjustments refactor: streamline settings components and player key mappings
+
+### Fixed
+- enhance TV search layout for improved UX and align header with query bar
+- multiview channel picker crashing on large playlists
+- channel long-press toggling favorite while opening context menu
+- in-app update stuck at Downloading on Android 13+
+- stop settings tabs resetting to Connection during busy states
+
+### Other
+- Refactor UI components and enhance settings functionality
+- Refactor update handling: Move update logic to AppUpdater class
+- Refactor pairing UI components and improve source management
+
+---
+
 ## [2.2.2] - 2026-07-14
 
 ### Fixed
