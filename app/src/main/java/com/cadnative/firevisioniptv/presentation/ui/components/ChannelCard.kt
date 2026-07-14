@@ -187,8 +187,10 @@ fun ChannelCard(
                                     System.currentTimeMillis() - selectKeyDownTime >= LONG_PRESS_THRESHOLD_MS &&
                                     !longPressHandled
                                 ) {
+                                    // Mark only — the action fires on release. Opening
+                                    // the context menu mid-hold lets the still-held key
+                                    // leak into the menu and click its first row.
                                     longPressHandled = true
-                                    onLongPressAction()
                                     return@onPreviewKeyEvent true
                                 }
                                 return@onPreviewKeyEvent false
@@ -197,6 +199,7 @@ fun ChannelCard(
                                 val wasLongPress = longPressHandled
                                 selectKeyDownTime = 0L
                                 if (wasLongPress) {
+                                    onLongPressAction()
                                     return@onPreviewKeyEvent true
                                 }
                                 return@onPreviewKeyEvent false
