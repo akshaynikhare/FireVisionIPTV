@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,6 +43,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -133,6 +135,42 @@ private fun StatusBanner(
     }
 }
 
+/**
+ * Banner body layout: a leading [content] Row (status dot + text, weighted)
+ * plus a trailing [action]. Side-by-side on TV; on compact/portrait the action
+ * stacks full-width below so the button is easy to read and tap.
+ */
+@Composable
+private fun BannerLayout(
+    isCompact: Boolean,
+    content: @Composable RowScope.() -> Unit,
+    action: @Composable () -> Unit
+) {
+    if (isCompact) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                content = content
+            )
+            action()
+        }
+    } else {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            content()
+            action()
+        }
+    }
+}
+
 @Composable
 private fun StatusDot(color: Color) {
     Box(
@@ -150,37 +188,40 @@ private fun PairedStatusBanner(
     onResetPairing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     StatusBanner(idleBorderColor = Success.copy(alpha = 0.3f), modifier = modifier) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StatusDot(Success)
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Paired",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "$serverUrl  ·  $tvCode",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        BannerLayout(
+            isCompact = isCompact,
+            content = {
+                StatusDot(Success)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Paired",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "$serverUrl  ·  $tvCode",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            action = {
+                FocusAwareOutlinedButton(
+                    onClick = onResetPairing,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        "Reset",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-            FocusAwareOutlinedButton(
-                onClick = onResetPairing,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
-            ) {
-                Text(
-                    "Reset",
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
+        )
     }
 }
 
@@ -191,37 +232,40 @@ private fun DemoModeBanner(
     onPairDevice: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     StatusBanner(idleBorderColor = Warning.copy(alpha = 0.3f), modifier = modifier) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StatusDot(Warning)
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Demo Mode",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Browsing shared demo channels. Pair your device to access your personal channel list.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$serverUrl  ·  $tvCode",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        BannerLayout(
+            isCompact = isCompact,
+            content = {
+                StatusDot(Warning)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Demo Mode",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Browsing shared demo channels. Pair your device to access your personal channel list.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$serverUrl  ·  $tvCode",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            action = {
+                FocusAwareOutlinedButton(onClick = onPairDevice) {
+                    Text("Pair Now", fontWeight = FontWeight.SemiBold)
+                }
             }
-            FocusAwareOutlinedButton(onClick = onPairDevice) {
-                Text("Pair Now", fontWeight = FontWeight.SemiBold)
-            }
-        }
+        )
     }
 }
 
@@ -230,28 +274,31 @@ private fun SelfHostSetupRow(
     onSetupServer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     StatusBanner(idleBorderColor = subtleBorder, modifier = modifier) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Self-Hosted Server",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Host your own IPTV server and connect this device to it.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        BannerLayout(
+            isCompact = isCompact,
+            content = {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Self-Hosted Server",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Host your own IPTV server and connect this device to it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            action = {
+                FocusAwareOutlinedButton(onClick = onSetupServer) {
+                    Text("Setup", fontWeight = FontWeight.SemiBold)
+                }
             }
-            FocusAwareOutlinedButton(onClick = onSetupServer) {
-                Text("Setup", fontWeight = FontWeight.SemiBold)
-            }
-        }
+        )
     }
 }
 

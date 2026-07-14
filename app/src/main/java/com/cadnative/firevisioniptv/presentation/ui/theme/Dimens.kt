@@ -20,13 +20,19 @@ object Dimens {
     // ── Screen padding ───────────────────────────────────────────────
     val ScreenPaddingHorizontalTv = 40.dp
     val ScreenPaddingHorizontalMobile = 16.dp
-    val ScreenPaddingVertical = 28.dp
+    val ScreenPaddingVertical = 28.dp          // TV; branch on isCompact
+    val ScreenPaddingVerticalMobile = 14.dp    // phone vertical screen padding
 
     // ── Row / section spacing ────────────────────────────────────────
-    val RowGap = 36.dp                 // vertical gap between home rows
-    val RowTitleGap = 16.dp            // row title → cards
-    val CardGap = 18.dp                // between cards in a channel row
-    val HeroCardGap = 24.dp            // between hero/featured cards
+    // *Mobile variants are ~40-55% smaller; screens branch on isCompact.
+    val RowGap = 36.dp                 // vertical gap between home rows (TV)
+    val RowGapMobile = 18.dp           // vertical gap between home rows (mobile)
+    val RowTitleGap = 16.dp            // row title → cards (TV)
+    val RowTitleGapMobile = 10.dp      // row title → cards (mobile)
+    val CardGap = 18.dp                // between cards in a channel row (TV)
+    val CardGapMobile = 10.dp          // between cards in a channel row (mobile)
+    val HeroCardGap = 24.dp            // between hero/featured cards (TV)
+    val HeroCardGapMobile = 14.dp      // between hero/featured cards (mobile)
     val CategoryCardGap = 14.dp        // between category cards
     val GridGap = 16.dp                // channel grid cell spacing
 
@@ -71,6 +77,7 @@ object Dimens {
     // ── Channel card internals ───────────────────────────────────────
     val CardContentPadding = 10.dp          // text block padding inside a card
     val CardBadgePadding = 8.dp             // top badges inset (health / favorite)
+    val CardBadgeBaselineNudge = 3.dp       // lifts the health dot onto the name's baseline
     val CardLogoTopPadding = 6.dp           // logo overlay top inset
     val HealthDotSize = 8.dp                // stream-health status dot
     val LiveDotSize = 6.dp                  // pulsing LIVE indicator dot
@@ -93,4 +100,15 @@ object Dimens {
     val GuideChannelLogoSize = 40.dp        // logo in the channel column
     val GuideDetailPanelHeight = 132.dp     // focused-program detail header
     val GuideTickLabelInset = 6.dp          // time label offset from tick
+
+    // Mobile (compact) variants — screens branch on isCompact. TV values above
+    // are far too large/cramped on a phone; these keep the guide legible and
+    // avoid horizontal cramping without regressing the TV layout.
+    val GuideChannelColumnWidthMobile = 120.dp  // sticky left channel column (mobile)
+    val GuideRowHeightMobile = 60.dp            // one channel row height (mobile)
+    val GuideTimelineHeightMobile = 36.dp       // top time-axis strip height (mobile)
+    val GuideMinuteWidthMobile = 5.dp           // horizontal px per timeline minute (mobile)
+    val GuideCellPaddingMobile = 8.dp           // text inset inside a program cell (mobile)
+    val GuideChannelLogoSizeMobile = 28.dp      // logo in the channel column (mobile)
+    val GuideDetailPanelHeightMobile = 104.dp   // focused-program detail header (mobile)
 }

@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -99,14 +100,18 @@ fun PlayerScreen(
         }
     }
 
-    BackHandler {
+    // Shared back action. On TV the BACK key never reaches BackHandler while a
+    // node is focused (Compose consumes ACTION_DOWN to clear focus, so key
+    // tracking never starts) — the root Box onKeyEvent below handles the key
+    // directly. BackHandler stays for mobile gesture/system back.
+    val onBackAction = {
         when {
             uiState.showChannelOverlay -> viewModel.hideOverlay()
-            uiState.backExitProtection && !isMobile && !overlayState.backPressedOnce ->
-                overlayState.backPressedOnce = true
+            overlayState.controlsFocused -> overlayState.exitQuickActions()
             else -> onNavigateBack()
         }
     }
+    BackHandler { onBackAction() }
 
     val exoPlayer = remember { viewModel.createPlayer() }
 
@@ -196,7 +201,7 @@ fun PlayerScreen(
             exoPlayer.prepare()
 
             // Reveal transient chrome on every zap / channel entry
-            overlayState.revealFavButton()
+            overlayState.revealControls()
             overlayState.revealInfoBar()
         }
     }
@@ -293,16 +298,20 @@ fun PlayerScreen(
         onCommitChannelNumber = { viewModel.switchToChannelNumber(it) }
     )
 
-    // Focus requester so the player Box captures remote key events
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    // Re-grab focus when the channel overlay closes
-    LaunchedEffect(uiState.showChannelOverlay) {
-        if (!uiState.showChannelOverlay) focusRequester.requestFocus()
-    }
-    // Re-grab focus when the tracks panel closes
-    LaunchedEffect(showTracksPanel) {
-        if (!showTracksPanel) focusRequester.requestFocus()
+    // Single focus owner: channel overlay > tracks panel > quick-actions bar > root box.
+    // Modals grab their own first row internally; this effect stands down while they're
+    // open and drops any stale bar-focus claim. Only caller of requestFocus at this level.
+    val rootFocusRequester = remember { FocusRequester() }
+    val quickActionsFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(uiState.showChannelOverlay, showTracksPanel, overlayState.controlsFocusRequest) {
+        when {
+            uiState.showChannelOverlay || showTracksPanel ->
+                overlayState.controlsFocusRequest = 0
+            overlayState.controlsFocusRequest > 0 ->
+                runCatching { quickActionsFocusRequester.requestFocus() }
+                    .onFailure { overlayState.controlsFocusRequest = 0 }
+            else -> runCatching { rootFocusRequester.requestFocus() }
+        }
     }
 
     val haptic = LocalHapticFeedback.current
@@ -310,14 +319,14 @@ fun PlayerScreen(
     val onToggleFavorite = {
         viewModel.toggleFavorite()
         overlayState.flashFavIndicator()
-        overlayState.revealFavButton()
+        overlayState.revealControls()
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim)
-            .focusRequester(focusRequester)
+            .focusRequester(rootFocusRequester)
             .focusable()
             .then(
                 if (isMobile) Modifier.pointerInput(uiState.showChannelOverlay) {
@@ -330,7 +339,7 @@ fun PlayerScreen(
                                         viewModel.hideOverlay()
                                     } else {
                                         if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                        overlayState.revealFavButton()
+                                        overlayState.revealControls()
                                     }
                                 },
                                 onLongPress = {
@@ -363,6 +372,14 @@ fun PlayerScreen(
                 } else Modifier
             )
             .onKeyEvent { keyEvent ->
+                // BACK must be consumed here: if it bubbles unhandled, Compose
+                // clears focus and eats ACTION_DOWN, so BackHandler never runs.
+                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
+                    if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                        if (showTracksPanel) showTracksPanel = false else onBackAction()
+                    }
+                    return@onKeyEvent true
+                }
                 // While the tracks panel is open, let its focusable rows handle keys.
                 if (showTracksPanel) return@onKeyEvent false
                 handlePlayerKeyEvent(
@@ -401,14 +418,15 @@ fun PlayerScreen(
             isMobile = isMobile,
             alwaysShowInfoBar = uiState.alwaysShowProgramBar,
             aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+            quickActionsFocusRequester = quickActionsFocusRequester,
             onToggleFavorite = onToggleFavorite,
             onCycleSleepTimer = { minutes ->
                 viewModel.setSleepTimer(minutes)
-                overlayState.revealFavButton()
+                overlayState.revealControls()
             },
             onCycleAspect = {
                 aspectModeIndex = (aspectModeIndex + 1) % ASPECT_MODES.size
-                overlayState.revealFavButton()
+                overlayState.revealControls()
             },
             onShowTracks = { showTracksPanel = true },
             onShowChannelList = { viewModel.showOverlay() }

@@ -12,9 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.cadnative.firevisioniptv.data.AppPreferences
 import kotlinx.coroutines.delay
 
-private const val FAV_BUTTON_AUTO_HIDE_MS = 5000L
+private const val CONTROLS_AUTO_HIDE_MS = 5000L
 private const val FAV_INDICATOR_DURATION_MS = 2000L
-private const val BACK_EXIT_WINDOW_MS = 2000L
 private const val NUMBER_COMMIT_MS = 2000L
 private const val KEY_HINT_DURATION_MS = 4000L
 private const val INFO_BAR_AUTO_HIDE_MS = 4000L
@@ -26,26 +25,34 @@ private const val PLAY_PAUSE_FLASH_MS = 800L
  */
 @Stable
 internal class PlayerOverlayState {
-    var favButtonReveal by mutableIntStateOf(1)
+    var controlsReveal by mutableIntStateOf(1)
     var favIndicatorToken by mutableIntStateOf(0)
     var infoBarReveal by mutableIntStateOf(0)
     var playPauseFlashToken by mutableIntStateOf(0)
     var playPauseFlashPlaying by mutableStateOf(true)
     var numberBuffer by mutableStateOf("")
-    var backPressedOnce by mutableStateOf(false)
     var showKeyHints by mutableStateOf(false)
+    var controlsFocused by mutableStateOf(false)          // derived from bar onFocusChanged
+    var controlsFocusRequest by mutableIntStateOf(0)      // >0 → bar claims D-pad focus
 
     // Non-observable input bookkeeping (key handler only)
     var lastChannelSwitchTime = 0L
-    var centerKeyDownTime = 0L
     var longPressConsumed = false
 
-    val showFavButton get() = favButtonReveal > 0
+    val showControls get() = controlsReveal > 0
     val showFavIndicator get() = favIndicatorToken > 0
     val showInfoBar get() = infoBarReveal > 0
     val showPlayPauseFlash get() = playPauseFlashToken > 0
 
-    fun revealFavButton() { favButtonReveal = bump(favButtonReveal) }
+    fun revealControls() { controlsReveal = bump(controlsReveal) }
+    fun focusQuickActions() {
+        revealControls()
+        controlsFocusRequest = bump(controlsFocusRequest)
+    }
+    fun exitQuickActions() {
+        controlsFocusRequest = 0
+        revealControls()  // linger briefly, then auto-hide
+    }
     fun revealInfoBar() { infoBarReveal = bump(infoBarReveal) }
     fun flashFavIndicator() { favIndicatorToken = bump(favIndicatorToken) }
     fun flashPlayPause(isPlaying: Boolean) {
@@ -68,10 +75,11 @@ internal fun PlayerOverlayTimers(
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(state.favButtonReveal) {
-        if (state.favButtonReveal > 0) {
-            delay(FAV_BUTTON_AUTO_HIDE_MS)
-            state.favButtonReveal = 0
+    // Suspended while the quick-actions bar has focus; focus loss restarts a full timeout
+    LaunchedEffect(state.controlsReveal, state.controlsFocused) {
+        if (state.controlsReveal > 0 && !state.controlsFocused) {
+            delay(CONTROLS_AUTO_HIDE_MS)
+            state.controlsReveal = 0
         }
     }
     LaunchedEffect(state.favIndicatorToken) {
@@ -90,13 +98,6 @@ internal fun PlayerOverlayTimers(
         if (state.playPauseFlashToken > 0) {
             delay(PLAY_PAUSE_FLASH_MS)
             state.playPauseFlashToken = 0
-        }
-    }
-    // Accidental-exit protection: window for the second back press
-    LaunchedEffect(state.backPressedOnce) {
-        if (state.backPressedOnce) {
-            delay(BACK_EXIT_WINDOW_MS)
-            state.backPressedOnce = false
         }
     }
     // Direct channel number entry commits after a short pause

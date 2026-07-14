@@ -82,14 +82,12 @@ class PlayerViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                userPreferencesRepository.getBackExitProtection(),
                 userPreferencesRepository.getPlayerKeyUpDownAction(),
                 userPreferencesRepository.getPlayerKeyLeftRightAction(),
                 userPreferencesRepository.getPlayerLongOkAction()
-            ) { backProtection, upDown, leftRight, longOk ->
+            ) { upDown, leftRight, longOk ->
                 _uiState.update {
                     it.copy(
-                        backExitProtection = backProtection,
                         keyUpDownAction = upDown,
                         keyLeftRightAction = leftRight,
                         longOkAction = longOk

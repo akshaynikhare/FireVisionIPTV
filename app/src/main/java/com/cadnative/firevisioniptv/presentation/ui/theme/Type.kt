@@ -167,6 +167,130 @@ val FireVisionTypography = Typography(
     )
 )
 
+/**
+ * Mobile typography scale — ~15-20% smaller than the TV [FireVisionTypography]
+ * for phone (compact/portrait) surfaces. FireVisionTheme selects this when the
+ * device is compact/portrait; large screens keep the TV scale unchanged.
+ * Font families, weights and letter-spacing are kept identical to the TV scale;
+ * only fontSize / lineHeight are reduced.
+ */
+val FireVisionTypographyMobile = Typography(
+    // Display — hero text, big numbers
+    displayLarge = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 46.sp,
+        lineHeight = 50.sp,
+        letterSpacing = (-1).sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 37.sp,
+        lineHeight = 41.sp,
+        letterSpacing = (-0.5).sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 35.sp,
+        letterSpacing = (-0.25).sp
+    ),
+
+    // Headline — section headers
+    headlineLarge = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.25).sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 23.sp,
+        lineHeight = 28.sp,
+        letterSpacing = (-0.15).sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 25.sp,
+        letterSpacing = 0.sp
+    ),
+
+    // Title — card titles, dialog titles
+    titleLarge = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.1.sp
+    ),
+    titleSmall = TextStyle(
+        fontFamily = DisplayFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
+    ),
+
+    // Body — content text
+    bodyLarge = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.15.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 19.sp,
+        letterSpacing = 0.15.sp
+    ),
+    bodySmall = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        letterSpacing = 0.2.sp
+    ),
+
+    // Label — buttons, tabs, chips
+    labelLarge = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        letterSpacing = 0.25.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = BodyFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 15.sp,
+        letterSpacing = 0.25.sp
+    )
+)
+
 // ── Extended styles — outside the M3 scale ───────────────────────────
 // Below-16sp sizes are for dense overlay UI only (badges, toasts), not
 // primary content. Large numerics are for player/pairing overlays.

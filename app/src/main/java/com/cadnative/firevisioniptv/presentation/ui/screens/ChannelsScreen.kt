@@ -267,7 +267,9 @@ private fun CategoryChip(
             .tvFocusVisuals(
                 focused = isFocused,
                 shape = MaterialTheme.shapes.small,
-                focusedScale = FOCUS_SCALE_TILE
+                focusedScale = FOCUS_SCALE_TILE,
+                // Chips are flat controls — no resting drop shadow (only the focus glow on TV)
+                restingElevation = 0.dp
             )
     )
 }
@@ -283,6 +285,7 @@ private fun ChannelsGrid(
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
+    val gridGap = if (isCompact) Dimens.CardGapMobile else Dimens.GridGap
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Adaptive(minSize = if (isCompact) 100.dp else 140.dp),
@@ -291,10 +294,10 @@ private fun ChannelsGrid(
             .focusRestorer(),
         contentPadding = PaddingValues(
             horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile else Dimens.ScreenPaddingHorizontalTv,
-            vertical = Dimens.GridGap
+            vertical = if (isCompact) Dimens.ScreenPaddingVerticalMobile else Dimens.GridGap
         ),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.GridGap),
-        verticalArrangement = Arrangement.spacedBy(Dimens.GridGap)
+        horizontalArrangement = Arrangement.spacedBy(gridGap),
+        verticalArrangement = Arrangement.spacedBy(gridGap)
     ) {
         itemsIndexed(channels, key = { _, channel -> channel.id }) { index, channel ->
             ChannelCard(

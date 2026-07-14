@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +57,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
+import com.cadnative.firevisioniptv.presentation.ui.screens.home.COMPACT_WIDTH_DP
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
@@ -64,6 +66,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
 import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
@@ -102,6 +105,8 @@ fun HomeHero(
     val swapSpec = if (reduceMotion) snap<Float>() else tween(DURATION_NORMAL, easing = EaseOutQuart)
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val safeMargin = remember(screenWidthDp) { (screenWidthDp * SAFE_MARGIN_FRACTION).dp }
+    // Phones stack the info block vertically; TV runs now/next beside the button.
+    val isCompact = screenWidthDp < COMPACT_WIDTH_DP
 
     Box(
         modifier = modifier
@@ -138,51 +143,75 @@ fun HomeHero(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .fillMaxWidth(0.55f)
+                // Wide enough for the Watch-now row's now/next block; the
+                // left scrim still guarantees contrast under all of it.
+                .fillMaxWidth(0.7f)
                 .padding(horizontal = safeMargin)
                 .padding(bottom = safeMargin)
         ) {
-            Crossfade(targetState = channel, animationSpec = swapSpec, label = "heroInfo") { hero ->
-                HeroInfo(hero = hero)
+            if (isCompact) {
+                Crossfade(targetState = channel, animationSpec = swapSpec, label = "heroInfo") { hero ->
+                    Column {
+                        HeroInfo(hero = hero, stackedBadge = true)
+                        Spacer(modifier = Modifier.height(Dimens.Space3))
+                        HeroNowBlock(hero = hero)
+                    }
+                }
+                Spacer(modifier = Modifier.height(Dimens.Space4))
+                WatchNowButton(
+                    onClick = { onWatchNow(channel.id) },
+                    focusRequester = watchNowFocusRequester,
+                    reduceMotion = reduceMotion
+                )
+            } else {
+                Crossfade(targetState = channel, animationSpec = swapSpec, label = "heroInfo") { hero ->
+                    HeroInfo(hero = hero)
+                }
+                Spacer(modifier = Modifier.height(Dimens.Space5))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WatchNowButton(
+                        onClick = { onWatchNow(channel.id) },
+                        focusRequester = watchNowFocusRequester,
+                        reduceMotion = reduceMotion
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.Space5))
+                    Crossfade(
+                        targetState = channel,
+                        animationSpec = swapSpec,
+                        label = "heroNow",
+                        modifier = Modifier.weight(1f)
+                    ) { hero ->
+                        HeroNowBlock(hero = hero)
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(Dimens.Space5))
-            WatchNowButton(
-                onClick = { onWatchNow(channel.id) },
-                focusRequester = watchNowFocusRequester,
-                reduceMotion = reduceMotion
-            )
         }
     }
 }
 
-/**
- * Cinematic hero text block: channel name, a LIVE badge, the now/next EPG
- * program titles, and a live program-progress bar (elapsed within the
- * currently-airing program). All EPG-derived fields degrade gracefully when
- * the guide is unavailable.
- */
+/** Category pill matching the player info bar's badge treatment. */
 @Composable
-private fun HeroInfo(hero: ChannelUiModel) {
+private fun HeroCategoryBadge(category: String) {
+    val catColor = categoryColor(category)
+    Surface(
+        shape = ShapeSmall,
+        color = catColor.copy(alpha = 0.2f),
+        border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text = category,
+            style = LabelBadge,
+            color = catColor,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
+    }
+}
+
+/** Now-playing block beside the Watch now button: title, live progress, next-up. */
+@Composable
+private fun HeroNowBlock(hero: ChannelUiModel) {
     Column {
-        Text(
-            text = hero.name,
-            style = MaterialTheme.typography.displaySmall,
-            color = OnVideo,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(Dimens.Space2))
-
-        Text(
-            text = hero.category.ifBlank { "Live TV" },
-            style = MaterialTheme.typography.titleMedium,
-            color = OnVideo.copy(alpha = 0.72f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
         hero.nowProgramTitle?.let { nowTitle ->
-            Spacer(modifier = Modifier.height(Dimens.Space3))
             Text(
                 text = "Now: $nowTitle",
                 style = MaterialTheme.typography.titleMedium,
@@ -207,6 +236,41 @@ private fun HeroInfo(hero: ChannelUiModel) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+/** Hero title block: channel name with the category pill beside (TV) or below (phone). */
+@Composable
+private fun HeroInfo(hero: ChannelUiModel, stackedBadge: Boolean = false) {
+    if (stackedBadge) {
+        Column {
+            Text(
+                text = hero.name,
+                style = MaterialTheme.typography.displaySmall,
+                color = OnVideo,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (hero.category.isNotBlank()) {
+                Spacer(modifier = Modifier.height(Dimens.Space2))
+                HeroCategoryBadge(category = hero.category)
+            }
+        }
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = hero.name,
+                style = MaterialTheme.typography.displaySmall,
+                color = OnVideo,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            if (hero.category.isNotBlank()) {
+                Spacer(modifier = Modifier.width(Dimens.Space3))
+                HeroCategoryBadge(category = hero.category)
+            }
         }
     }
 }

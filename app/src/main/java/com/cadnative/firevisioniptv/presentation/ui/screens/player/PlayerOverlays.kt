@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -51,6 +52,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.components.OverlayToast
 import com.cadnative.firevisioniptv.presentation.ui.components.PlayerInfoBar
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.BodyOverlay
@@ -73,6 +75,7 @@ internal fun BoxScope.PlayerOverlays(
     isMobile: Boolean,
     alwaysShowInfoBar: Boolean,
     aspectLabel: String,
+    quickActionsFocusRequester: FocusRequester,
     onToggleFavorite: () -> Unit,
     onCycleSleepTimer: (Int?) -> Unit,
     onCycleAspect: () -> Unit,
@@ -83,7 +86,7 @@ internal fun BoxScope.PlayerOverlays(
     val controlsVisible = uiState.channel != null &&
             !uiState.showChannelOverlay &&
             playbackHealthy &&
-            state.showFavButton
+            state.showControls
     val canShowInfoBar = uiState.channel != null &&
             !uiState.showChannelOverlay &&
             playbackHealthy
@@ -185,7 +188,7 @@ internal fun BoxScope.PlayerOverlays(
             .align(Alignment.TopStart)
             .padding(32.dp)
     ) {
-        PlayerToast("Sleep in ${sleepRemaining ?: 0}s")
+        OverlayToast("Sleep in ${sleepRemaining ?: 0}s")
     }
 
     // Sleep timer expired — "Still watching?" prompt with a cancel window
@@ -195,7 +198,7 @@ internal fun BoxScope.PlayerOverlays(
         exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
         modifier = Modifier.align(Alignment.Center)
     ) {
-        PlayerToast("Still watching? Press any button to continue")
+        OverlayToast("Still watching? Press any button to continue")
     }
 
     // Channel number entry — top-right while typing
@@ -215,33 +218,22 @@ internal fun BoxScope.PlayerOverlays(
 
     // Key hints — bottom-center on the first few launches
     AnimatedVisibility(
-        visible = state.showKeyHints && !state.backPressedOnce && !uiState.showChannelOverlay,
+        visible = state.showKeyHints && !uiState.showChannelOverlay,
         enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
         exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(bottom = toastBottomPadding)
     ) {
-        PlayerToast("OK: channels   ▲▼ ◀▶: zap   Hold OK: favorite   0-9: channel #")
-    }
-
-    // Accidental-exit protection toast
-    AnimatedVisibility(
-        visible = state.backPressedOnce,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = toastBottomPadding)
-    ) {
-        PlayerToast("Press back again to exit")
+        OverlayToast("OK: channels   ▲▼ ◀▶: zap   MENU: options   Hold OK: favorite   0-9: channel #")
     }
 
     // Live quick-actions bar (TV) — bottom-left, auto-hides with the other
     // transient controls. Lifts above the info bar so it never overlaps the
     // channel logo. On mobile the dedicated MobilePlayerControls own the chrome.
     AnimatedVisibility(
-        visible = controlsVisible && !isMobile,
+        visible = (controlsVisible || (state.controlsFocused && uiState.channel != null &&
+                !uiState.showChannelOverlay && playbackHealthy)) && !isMobile,
         enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
         exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
         modifier = Modifier
@@ -252,6 +244,8 @@ internal fun BoxScope.PlayerOverlays(
             isFavorite = uiState.channel?.isFavorite == true,
             sleepTimerMinutes = uiState.sleepTimerMinutes,
             aspectLabel = aspectLabel,
+            firstActionFocusRequester = quickActionsFocusRequester,
+            onFocusStateChanged = { state.controlsFocused = it },
             onToggleFavorite = onToggleFavorite,
             onCycleSleepTimer = onCycleSleepTimer,
             onCycleAspect = onCycleAspect,
@@ -280,19 +274,6 @@ internal fun BoxScope.PlayerOverlays(
             onShowChannelList = onShowChannelList
         )
     }
-}
-
-@Composable
-internal fun PlayerToast(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = LabelToast,
-        color = OnVideo,
-        modifier = modifier
-            .clip(ShapeLarge)
-            .background(ScrimHeavy)
-            .padding(horizontal = 18.dp, vertical = 10.dp)
-    )
 }
 
 @Composable

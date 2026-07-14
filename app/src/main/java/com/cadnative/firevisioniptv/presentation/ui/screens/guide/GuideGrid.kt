@@ -35,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
 import com.cadnative.firevisioniptv.presentation.model.GuideProgramUiModel
@@ -62,10 +64,18 @@ internal fun GuideGrid(
     onChannelSelected: (channelId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
+    val channelColumnWidth =
+        if (isCompact) Dimens.GuideChannelColumnWidthMobile else Dimens.GuideChannelColumnWidth
+    val rowHeight = if (isCompact) Dimens.GuideRowHeightMobile else Dimens.GuideRowHeight
+    val timelineHeight =
+        if (isCompact) Dimens.GuideTimelineHeightMobile else Dimens.GuideTimelineHeight
+    val minuteWidth = if (isCompact) Dimens.GuideMinuteWidthMobile else Dimens.GuideMinuteWidth
+
     val horizontalScroll = rememberScrollState()
     val listState = rememberLazyListState()
-    val laneWidth = axisWidth(windowStart, windowEnd)
-    val nowOffset = timeToDp(now, windowStart)
+    val laneWidth = axisWidth(windowStart, windowEnd, minuteWidth)
+    val nowOffset = timeToDp(now, windowStart, minuteWidth)
     // Land focus on the first channel so the D-pad has an entry point even when
     // no EPG programs exist (all-gap rows have no other focusable target).
     val firstChannelFocus = remember { FocusRequester() }
@@ -78,12 +88,17 @@ internal fun GuideGrid(
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
-                    .width(Dimens.GuideChannelColumnWidth)
-                    .height(Dimens.GuideTimelineHeight)
+                    .width(channelColumnWidth)
+                    .height(timelineHeight)
                     .background(MaterialTheme.colorScheme.surface)
             )
             Box(modifier = Modifier.horizontalScroll(horizontalScroll)) {
-                GuideTimeAxis(windowStart = windowStart, windowEnd = windowEnd)
+                GuideTimeAxis(
+                    windowStart = windowStart,
+                    windowEnd = windowEnd,
+                    minuteWidth = minuteWidth,
+                    timelineHeight = timelineHeight
+                )
             }
         }
 
@@ -100,6 +115,10 @@ internal fun GuideGrid(
                         windowStart = windowStart,
                         windowEnd = windowEnd,
                         laneWidth = laneWidth,
+                        rowHeight = rowHeight,
+                        channelColumnWidth = channelColumnWidth,
+                        minuteWidth = minuteWidth,
+                        isCompact = isCompact,
                         horizontalScroll = horizontalScroll,
                         channelFocusRequester = if (index == 0) firstChannelFocus else null,
                         onProgramFocused = onProgramFocused,
@@ -115,7 +134,7 @@ internal fun GuideGrid(
             if (!now.isBefore(windowStart) && now.isBefore(windowEnd)) {
                 Box(
                     modifier = Modifier
-                        .padding(start = Dimens.GuideChannelColumnWidth)
+                        .padding(start = channelColumnWidth)
                         .fillMaxSize()
                         .horizontalScroll(horizontalScroll, enabled = false)
                 ) {
@@ -137,7 +156,11 @@ private fun GuideRow(
     rowIndex: Int,
     windowStart: Instant,
     windowEnd: Instant,
-    laneWidth: androidx.compose.ui.unit.Dp,
+    laneWidth: Dp,
+    rowHeight: Dp,
+    channelColumnWidth: Dp,
+    minuteWidth: Dp,
+    isCompact: Boolean,
     horizontalScroll: androidx.compose.foundation.ScrollState,
     channelFocusRequester: FocusRequester?,
     onProgramFocused: (GuideFocusedProgram) -> Unit,
@@ -148,16 +171,17 @@ private fun GuideRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(Dimens.GuideRowHeight)
+            .height(rowHeight)
     ) {
         GuideChannelCell(
             name = row.channelName,
             number = row.channelNumber,
             logoUrl = row.logoUrl,
             category = row.category,
+            isCompact = isCompact,
             onSelected = onChannelSelected,
             focusRequester = channelFocusRequester,
-            modifier = Modifier.width(Dimens.GuideChannelColumnWidth)
+            modifier = Modifier.width(channelColumnWidth)
         )
         Row(
             modifier = Modifier
@@ -168,18 +192,21 @@ private fun GuideRow(
             horizontalArrangement = Arrangement.Start
         ) {
             if (row.programs.isEmpty()) {
-                GuideGapCell(width = laneWidth)
+                GuideGapCell(width = laneWidth, isCompact = isCompact)
             } else {
                 // Leading spacer aligns the first cell to its real start on the axis.
-                val leadDp = timeToDp(row.programs.first().startTime, windowStart)
+                val leadDp = timeToDp(row.programs.first().startTime, windowStart, minuteWidth)
                 if (leadDp > 0.dp) {
                     Box(modifier = Modifier.width(leadDp).fillMaxHeight())
                 }
                 row.programs.forEach { program ->
                     GuideProgramCell(
                         program = program,
-                        width = programWidthDp(program.startTime, program.endTime, windowStart, windowEnd),
+                        width = programWidthDp(
+                            program.startTime, program.endTime, windowStart, windowEnd, minuteWidth
+                        ),
                         category = row.category,
+                        isCompact = isCompact,
                         onFocused = {
                             onProgramFocused(
                                 GuideFocusedProgram(
@@ -207,6 +234,7 @@ private fun GuideChannelCell(
     number: Int,
     logoUrl: String?,
     category: String,
+    isCompact: Boolean,
     onSelected: () -> Unit,
     focusRequester: FocusRequester?,
     modifier: Modifier = Modifier
@@ -234,7 +262,8 @@ private fun GuideChannelCell(
             name = name,
             number = number,
             logoUrl = logoUrl,
-            category = category
+            category = category,
+            isCompact = isCompact
         )
     }
 }

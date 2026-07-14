@@ -64,6 +64,9 @@ internal fun FeaturedRow(
     horizontalPadding: Dp,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < COMPACT_WIDTH_DP
+    val titleGap = if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap
+    val cardGap = if (isCompact) Dimens.HeroCardGapMobile else Dimens.HeroCardGap
     val (cardWidth, cardHeight) = rememberHeroCardSize()
     val rowState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
@@ -83,13 +86,13 @@ internal fun FeaturedRow(
             title = "Featured",
             accentColor = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
+        Spacer(modifier = Modifier.height(titleGap))
         LazyRow(
             state = rowState,
             modifier = Modifier.focusRestorer(),
             // Vertical room so a focused card's scale-up + glow isn't clipped by the row.
-            contentPadding = PaddingValues(vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.HeroCardGap)
+            contentPadding = PaddingValues(vertical = if (isCompact) Dimens.Space1 else 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(cardGap)
         ) {
             items(channels, key = { it.id }) { channel ->
                 ChannelCard(
@@ -122,17 +125,18 @@ internal fun PopularCategoriesSlider(
     val isCompact = LocalConfiguration.current.screenWidthDp < COMPACT_WIDTH_DP
     val cardWidth = if (isCompact) Dimens.CategoryCardWidthMobile else Dimens.CategoryCardWidthTv
     val cardHeight = if (isCompact) Dimens.CategoryCardHeightMobile else Dimens.CategoryCardHeightTv
+    val titleGap = if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap
 
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         SectionHeader(
             title = "Popular Categories",
             accentColor = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
+        Spacer(modifier = Modifier.height(titleGap))
         LazyRow(
             state = rememberLazyListState(),
             modifier = Modifier.focusRestorer(),
-            contentPadding = PaddingValues(vertical = 12.dp),
+            contentPadding = PaddingValues(vertical = if (isCompact) Dimens.Space1 else 12.dp),
             horizontalArrangement = Arrangement.spacedBy(Dimens.CategoryCardGap)
         ) {
             items(categories, key = { it.name }) { category ->
@@ -168,6 +172,8 @@ internal fun ChannelRow(
     val isCompact = LocalConfiguration.current.screenWidthDp < COMPACT_WIDTH_DP
     val cardWidth = if (isCompact) Dimens.ChannelCardWidthMobile else Dimens.ChannelCardWidthTv
     val cardHeight = if (isCompact) Dimens.ChannelCardHeightMobile else Dimens.ChannelCardHeightTv
+    val titleGap = if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap
+    val cardGap = if (isCompact) Dimens.CardGapMobile else Dimens.CardGap
 
     val rowState = rememberLazyListState()
     val focusRequester = remember { FocusRequester() }
@@ -188,12 +194,12 @@ internal fun ChannelRow(
             accentColor = categoryColor(title),
             onSeeAllClick = onSeeAllClick
         )
-        Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
+        Spacer(modifier = Modifier.height(titleGap))
         LazyRow(
             state = rowState,
             modifier = Modifier.focusRestorer(),
-            contentPadding = PaddingValues(vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.CardGap)
+            contentPadding = PaddingValues(vertical = if (isCompact) Dimens.Space1 else 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(cardGap)
         ) {
             items(channels, key = { it.id }) { channel ->
                 ChannelCard(

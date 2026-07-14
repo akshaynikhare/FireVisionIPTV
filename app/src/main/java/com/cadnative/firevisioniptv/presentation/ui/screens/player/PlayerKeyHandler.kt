@@ -30,7 +30,7 @@ internal fun performKeyAction(
         PlayerKeyAction.FAVORITE -> {
             viewModel.toggleFavorite()
             state.flashFavIndicator()
-            state.revealFavButton()
+            state.revealControls()
         }
         PlayerKeyAction.PLAY_PAUSE -> togglePlayPause(exoPlayer, state)
     }
@@ -68,20 +68,33 @@ internal fun handlePlayerKeyEvent(
     }
     if (action == KeyEvent.ACTION_DOWN) viewModel.onUserInteraction()
 
+    // ── Quick-actions bar focused: native focus owns ◀▶/OK; root only handles exits ──
+    if (state.controlsFocused) {
+        if (action != KeyEvent.ACTION_DOWN) return false
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MENU -> {
+                state.exitQuickActions()
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> true   // swallow — would fall through to zap
+            else -> false                        // ◀▶ → focus traversal; OK → clickable (BACK handled at root)
+        }
+    }
+
     // ── Long-press detection for DPAD_CENTER / ENTER (remappable action) ──
     if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
         if (uiState.showChannelOverlay) return false
         when (action) {
             KeyEvent.ACTION_DOWN -> {
-                if (state.centerKeyDownTime == 0L) {
-                    state.centerKeyDownTime = System.currentTimeMillis()
+                val native = keyEvent.nativeKeyEvent
+                if (native.repeatCount == 0) {
                     state.longPressConsumed = false
-                } else if (!state.longPressConsumed) {
-                    val held = System.currentTimeMillis() - state.centerKeyDownTime
-                    if (held >= LONG_PRESS_THRESHOLD_MS) {
-                        state.longPressConsumed = true
-                        performKeyAction(uiState.longOkAction, true, exoPlayer, viewModel, state)
-                    }
+                } else if (!state.longPressConsumed &&
+                    (native.isLongPress ||
+                        native.eventTime - native.downTime >= LONG_PRESS_THRESHOLD_MS)
+                ) {
+                    state.longPressConsumed = true
+                    performKeyAction(uiState.longOkAction, true, exoPlayer, viewModel, state)
                 }
                 return true
             }
@@ -90,7 +103,6 @@ internal fun handlePlayerKeyEvent(
                     // Short press → open channel switcher
                     viewModel.showOverlay()
                 }
-                state.centerKeyDownTime = 0L
                 state.longPressConsumed = false
                 return true
             }
@@ -99,9 +111,9 @@ internal fun handlePlayerKeyEvent(
 
     if (action != KeyEvent.ACTION_DOWN) return false
 
-    // Menu button: toggle channel overlay (works regardless of overlay state)
+    // Menu: reveal + focus the quick-actions bar (channel overlay stays on OK / Channels button)
     if (keyCode == KeyEvent.KEYCODE_MENU) {
-        if (uiState.showChannelOverlay) viewModel.hideOverlay() else viewModel.showOverlay()
+        if (uiState.showChannelOverlay) viewModel.hideOverlay() else state.focusQuickActions()
         return true
     }
 

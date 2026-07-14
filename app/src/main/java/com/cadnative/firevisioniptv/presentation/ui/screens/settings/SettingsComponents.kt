@@ -7,8 +7,10 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,9 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -143,6 +147,37 @@ internal fun FocusAwareOutlinedButton(
             .onFocusChanged { isFocused = it.isFocused },
         content = content
     )
+}
+
+/**
+ * A settings row that pairs a descriptive [text] block with a trailing [action]
+ * (button / options). On TV/landscape they sit side-by-side; on compact/portrait
+ * phones the action stacks full-width below the text for readable, tappable rows.
+ */
+@Composable
+internal fun SettingRowLayout(
+    text: @Composable ColumnScope.() -> Unit,
+    action: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
+    if (isCompact) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Dimens.Space2)
+        ) {
+            Column(content = text)
+            action()
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), content = text)
+            action()
+        }
+    }
 }
 
 /** Pill-style selectable option used by Appearance and Controls sections. */

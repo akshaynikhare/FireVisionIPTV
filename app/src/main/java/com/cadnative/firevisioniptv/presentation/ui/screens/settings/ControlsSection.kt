@@ -2,17 +2,18 @@ package com.cadnative.firevisioniptv.presentation.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingOption
+import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
 
 private val keyActionOptions = listOf(
@@ -46,10 +47,11 @@ internal fun ControlsSection(
     onAlwaysShowProgramBarChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     SettingsCard(title = "Player Controls", modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 14.dp else 10.dp)) {
             PlayerKeyRow(
-                label = "Confirm exit (press back twice)",
+                label = "Confirm app exit (press back twice on Home)",
                 options = listOf("On" to "on", "Off" to "off"),
                 current = if (backExitProtection) "on" else "off",
                 onSelect = { onBackExitProtectionChange(it == "on") }
@@ -60,24 +62,27 @@ internal fun ControlsSection(
                 current = if (alwaysShowProgramBar) "on" else "off",
                 onSelect = { onAlwaysShowProgramBarChange(it == "on") }
             )
-            PlayerKeyRow(
-                label = "D-pad up/down",
-                options = keyActionOptions,
-                current = keyUpDownAction,
-                onSelect = onKeyUpDownChange
-            )
-            PlayerKeyRow(
-                label = "D-pad left/right",
-                options = keyActionOptions,
-                current = keyLeftRightAction,
-                onSelect = onKeyLeftRightChange
-            )
-            PlayerKeyRow(
-                label = "Hold OK",
-                options = keyActionOptions,
-                current = longOkAction,
-                onSelect = onLongOkChange
-            )
+            // D-pad / remote key mappings only make sense on TV (no D-pad on a touch phone)
+            if (!isCompact) {
+                PlayerKeyRow(
+                    label = "D-pad up/down",
+                    options = keyActionOptions,
+                    current = keyUpDownAction,
+                    onSelect = onKeyUpDownChange
+                )
+                PlayerKeyRow(
+                    label = "D-pad left/right",
+                    options = keyActionOptions,
+                    current = keyLeftRightAction,
+                    onSelect = onKeyLeftRightChange
+                )
+                PlayerKeyRow(
+                    label = "Hold OK",
+                    options = keyActionOptions,
+                    current = longOkAction,
+                    onSelect = onLongOkChange
+                )
+            }
             PlayerKeyRow(
                 label = "Sleep timer",
                 options = sleepTimerOptions,
@@ -88,6 +93,7 @@ internal fun ControlsSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerKeyRow(
     label: String,
@@ -95,21 +101,25 @@ private fun PlayerKeyRow(
     current: String,
     onSelect: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f)
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEach { (optLabel, optValue) ->
-                SettingOption(label = optLabel, value = optValue, current = current, onSelect = onSelect)
+    SettingRowLayout(
+        text = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        action = {
+            // FlowRow so option pills wrap to a new line instead of overflowing on narrow phones
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                options.forEach { (optLabel, optValue) ->
+                    SettingOption(label = optLabel, value = optValue, current = current, onSelect = onSelect)
+                }
             }
         }
-    }
+    )
 }

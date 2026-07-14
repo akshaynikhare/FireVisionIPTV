@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
@@ -49,9 +51,25 @@ fun HomeContent(
     onMultiviewClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val isCompact = configuration.screenWidthDp < COMPACT_WIDTH_DP
     val horizontalPadding =
         if (isPortrait) Dimens.ScreenPaddingHorizontalMobile else Dimens.ScreenPaddingHorizontalTv
+    val rowGap = if (isCompact) Dimens.RowGapMobile else Dimens.RowGap
+    val screenPaddingVertical =
+        if (isCompact) Dimens.ScreenPaddingVerticalMobile else Dimens.ScreenPaddingVertical
+
+    // On phones the default hero (0.35 of screen height) is TV-huge. Force a
+    // banner-proportioned height off screen *width* so it takes a sensible
+    // slice of a portrait screen; capped so it never dominates a short screen.
+    // TV/landscape passes no override — HomeHero keeps its own height.
+    val compactHeroHeight = remember(configuration.screenWidthDp, configuration.screenHeightDp) {
+        val byWidth = configuration.screenWidthDp * 0.60f
+        val cap = configuration.screenHeightDp * 0.30f
+        // cap can undercut the 180dp floor on short/landscape screens — cap wins
+        byWidth.coerceAtLeast(180f).coerceAtMost(cap).dp
+    }
 
     val channelsByCategory = remember(channels) {
         channels.groupBy { it.category.ifBlank { "Other" } }
@@ -116,7 +134,7 @@ fun HomeContent(
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = Dimens.ScreenPaddingVertical)
+        contentPadding = PaddingValues(vertical = screenPaddingVertical)
     ) {
         item(key = "hero") {
             heroChannel?.let { hero ->
@@ -125,7 +143,10 @@ fun HomeContent(
                     onWatchNow = onChannelClick,
                     watchNowFocusRequester = watchNowFocusRequester,
                     modifier = Modifier
-                        .padding(bottom = Dimens.RowGap)
+                        .padding(bottom = rowGap)
+                        // requiredHeight overrides HomeHero's internal .height() so
+                        // the phone hero shrinks; TV/landscape is left untouched.
+                        .then(if (isCompact) Modifier.requiredHeight(compactHeroHeight) else Modifier)
                         .animateItemEntrance(index = 0)
                 )
             }
@@ -141,7 +162,7 @@ fun HomeContent(
                 focusChannelId = featuredFocusId,
                 horizontalPadding = horizontalPadding,
                 modifier = Modifier
-                    .padding(bottom = Dimens.RowGap)
+                    .padding(bottom = rowGap)
                     .animateItemEntrance(index = 1)
             )
         }
@@ -159,7 +180,7 @@ fun HomeContent(
                     focusChannelId = recentFocusId,
                     horizontalPadding = horizontalPadding,
                     modifier = Modifier
-                        .padding(bottom = Dimens.RowGap)
+                        .padding(bottom = rowGap)
                         .animateItemEntrance(index = 2)
                 )
             }
@@ -176,7 +197,7 @@ fun HomeContent(
                     focusChannelId = null,
                     horizontalPadding = horizontalPadding,
                     modifier = Modifier
-                        .padding(bottom = Dimens.RowGap)
+                        .padding(bottom = rowGap)
                         .animateItemEntrance(index = if (recentlyWatched.isNotEmpty()) 3 else 2)
                 )
             }
@@ -189,7 +210,7 @@ fun HomeContent(
                     onCategoryClick = onNavigateToChannels,
                     horizontalPadding = horizontalPadding,
                     modifier = Modifier
-                        .padding(bottom = Dimens.RowGap)
+                        .padding(bottom = rowGap)
                         .animateItemEntrance(index = categoryRowOffset - 1)
                 )
             }
@@ -209,7 +230,7 @@ fun HomeContent(
                 focusChannelId = categoryFocusId,
                 horizontalPadding = horizontalPadding,
                 modifier = Modifier
-                    .padding(bottom = Dimens.RowGap)
+                    .padding(bottom = rowGap)
                     .animateItemEntrance(index = categoryRowOffset + index)
             )
         }
@@ -229,12 +250,15 @@ fun HomeSkeleton(modifier: Modifier = Modifier) {
     val (heroCardWidth, heroCardHeight) = rememberHeroCardSize()
     val cardWidth = if (isCompact) Dimens.ChannelCardWidthMobile else Dimens.ChannelCardWidthTv
     val cardHeight = if (isCompact) Dimens.ChannelCardHeightMobile else Dimens.ChannelCardHeightTv
+    val rowGap = if (isCompact) Dimens.RowGapMobile else Dimens.RowGap
+    val screenPaddingVertical =
+        if (isCompact) Dimens.ScreenPaddingVerticalMobile else Dimens.ScreenPaddingVertical
     val shimmerBrush = if (showShimmer) rememberShimmerBrush() else null
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(vertical = Dimens.ScreenPaddingVertical)
+            .padding(vertical = screenPaddingVertical)
     ) {
         Box(
             modifier = Modifier
@@ -252,7 +276,7 @@ fun HomeSkeleton(modifier: Modifier = Modifier) {
                 cardHeight = heroCardHeight,
                 count = 4,
                 showShimmer = showShimmer,
-                modifier = Modifier.padding(top = Dimens.RowGap, bottom = Dimens.RowGap)
+                modifier = Modifier.padding(top = rowGap, bottom = rowGap)
             )
             ChannelRowSkeleton(
                 cardWidth = cardWidth,

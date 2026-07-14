@@ -40,7 +40,6 @@ data class PlayerUiState(
     // Last watched channel (for quick recall)
     val lastChannel: ChannelUiModel? = null,
     // Navigation preferences
-    val backExitProtection: Boolean = true,
     val keyUpDownAction: String = PlayerKeyAction.ZAP,
     val keyLeftRightAction: String = PlayerKeyAction.ZAP,
     val longOkAction: String = PlayerKeyAction.FAVORITE,

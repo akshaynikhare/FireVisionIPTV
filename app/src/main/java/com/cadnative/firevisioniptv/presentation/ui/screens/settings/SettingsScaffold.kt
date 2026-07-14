@@ -46,6 +46,7 @@ import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 
@@ -258,8 +259,11 @@ private fun StackedSettings(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(
+                horizontal = Dimens.ScreenPaddingHorizontalMobile,
+                vertical = Dimens.ScreenPaddingVerticalMobile
+            ),
+        verticalArrangement = Arrangement.spacedBy(Dimens.Space3)
     ) {
         SettingsSection.entries.forEachIndexed { index, section ->
             SectionContent(
@@ -270,7 +274,7 @@ private fun StackedSettings(
                 modifier = Modifier.animateItemEntrance(index = index)
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(Dimens.Space3))
     }
 }
 

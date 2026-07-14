@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
@@ -29,6 +30,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareOutlinedButton
+import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
@@ -43,12 +45,14 @@ internal fun ChannelsSection(
     onClearCache: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
+    val dividerGap = if (isCompact) 14.dp else 10.dp
     SettingsCard(title = "Channels", modifier = modifier) {
         StreamHealthRow(scanProgress = scanProgress, onCheckLiveliness = onCheckLiveliness)
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(dividerGap))
         HorizontalDivider(color = subtleBorder)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(dividerGap))
 
         CacheRow(
             isClearingCache = isClearingCache,
@@ -96,11 +100,8 @@ private fun StreamHealthRow(
             )
         }
     } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        SettingRowLayout(
+            text = {
                 Text(
                     text = "Stream Health",
                     color = MaterialTheme.colorScheme.onSurface,
@@ -117,18 +118,20 @@ private fun StreamHealthRow(
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
+            },
+            action = {
+                FocusAwareButton(
+                    onClick = onCheckLiveliness,
+                    enabled = !scanProgress.isScanning,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Check Liveness", fontWeight = FontWeight.SemiBold)
+                }
             }
-            FocusAwareButton(
-                onClick = onCheckLiveliness,
-                enabled = !scanProgress.isScanning,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text("Check Liveness", fontWeight = FontWeight.SemiBold)
-            }
-        }
+        )
     }
 }
 
@@ -155,11 +158,8 @@ private fun CacheRow(
             )
         }
     } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        SettingRowLayout(
+            text = {
                 Text(
                     text = "Local Cache",
                     color = MaterialTheme.colorScheme.onSurface,
@@ -185,12 +185,14 @@ private fun CacheRow(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-            }
-            if (!cacheCleared) {
-                FocusAwareOutlinedButton(onClick = onClearCache) {
-                    Text("Clear Cache", fontWeight = FontWeight.SemiBold)
+            },
+            action = {
+                if (!cacheCleared) {
+                    FocusAwareOutlinedButton(onClick = onClearCache) {
+                        Text("Clear Cache", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
-        }
+        )
     }
 }

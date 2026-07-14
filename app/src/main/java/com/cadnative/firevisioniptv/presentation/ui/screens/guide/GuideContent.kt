@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
@@ -81,21 +82,24 @@ private fun GuideDetailPanel(
     focused: GuideFocusedProgram?,
     modifier: Modifier = Modifier
 ) {
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(Dimens.GuideDetailPanelHeight)
+            .height(if (isCompact) Dimens.GuideDetailPanelHeightMobile else Dimens.GuideDetailPanelHeight)
             .background(MaterialTheme.colorScheme.surface)
             .padding(
-                horizontal = Dimens.ScreenPaddingHorizontalTv,
-                vertical = Dimens.Space4
+                horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile
+                else Dimens.ScreenPaddingHorizontalTv,
+                vertical = if (isCompact) Dimens.Space3 else Dimens.Space4
             ),
         contentAlignment = Alignment.CenterStart
     ) {
         if (focused == null) {
             Text(
                 text = "Program Guide",
-                style = MaterialTheme.typography.headlineMedium,
+                style = if (isCompact) MaterialTheme.typography.titleLarge
+                else MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             return@Box
@@ -117,7 +121,8 @@ private fun GuideDetailPanel(
                 }
                 Text(
                     text = program.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = if (isCompact) MaterialTheme.typography.titleMedium
+                    else MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -125,13 +130,15 @@ private fun GuideDetailPanel(
             }
             Text(
                 text = buildTimeRange(program.startTime, program.endTime) + " · " + focused.channelName,
-                style = MaterialTheme.typography.labelLarge,
+                style = if (isCompact) MaterialTheme.typography.labelMedium
+                else MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
             program.description?.takeIf { it.isNotBlank() }?.let { desc ->
                 Text(
                     text = desc,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (isCompact) MaterialTheme.typography.bodySmall
+                    else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

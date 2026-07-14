@@ -24,7 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,8 +47,8 @@ private val SLEEP_TIMER_STEPS = listOf<Int?>(null, 30, 60, 90, 120)
 
 /**
  * Live-player quick-actions bar: favorite toggle, sleep-timer cycler, and
- * open-channel-list. A single always-focusable surface that sits with the
- * transient player controls, using the shared TV focus/motion/depth system.
+ * open-channel-list. Summoned + focused via MENU on TV (see PlayerKeyHandler);
+ * ◀▶ move between buttons, OK activates, ▲/BACK/MENU exit back to the player.
  *
  * Live-appropriate only — no scrub/seek/speed. The sleep timer cycles through
  * preset durations (Off → 30 → 60 → 90 → 120 → Off); every action is a single
@@ -56,6 +59,8 @@ internal fun PlayerQuickActions(
     isFavorite: Boolean,
     sleepTimerMinutes: Int?,
     aspectLabel: String,
+    firstActionFocusRequester: FocusRequester,
+    onFocusStateChanged: (Boolean) -> Unit,
     onToggleFavorite: () -> Unit,
     onCycleSleepTimer: (Int?) -> Unit,
     onCycleAspect: () -> Unit,
@@ -65,6 +70,8 @@ internal fun PlayerQuickActions(
 ) {
     Row(
         modifier = modifier
+            .onFocusChanged { onFocusStateChanged(it.hasFocus) }
+            .focusGroup()
             .softShadow(Elevation.Level3, ShapeLarge)
             .clip(ShapeLarge)
             .background(ScrimHeavy)
@@ -76,7 +83,8 @@ internal fun PlayerQuickActions(
             icon = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
             label = if (isFavorite) "Favorited" else "Favorite",
             tint = if (isFavorite) MaterialTheme.colorScheme.error else OnVideo,
-            onClick = onToggleFavorite
+            onClick = onToggleFavorite,
+            focusRequester = firstActionFocusRequester
         )
 
         val sleepLabel = sleepTimerMinutes?.let { "Sleep ${it}m" } ?: "Sleep off"
@@ -120,7 +128,8 @@ private fun QuickActionButton(
     label: String,
     tint: Color,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
@@ -128,6 +137,7 @@ private fun QuickActionButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimens.Space1),
         modifier = modifier
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { isFocused = it.isFocused }
             .tvFocusVisuals(
                 focused = isFocused,

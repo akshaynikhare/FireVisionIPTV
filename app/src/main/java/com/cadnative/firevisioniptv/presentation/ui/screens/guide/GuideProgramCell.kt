@@ -42,6 +42,7 @@ internal fun GuideProgramCell(
     program: GuideProgramUiModel,
     width: Dp,
     category: String,
+    isCompact: Boolean,
     onFocused: () -> Unit,
     onSelected: () -> Unit,
     modifier: Modifier = Modifier
@@ -50,6 +51,7 @@ internal fun GuideProgramCell(
     val shape = RoundedCornerShape(8.dp)
     val glow = categoryColor(category)
     val accent = if (program.isLive) glow else Color.Unspecified
+    val cellPadding = if (isCompact) Dimens.GuideCellPaddingMobile else Dimens.GuideCellPadding
 
     Box(
         modifier = modifier
@@ -75,20 +77,22 @@ internal fun GuideProgramCell(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onSelected() }
-            .padding(horizontal = Dimens.GuideCellPadding, vertical = Dimens.Space2),
+            .padding(horizontal = cellPadding, vertical = Dimens.Space2),
         contentAlignment = Alignment.CenterStart
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space1)) {
             Text(
                 text = program.title,
-                style = MaterialTheme.typography.titleSmall,
+                style = if (isCompact) MaterialTheme.typography.bodySmall
+                else MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = formatSlotLabel(program.startTime),
-                style = MaterialTheme.typography.labelMedium,
+                style = if (isCompact) MaterialTheme.typography.labelSmall
+                else MaterialTheme.typography.labelMedium,
                 color = if (accent != Color.Unspecified) accent
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -102,6 +106,7 @@ internal fun GuideProgramCell(
 @Composable
 internal fun GuideGapCell(
     width: Dp,
+    isCompact: Boolean,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(8.dp)
@@ -112,12 +117,15 @@ internal fun GuideGapCell(
             .padding(end = Dimens.GuideCellGap)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
-            .padding(horizontal = Dimens.GuideCellPadding),
+            .padding(
+                horizontal = if (isCompact) Dimens.GuideCellPaddingMobile else Dimens.GuideCellPadding
+            ),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
             text = "No information",
-            style = MaterialTheme.typography.labelMedium,
+            style = if (isCompact) MaterialTheme.typography.labelSmall
+            else MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

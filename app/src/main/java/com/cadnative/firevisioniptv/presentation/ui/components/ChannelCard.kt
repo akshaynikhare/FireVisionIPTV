@@ -23,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,6 +62,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
+import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
@@ -68,6 +71,13 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
 private const val LONG_PRESS_THRESHOLD_MS = 600L
+
+// Subtle drop shadow so card text stays legible where the scrim is thinnest.
+private val CardTextShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.8f),
+    offset = Offset(0f, 1f),
+    blurRadius = 4f
+)
 
 /** Initials for the logo-less card placeholder: first letters of up to two words. */
 private fun channelMonogram(name: String): String {
@@ -339,46 +349,55 @@ private fun ChannelCardContent(
         }
 
         // ── Layer 2: Single refined bottom scrim for text legibility ──
-        // One continuous ramp (transparent → near-opaque) reading from ~55%
-        // up, deepening on focus so raised cards keep their text crisp.
+        // Always a dark bottom-up ramp (transparent → near-opaque black), like
+        // the video overlay scrims — the text sits over arbitrary thumbnail
+        // artwork, so a theme surface tint can't guarantee contrast. Deepens on
+        // focus so raised cards keep their text crisp.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .fillMaxHeight(0.55f)
+                .fillMaxHeight(0.75f)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            surfaceColor.copy(alpha = 0f),
-                            surfaceColor.copy(alpha = 0.45f),
-                            surfaceColor.copy(alpha = if (focused) 0.97f else 0.9f)
+                            Color.Black.copy(alpha = 0f),
+                            Color.Black.copy(alpha = 0.65f),
+                            Color.Black.copy(alpha = if (focused) 0.95f else 0.92f)
                         )
                     )
                 )
         )
 
         // ── Layer 3: Text, badges ───────────────────────────────────
-        // Top-right stack: favorite heart above the stream-health dot so the
-        // two never overlap regardless of which are present.
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(Dimens.CardBadgePadding),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(Dimens.Space1)
-        ) {
-            FavoriteBadge(isFavorite = channel.isFavorite)
-            if (channel.healthStatus != ChannelHealthStatus.UNKNOWN) {
-                HealthIndicatorDot(status = channel.healthStatus)
+        // Bottom-right stack: favorite heart above the stream-health dot,
+        // sitting on the card's dark bottom scrim so no extra backing needed.
+        // Shares the text block's padding so the dot lines up with the
+        // channel name's bottom edge.
+        val showHealth = channel.healthStatus != ChannelHealthStatus.UNKNOWN
+        if (channel.isFavorite || showHealth) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(Dimens.CardContentPadding)
+                    .padding(bottom = Dimens.CardBadgeBaselineNudge),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimens.Space1)
+            ) {
+                FavoriteBadge(isFavorite = channel.isFavorite)
+                if (showHealth) {
+                    HealthIndicatorDot(status = channel.healthStatus)
+                }
             }
         }
 
-        // Channel name + category — bottom
+        // Channel name + category — bottom; end inset keeps clear of the badges
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(Dimens.CardContentPadding),
+                .padding(Dimens.CardContentPadding)
+                .padding(end = Dimens.Space6),
             verticalArrangement = Arrangement.Bottom
         ) {
             Text(
@@ -389,17 +408,19 @@ private fun ChannelCardContent(
             if (channel.nowProgramTitle != null) {
                 Text(
                     text = channel.nowProgramTitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall.copy(shadow = CardTextShadow),
+                    // Text sits on the always-dark bottom scrim — use the
+                    // on-video token so it stays legible in both themes.
+                    color = OnVideo.copy(alpha = 0.9f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
             Text(
                 text = channel.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.copy(shadow = CardTextShadow),
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = OnVideo,
                 // Long channel names wrap to a second line instead of a hard
                 // ellipsis; focus raises the ceiling so nothing gets clipped.
                 maxLines = if (focused) 2 else 1,

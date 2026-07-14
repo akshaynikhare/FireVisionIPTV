@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -151,22 +152,24 @@ fun MultiviewScreen(
             }
         }
 
-        // Grid: portrait stacks full-width rows (16:9 streams stay watchable);
-        // landscape uses 1 row for 2–3 panes, 2×2 for 4.
-        val isPortrait =
-            LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
-        val rows: List<List<Int>> = when {
-            isPortrait -> (0 until count).map { listOf(it) }
-            count <= 3 -> listOf((0 until count).toList())
-            else -> listOf(listOf(0, 1), listOf(2, 3))
-        }
+        // Mobile portrait / compact width: stack every pane full-width at a natural
+        // 16:9 aspect and scroll if they overflow — a wide 16:9 stream fills the pane
+        // instead of letterboxing inside a tall, narrow side-by-side cell.
+        // TV / landscape: keep the weighted grid (1 row for 2–3 panes, 2×2 for 4).
+        val configuration = LocalConfiguration.current
+        val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        val isCompact = configuration.screenWidthDp < 600
+        val stackVertically = isPortrait || isCompact
 
-        rows.forEach { rowIndices ->
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+        if (stackVertically) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                rowIndices.forEach { index ->
+                (0 until count).forEach { index ->
                     val channel = channelsById[assignments[index]]
                     if (channel != null) {
                         MultiviewPane(
@@ -176,8 +179,34 @@ fun MultiviewScreen(
                             onFocused = { focusedIndex = index },
                             onOpenPicker = { pickerForPane = index },
                             viewModel = viewModel,
-                            modifier = Modifier.weight(1f).fillMaxSize()
+                            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
                         )
+                    }
+                }
+            }
+        } else {
+            val rows: List<List<Int>> = when {
+                count <= 3 -> listOf((0 until count).toList())
+                else -> listOf(listOf(0, 1), listOf(2, 3))
+            }
+            rows.forEach { rowIndices ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    rowIndices.forEach { index ->
+                        val channel = channelsById[assignments[index]]
+                        if (channel != null) {
+                            MultiviewPane(
+                                channel = channel,
+                                isFocused = focusedIndex == index,
+                                requestInitialFocus = index == 0,
+                                onFocused = { focusedIndex = index },
+                                onOpenPicker = { pickerForPane = index },
+                                viewModel = viewModel,
+                                modifier = Modifier.weight(1f).fillMaxSize()
+                            )
+                        }
                     }
                 }
             }

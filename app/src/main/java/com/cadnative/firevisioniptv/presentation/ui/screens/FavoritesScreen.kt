@@ -114,6 +114,7 @@ private fun FavoritesContent(
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
+    val gridGap = if (isCompact) Dimens.CardGapMobile else Dimens.GridGap
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Adaptive(minSize = if (isCompact) 100.dp else 140.dp),
@@ -122,18 +123,18 @@ private fun FavoritesContent(
             .focusRestorer(),
         contentPadding = PaddingValues(
             horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile else Dimens.ScreenPaddingHorizontalTv,
-            vertical = Dimens.GridGap
+            vertical = if (isCompact) Dimens.ScreenPaddingVerticalMobile else Dimens.GridGap
         ),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.GridGap),
-        verticalArrangement = Arrangement.spacedBy(Dimens.GridGap)
+        horizontalArrangement = Arrangement.spacedBy(gridGap),
+        verticalArrangement = Arrangement.spacedBy(gridGap)
     ) {
         if (favoriteCategories.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column {
                     SectionTitle("Categories")
-                    Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
+                    Spacer(modifier = Modifier.height(if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap))
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.CategoryCardGap)
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.CardGapMobile else Dimens.CategoryCardGap)
                     ) {
                         items(favoriteCategories, key = { it.name }) { category ->
                             CategoryCard(
@@ -151,7 +152,7 @@ private fun FavoritesContent(
                         }
                     }
                     if (favorites.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(Dimens.HeroCardGap))
+                        Spacer(modifier = Modifier.height(if (isCompact) Dimens.HeroCardGapMobile else Dimens.HeroCardGap))
                         SectionTitle("Channels")
                     }
                 }

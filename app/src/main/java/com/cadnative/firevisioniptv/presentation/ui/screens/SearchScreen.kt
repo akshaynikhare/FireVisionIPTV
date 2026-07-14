@@ -24,6 +24,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextOverflow
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -119,9 +120,11 @@ fun SearchScreen(
                 },
                 placeholder = {
                     Text(
-                        text = "Search channels, categories...",
+                        text = if (isMobile) "Search channels…" else "Search channels, categories...",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 leadingIcon = {

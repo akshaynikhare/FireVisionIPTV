@@ -49,23 +49,29 @@ internal fun GuideChannelHeader(
     number: Int,
     logoUrl: String?,
     category: String,
+    isCompact: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val logoSize = if (isCompact) Dimens.GuideChannelLogoSizeMobile else Dimens.GuideChannelLogoSize
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2),
+            .padding(
+                horizontal = if (isCompact) Dimens.Space2 else Dimens.Space4,
+                vertical = Dimens.Space2
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.Space3)
+        horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.Space2 else Dimens.Space3)
     ) {
         Text(
             text = number.toString(),
-            style = MaterialTheme.typography.labelMedium,
+            style = if (isCompact) MaterialTheme.typography.labelSmall
+            else MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Box(
             modifier = Modifier
-                .size(Dimens.GuideChannelLogoSize)
+                .size(logoSize)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -75,21 +81,22 @@ internal fun GuideChannelHeader(
                     model = logoUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(Dimens.GuideChannelLogoSize).clip(CircleShape)
+                    modifier = Modifier.size(logoSize).clip(CircleShape)
                 )
             } else {
                 Icon(
                     imageVector = categoryIcon(category),
                     contentDescription = null,
                     tint = categoryColor(category),
-                    modifier = Modifier.size(Dimens.IconMedium)
+                    modifier = Modifier.size(if (isCompact) Dimens.IconSmall else Dimens.IconMedium)
                 )
             }
         }
         Column {
             Text(
                 text = name,
-                style = MaterialTheme.typography.titleSmall,
+                style = if (isCompact) MaterialTheme.typography.bodySmall
+                else MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

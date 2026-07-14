@@ -29,15 +29,18 @@ private val hourFormatter: DateTimeFormatter =
 internal fun formatSlotLabel(instant: Instant): String =
     hourFormatter.format(instant.atZone(ZoneId.systemDefault()))
 
-/** Horizontal dp offset of [instant] from [windowStart], at [Dimens.GuideMinuteWidth] per minute. */
-internal fun timeToDp(instant: Instant, windowStart: Instant): Dp {
+/**
+ * Horizontal dp offset of [instant] from [windowStart], at [minuteWidth] per minute.
+ * [minuteWidth] is passed by callers so the axis and grid share one compact-aware scale.
+ */
+internal fun timeToDp(instant: Instant, windowStart: Instant, minuteWidth: Dp): Dp {
     val minutes = Duration.between(windowStart, instant).toMinutes()
-    return Dimens.GuideMinuteWidth * minutes.toInt()
+    return minuteWidth * minutes.toInt()
 }
 
 /** Total pixel width of the whole [windowStart, windowEnd] axis. */
-internal fun axisWidth(windowStart: Instant, windowEnd: Instant): Dp =
-    timeToDp(windowEnd, windowStart)
+internal fun axisWidth(windowStart: Instant, windowEnd: Instant, minuteWidth: Dp): Dp =
+    timeToDp(windowEnd, windowStart, minuteWidth)
 
 /**
  * The scrolling time-axis strip: a tick label every [GUIDE_TICK_MINUTES] positioned
@@ -47,20 +50,22 @@ internal fun axisWidth(windowStart: Instant, windowEnd: Instant): Dp =
 internal fun GuideTimeAxis(
     windowStart: Instant,
     windowEnd: Instant,
+    minuteWidth: Dp,
+    timelineHeight: Dp,
     modifier: Modifier = Modifier
 ) {
-    val totalWidth = axisWidth(windowStart, windowEnd)
+    val totalWidth = axisWidth(windowStart, windowEnd, minuteWidth)
     val tickStep = Duration.ofMinutes(GUIDE_TICK_MINUTES)
 
     Box(
         modifier = modifier
             .requiredWidth(totalWidth)
-            .height(Dimens.GuideTimelineHeight)
+            .height(timelineHeight)
             .background(MaterialTheme.colorScheme.surface)
     ) {
         var tick = windowStart
         while (!tick.isAfter(windowEnd)) {
-            val x = timeToDp(tick, windowStart)
+            val x = timeToDp(tick, windowStart, minuteWidth)
             Text(
                 text = formatSlotLabel(tick),
                 style = MaterialTheme.typography.labelMedium,
@@ -79,11 +84,12 @@ internal fun programWidthDp(
     start: Instant,
     end: Instant,
     windowStart: Instant,
-    windowEnd: Instant
+    windowEnd: Instant,
+    minuteWidth: Dp
 ): Dp {
     val clampedStart = if (start.isBefore(windowStart)) windowStart else start
     val clampedEnd = if (end.isAfter(windowEnd)) windowEnd else end
     val minutes = Duration.between(clampedStart, clampedEnd).toMinutes().coerceAtLeast(0)
-    val raw = Dimens.GuideMinuteWidth * minutes.toInt()
+    val raw = minuteWidth * minutes.toInt()
     return if (raw < Dimens.GuideCellMinWidth) Dimens.GuideCellMinWidth else raw
 }

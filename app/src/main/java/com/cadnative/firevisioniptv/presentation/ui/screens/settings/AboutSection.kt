@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareOutlinedButton
+import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
@@ -37,13 +37,10 @@ internal fun AboutSection(
 ) {
     SettingsCard(title = "About", modifier = modifier) {
         if (isChecking) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                VersionLabel(appVersion = appVersion, upToDate = false, modifier = Modifier.weight(1f))
-                ProgressLabel(text = "Checking...")
-            }
+            SettingRowLayout(
+                text = { VersionLabel(appVersion = appVersion, upToDate = false) },
+                action = { ProgressLabel(text = "Checking...") }
+            )
         } else if (updateInfo != null) {
             UpdateAvailableRow(
                 appVersion = appVersion,
@@ -61,15 +58,14 @@ internal fun AboutSection(
                 )
             }
         } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                VersionLabel(appVersion = appVersion, upToDate = updateChecked, modifier = Modifier.weight(1f))
-                FocusAwareOutlinedButton(onClick = onCheckForUpdate) {
-                    Text("Check for Updates", fontWeight = FontWeight.Medium)
+            SettingRowLayout(
+                text = { VersionLabel(appVersion = appVersion, upToDate = updateChecked) },
+                action = {
+                    FocusAwareOutlinedButton(onClick = onCheckForUpdate) {
+                        Text("Check for Updates", fontWeight = FontWeight.Medium)
+                    }
                 }
-            }
+            )
         }
     }
 }
@@ -122,11 +118,8 @@ private fun UpdateAvailableRow(
     isDownloading: Boolean,
     onUpdateNow: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+    SettingRowLayout(
+        text = {
             Text(
                 text = "Update available: v${updateInfo.versionName}",
                 style = MaterialTheme.typography.labelMedium,
@@ -143,19 +136,21 @@ private fun UpdateAvailableRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        if (isDownloading) {
-            ProgressLabel(text = "Downloading...")
-        } else if (updateInfo.downloadUrl.isNotEmpty()) {
-            FocusAwareButton(
-                onClick = onUpdateNow,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text("Update Now", fontWeight = FontWeight.SemiBold)
+        },
+        action = {
+            if (isDownloading) {
+                ProgressLabel(text = "Downloading...")
+            } else if (updateInfo.downloadUrl.isNotEmpty()) {
+                FocusAwareButton(
+                    onClick = onUpdateNow,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Update Now", fontWeight = FontWeight.SemiBold)
+                }
             }
         }
-    }
+    )
 }
