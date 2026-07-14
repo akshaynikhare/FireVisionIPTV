@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.ui.animation.FOCUS_SCALE_TILE
 import com.cadnative.firevisioniptv.presentation.ui.components.tvFocusVisuals
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -154,10 +155,15 @@ private fun QuickActionButton(
         modifier = modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { isFocused = it.isFocused }
+            // No elevation shadow: these buttons sit on the bar's translucent
+            // scrim with transparent fills, so the shadow body shows through as
+            // a dark box. Scale + amber tint carry the focus cue.
             .tvFocusVisuals(
                 focused = isFocused,
                 shape = ShapeSmall,
-                focusedScale = FOCUS_SCALE_TILE
+                focusedScale = FOCUS_SCALE_TILE,
+                restingElevation = 0.dp,
+                focusedElevation = 0.dp
             )
             .clip(ShapeSmall)
             .background(if (isFocused) Amber.copy(alpha = 0.18f) else Color.Transparent)

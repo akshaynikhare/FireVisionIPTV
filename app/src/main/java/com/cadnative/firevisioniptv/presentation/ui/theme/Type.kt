@@ -304,6 +304,17 @@ val LabelBadge = TextStyle(
     letterSpacing = 0.25.sp
 )
 
+// Now-playing program name on cards (14sp) — sized between LabelBadge (12sp)
+// and the card's titleSmall channel name (18sp) so the three lines step up
+// progressively and the channel name stays the most prominent.
+val LabelCardProgram = TextStyle(
+    fontFamily = BodyFontFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 14.sp,
+    lineHeight = 17.sp,
+    letterSpacing = 0.25.sp
+)
+
 // Player toast pills (14sp)
 val LabelToast = TextStyle(
     fontFamily = BodyFontFamily,
@@ -336,7 +347,7 @@ val DisplayNumberChip = TextStyle(
 val DisplayPairingCode = TextStyle(
     fontFamily = FontFamily.Monospace,
     fontWeight = FontWeight.Bold,
-    fontSize = 52.sp,
-    lineHeight = 58.sp,
-    letterSpacing = 6.sp
+    fontSize = 36.sp,
+    lineHeight = 40.sp,
+    letterSpacing = 4.sp
 )

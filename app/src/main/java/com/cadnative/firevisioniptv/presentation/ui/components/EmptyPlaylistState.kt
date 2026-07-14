@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -32,6 +31,8 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeBadge
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
 
 @Composable
@@ -88,7 +89,7 @@ fun EmptyPlaylistState(
                         containerColor = SteelBlue,
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = ShapeLarge,
                     modifier = Modifier.height(48.dp)
                 ) {
                     Icon(
@@ -153,7 +154,7 @@ fun EmptyPlaylistState(
             OutlinedButton(
                 onClick = onRetry,
                 border = border,
-                shape = RoundedCornerShape(8.dp),
+                shape = ShapeBadge,
                 modifier = Modifier
                     .graphicsLayer { scaleX = scale; scaleY = scale }
                     .onFocusChanged { isFocused = it.isFocused }

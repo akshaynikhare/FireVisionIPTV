@@ -23,6 +23,17 @@ object Dimens {
     val ScreenPaddingVertical = 28.dp          // TV; branch on isCompact
     val ScreenPaddingVerticalMobile = 14.dp    // phone vertical screen padding
 
+    // ── Screen header band (ScreenHeader / ScreenScaffold) ───────────
+    // One title band on every sidebar screen: top padding = ScreenPaddingVertical,
+    // fixed band height, title vertically centered at ScreenPaddingHorizontal*.
+    val HeaderBandHeightTv = 56.dp          // also aligns Search's query bar / keyboard tops
+    val HeaderBandHeightMobile = 44.dp
+    val HeaderContentGap = 16.dp            // header → first content row (TV)
+    val HeaderContentGapMobile = 10.dp
+    val HeaderAccentBarWidth = 3.dp         // leading amber bar (mirrors SectionHeader / NavItemIndicator)
+    val HeaderAccentBarHeight = 24.dp
+    val HeaderAccentBarGap = 10.dp          // bar → title spacing (matches SectionHeader)
+
     // ── Row / section spacing ────────────────────────────────────────
     // *Mobile variants are ~40-55% smaller; screens branch on isCompact.
     val RowGap = 36.dp                 // vertical gap between home rows (TV)
@@ -48,6 +59,11 @@ object Dimens {
     val CategoryCardHeightTv = 100.dp
     val CategoryCardWidthMobile = 140.dp
     val CategoryCardHeightMobile = 80.dp
+    // Decorative corner icon scales with card height (home row cards are
+    // 80-100dp tall, the Categories grid 130dp) instead of a fixed size.
+    const val CategoryIconHeightFraction = 0.28f
+    val CategoryIconMin = 22.dp
+    val CategoryIconMax = 36.dp
 
     // ── Icons ────────────────────────────────────────────────────────
     val IconSmall = 16.dp              // badges, inline indicators
@@ -106,6 +122,7 @@ object Dimens {
 
     // ── Empty / error / loading states ───────────────────────────────
     val StateMedallionSize = 72.dp          // tinted icon medallion for empty/error states
+    val StateTopPadding = 80.dp             // top inset for centered prompt/no-results columns
     val SkeletonTitleWidth = 140.dp         // placeholder section-title bar width
     val SkeletonTitleHeight = 20.dp         // placeholder section-title bar height
 
@@ -119,7 +136,6 @@ object Dimens {
     val GuideCellMinWidth = 56.dp           // floor width for very short programs
     val GuideNowLineWidth = 2.dp            // vertical "now" indicator thickness
     val GuideChannelLogoSize = 40.dp        // logo in the channel column
-    val GuideDetailPanelHeight = 100.dp     // focused-program detail header (compact)
     val GuideTickLabelInset = 6.dp          // time label offset from tick
     val GuideFocusBorderWidth = 2.dp        // border on the focused program/channel cell
     val GuideRowAccentWidth = 3.dp          // category accent bar on the focused row's channel cell
@@ -134,5 +150,7 @@ object Dimens {
     val GuideMinuteWidthMobile = 5.dp           // horizontal px per timeline minute (mobile)
     val GuideCellPaddingMobile = 8.dp           // text inset inside a program cell (mobile)
     val GuideChannelLogoSizeMobile = 28.dp      // logo in the channel column (mobile)
-    val GuideDetailPanelHeightMobile = 84.dp    // focused-program detail header (mobile, compact)
+
+    // ── Dialogs ──────────────────────────────────────────────────────
+    val DialogMaxWidth = 480.dp             // confirmation dialog card cap (TV + mobile landscape)
 }

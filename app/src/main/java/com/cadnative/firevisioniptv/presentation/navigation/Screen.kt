@@ -19,7 +19,7 @@ sealed class Screen(val route: String) {
     object Search : Screen("search")
     object Favorites : Screen("favorites")
     object Settings : Screen("settings")
-    object SelfHostSetup : Screen("self_host_setup")
+    object AddSource : Screen("add_source")
     object Player : Screen("player/{channelId}?catchupStart={catchupStart}&catchupDur={catchupDur}") {
         fun createRoute(channelId: String) = "player/$channelId"
 

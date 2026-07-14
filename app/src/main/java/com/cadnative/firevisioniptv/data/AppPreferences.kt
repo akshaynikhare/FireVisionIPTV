@@ -58,9 +58,12 @@ object AppPreferences {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         // Pairing is a server-backed source — clear any prior BYO playlist selection
         // so refreshChannels() hits the server instead of a stale M3U/Xtream source.
+        // Also clear the demo flag: a manually-set code is a real pairing, not demo,
+        // so isPaired resolves true instead of the source reading as "Demo".
         prefs.edit()
             .putString(TV_CODE_KEY, sanitized)
             .putString(PLAYLIST_SOURCE_TYPE_KEY, SOURCE_PAIRED)
+            .remove(DEMO_MODE_KEY)
             .apply()
     }
 

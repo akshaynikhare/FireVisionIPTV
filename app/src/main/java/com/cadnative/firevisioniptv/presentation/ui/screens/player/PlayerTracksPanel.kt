@@ -35,6 +35,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.cadnative.firevisioniptv.presentation.ui.components.SelectableRow
 import com.cadnative.firevisioniptv.presentation.ui.components.tvFocusVisuals
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
@@ -179,21 +180,11 @@ private fun TrackRow(
     onClick: () -> Unit,
     focusRequester: FocusRequester? = null
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .onFocusChanged { isFocused = it.isFocused }
-            .tvFocusVisuals(focused = isFocused, shape = ShapeSmall)
-            .clip(ShapeSmall)
-            .background(if (isFocused) Amber.copy(alpha = 0.18f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = Dimens.Space3, vertical = Dimens.Space2)
-    ) {
-        Text(
-            text = if (selected) "✓  $label" else label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) Amber else OnVideo
-        )
-    }
+    SelectableRow(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+        focusRequester = focusRequester,
+        contentColor = OnVideo
+    )
 }

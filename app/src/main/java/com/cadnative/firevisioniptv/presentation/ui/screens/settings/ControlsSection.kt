@@ -80,23 +80,28 @@ internal fun ControlsSection(
             )
             // D-pad / remote key mappings only make sense on TV (no D-pad on a touch phone)
             if (!isCompact) {
+                // Five key-action pills fill the row, so keep the label on its own
+                // line above them — side-by-side starves the label to a 1-char column.
                 PlayerKeyRow(
                     label = "D-pad up/down",
                     options = keyActionOptions,
                     current = keyUpDownAction,
-                    onSelect = onKeyUpDownChange
+                    onSelect = onKeyUpDownChange,
+                    stacked = true
                 )
                 PlayerKeyRow(
                     label = "D-pad left/right",
                     options = keyActionOptions,
                     current = keyLeftRightAction,
-                    onSelect = onKeyLeftRightChange
+                    onSelect = onKeyLeftRightChange,
+                    stacked = true
                 )
                 PlayerKeyRow(
                     label = "Hold OK",
                     options = keyActionOptions,
                     current = longOkAction,
-                    onSelect = onLongOkChange
+                    onSelect = onLongOkChange,
+                    stacked = true
                 )
             }
             PlayerKeyRow(
@@ -115,27 +120,35 @@ private fun PlayerKeyRow(
     label: String,
     options: List<Pair<String, String>>,
     current: String,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    stacked: Boolean = false
 ) {
-    SettingRowLayout(
-        text = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        action = {
-            // FlowRow so option pills wrap to a new line instead of overflowing on narrow phones
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                options.forEach { (optLabel, optValue) ->
-                    SettingOption(label = optLabel, value = optValue, current = current, onSelect = onSelect)
-                }
+    val labelText: @Composable () -> Unit = {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+    // FlowRow so option pills wrap to a new line instead of overflowing on narrow rows
+    val optionPills: @Composable () -> Unit = {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            options.forEach { (optLabel, optValue) ->
+                SettingOption(label = optLabel, value = optValue, current = current, onSelect = onSelect)
             }
         }
-    )
+    }
+
+    if (stacked) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            labelText()
+            optionPills()
+        }
+    } else {
+        SettingRowLayout(text = { labelText() }, action = optionPills)
+    }
 }

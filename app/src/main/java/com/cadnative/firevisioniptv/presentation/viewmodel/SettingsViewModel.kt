@@ -1,31 +1,24 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.app.ActivityManager
 import android.app.Application
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.net.Uri
-import android.os.Environment
 import android.os.Build
-import android.util.Log
-import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
-import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
+import com.cadnative.firevisioniptv.update.AppUpdater
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,8 +32,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.ln
-import kotlin.math.pow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -48,7 +39,9 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val application: Application,
     private val channelHealthScanner: ChannelHealthScanner,
-    private val refreshChannelsUseCase: RefreshChannelsUseCase
+    private val refreshChannelsUseCase: RefreshChannelsUseCase,
+    private val epgRepository: EpgRepository,
+    private val appUpdater: AppUpdater
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -58,16 +51,9 @@ class SettingsViewModel @Inject constructor(
 
     private var updateCheckJob: Job? = null
 
-    private var downloadId: Long = -1
-    private var downloadReceiver: BroadcastReceiver? = null
-
     companion object {
         private const val TAG = "SettingsViewModel"
         private const val PREFS_NAME = AppPreferences.PREFS_NAME
-        
-        private const val UPDATE_CHECK_TIMEOUT = 15_000
-        private const val APK_FILENAME = "FireVisionIPTV.apk"
-        private const val GITHUB_RELEASES_API = "https://api.github.com/repos/akshaynikhare/FireVisionIPTV/releases/latest"
     }
 
     init {
@@ -104,6 +90,9 @@ class SettingsViewModel @Inject constructor(
                         qrCodeBitmap = current.qrCodeBitmap,
                         isPaired = current.isPaired,
                         isDefaultMode = current.isDefaultMode,
+                        sourceType = current.sourceType,
+                        m3uUrl = current.m3uUrl,
+                        xtreamHost = current.xtreamHost,
                         settingsSaved = current.settingsSaved,
                         isCheckingForUpdate = current.isCheckingForUpdate,
                         updateInfo = current.updateInfo,
@@ -171,11 +160,35 @@ class SettingsViewModel @Inject constructor(
                 tvCode = tvCode,
                 isPaired = isPaired,
                 isDefaultMode = isDefaultMode,
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
+                m3uUrl = AppPreferences.getM3uUrl(ctx),
+                xtreamHost = AppPreferences.getXtreamHost(ctx),
                 appVersion = getAppVersion()
             )
         }
 
         generateQRCode(serverUrl)
+    }
+
+    /**
+     * Re-reads the active channel-source config from prefs. Called when Settings
+     * resumes (e.g. returning from the AddSource screen) so a source change made
+     * there — self-hosted connect, M3U/Xtream load — is reflected immediately.
+     */
+    fun refreshSource() {
+        val ctx = application.applicationContext
+        val tvCode = AppPreferences.getTvCode(ctx)
+        _uiState.update {
+            it.copy(
+                serverUrl = AppPreferences.getServerUrl(ctx),
+                tvCode = tvCode,
+                isPaired = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(ctx),
+                isDefaultMode = AppPreferences.isDemoMode(ctx),
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
+                m3uUrl = AppPreferences.getM3uUrl(ctx),
+                xtreamHost = AppPreferences.getXtreamHost(ctx)
+            )
+        }
     }
 
     fun onServerUrlChange(url: String) {
@@ -194,21 +207,20 @@ class SettingsViewModel @Inject constructor(
         if (!url.startsWith("https://")) return false
         if (!android.util.Patterns.WEB_URL.matcher(url).matches()) return false
 
-        viewModelScope.launch(Dispatchers.IO) {
-            val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString("server_url", url)
-                .putString("tv_code", code)
-                .apply()
-        }
+        // Route through AppPreferences so the playlist source type flips back to
+        // "paired" (and the demo flag clears) — otherwise a prior M3U/Xtream source
+        // stays active and Connection keeps showing the old source.
+        val ctx = application.applicationContext
+        AppPreferences.setServerUrl(ctx, url)
+        AppPreferences.setTvCode(ctx, code)
 
-        val isPaired = code.isNotEmpty() && !AppPreferences.isDemoMode(application.applicationContext)
         _uiState.update {
             it.copy(
                 serverUrl = url,
                 tvCode = code,
-                isPaired = isPaired,
-                isDefaultMode = AppPreferences.isDemoMode(application.applicationContext),
+                isPaired = true,
+                isDefaultMode = false,
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
                 settingsSaved = true,
                 error = null
             )
@@ -383,6 +395,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isClearingCache = true, cacheCleared = false) }
             val result = userPreferencesRepository.clearCache()
+            // Guide programs are cached data too — purge them with the rest so a
+            // cache clear really starts fresh (they refetch on next guide access).
+            epgRepository.clearAll()
             when (result) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isClearingCache = false, cacheCleared = true) }
@@ -400,6 +415,33 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    /** Wipe cached guide programs and re-download the schedule from all EPG sources. */
+    fun resetGuideData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResettingGuide = true, guideReset = false) }
+            epgRepository.clearAll()
+            epgRepository.refreshNow()
+            _uiState.update { it.copy(isResettingGuide = false, guideReset = true) }
+            delay(3_000)
+            _uiState.update { it.copy(guideReset = false) }
+        }
+    }
+
+    /**
+     * Factory-reset the app: the system wipes ALL app data (database, preferences,
+     * pairing, caches) and kills the process — next launch starts at pairing, like
+     * a fresh install. Only reachable through a confirmation dialog.
+     */
+    fun resetAppData() {
+        val activityManager =
+            application.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val requested = activityManager.clearApplicationUserData()
+        if (!requested) {
+            // On success the process dies before this line; only failure lands here.
+            _uiState.update { it.copy(error = "Failed to reset app data") }
         }
     }
 
@@ -433,10 +475,7 @@ class SettingsViewModel @Inject constructor(
         updateCheckJob = viewModelScope.launch {
             _uiState.update { it.copy(isCheckingForUpdate = true, updateInfo = null, updateChecked = false) }
 
-            val result = withContext(Dispatchers.IO) {
-                // Try server API first, fall back to GitHub releases
-                checkFromServer() ?: checkFromGitHub()
-            }
+            val result = withContext(Dispatchers.IO) { appUpdater.check() }
 
             _uiState.update {
                 it.copy(
@@ -460,286 +499,26 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun checkFromServer(): UpdateInfo? {
-        return try {
-            val ctx = application.applicationContext
-            val baseUrl = AppPreferences.getServerUrl(ctx)
-            val tvCode = AppPreferences.getTvCode(ctx)
-            val versionCode = getVersionCode()
-
-            val response = PinnedHttpClient.get(
-                "$baseUrl/api/v1/app/version?currentVersion=$versionCode",
-                mapOf("Accept" to "application/json", "X-Session-ID" to tvCode)
-            )
-
-            response.use { resp ->
-                if (resp.isSuccessful) {
-                    val json = org.json.JSONObject(resp.body?.string() ?: "{}")
-
-                    if (json.optBoolean("success", false) && json.optBoolean("updateAvailable", false)) {
-                        val latest = json.optJSONObject("latestVersion")
-                        val fileBytes = latest?.optLong("apkFileSize", 0) ?: 0
-                        UpdateInfo(
-                            versionName = latest?.optString("versionName", "") ?: "",
-                            releaseNotes = latest?.optString("releaseNotes", "")
-                                ?.takeIf { it != "null" } ?: "",
-                            fileSize = formatFileSize(fileBytes),
-                            downloadUrl = latest?.optString("downloadUrl", "") ?: "",
-                            isMandatory = json.optBoolean("isMandatory", false)
-                        )
-                    } else {
-                        null
-                    }
-                } else {
-                    null
-                }
-            }
-        } catch (_: Exception) {
-            null // fall through to GitHub check
-        }
-    }
-
-    private fun checkFromGitHub(): UpdateInfo? {
-        return try {
-            val response = PinnedHttpClient.get(
-                GITHUB_RELEASES_API,
-                mapOf("Accept" to "application/vnd.github+json")
-            )
-
-            response.use { resp ->
-                if (!resp.isSuccessful) return null
-
-                val json = org.json.JSONObject(resp.body?.string() ?: "{}")
-
-                val tagName = json.optString("tag_name", "")
-                val latestVersion = tagName.removePrefix("v")
-                val currentVersionName = getAppVersionName()
-
-                if (latestVersion.isNotEmpty() && latestVersion != currentVersionName &&
-                    compareVersions(latestVersion, currentVersionName) > 0) {
-
-                    // Find APK asset
-                    val assets = json.optJSONArray("assets")
-                    var downloadUrl = ""
-                    var fileSize = 0L
-                    if (assets != null) {
-                        for (i in 0 until assets.length()) {
-                            val asset = assets.getJSONObject(i)
-                            val name = asset.optString("name", "")
-                            if (name.endsWith(".apk")) {
-                                downloadUrl = asset.optString("browser_download_url", "")
-                                fileSize = asset.optLong("size", 0)
-                                break
-                            }
-                        }
-                    }
-
-                    UpdateInfo(
-                        versionName = latestVersion,
-                        releaseNotes = json.optString("body", "")
-                            .takeIf { it != "null" }?.take(500) ?: "",
-                        fileSize = formatFileSize(fileSize),
-                        downloadUrl = downloadUrl,
-                        isMandatory = false
-                    )
-                } else {
-                    null
-                }
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun getAppVersionName(): String {
-        return try {
-            application.packageManager.getPackageInfo(application.packageName, 0).versionName ?: ""
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
-    private fun compareVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
-        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
-        val maxLen = maxOf(parts1.size, parts2.size)
-        for (i in 0 until maxLen) {
-            val p1 = parts1.getOrElse(i) { 0 }
-            val p2 = parts2.getOrElse(i) { 0 }
-            if (p1 != p2) return p1.compareTo(p2)
-        }
-        return 0
-    }
-
-    private fun getVersionCode(): Int {
-        return try {
-            val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode.toInt()
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.versionCode
-            }
-        } catch (e: Exception) {
-            1
-        }
-    }
-
-    private fun formatFileSize(bytes: Long): String {
-        if (bytes <= 0) return ""
-        if (bytes < 1024) return "$bytes B"
-        val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt().coerceIn(1, 6)
-        val pre = "KMGTPE"[exp - 1]
-        return "%.1f %sB".format(bytes / 1024.0.pow(exp.toDouble()), pre)
-    }
-
     fun downloadAndInstallUpdate() {
-        val downloadUrl = _uiState.value.updateInfo?.downloadUrl
-        if (downloadUrl.isNullOrEmpty()) return
+        val update = _uiState.value.updateInfo ?: return
         if (_uiState.value.isDownloadingUpdate) return
 
         _uiState.update { it.copy(isDownloadingUpdate = true, downloadError = null) }
-
-        try {
-            val ctx = application.applicationContext
-
-            // Cleanup previous receiver
-            downloadReceiver?.let { receiver ->
-                try { ctx.unregisterReceiver(receiver) } catch (_: Exception) {}
-            }
-
-            // Delete old APK
-            val oldFile = java.io.File(
-                ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-                APK_FILENAME
-            )
-            if (oldFile.exists()) oldFile.delete()
-
-            val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
-                setTitle("FireVision IPTV Update")
-                setDescription("Downloading update...")
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalFilesDir(ctx, Environment.DIRECTORY_DOWNLOADS, APK_FILENAME)
-                setAllowedOverMetered(true)
-                setAllowedOverRoaming(true)
-            }
-
-            val downloadManager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            downloadId = downloadManager.enqueue(request)
-
-            downloadReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                    if (id != downloadId) return
-
-                    val query = DownloadManager.Query().apply { setFilterById(downloadId) }
-                    val cursor = downloadManager.query(query)
-                    try {
-                        if (cursor.moveToFirst()) {
-                            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                            val status = cursor.getInt(statusIdx)
-                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                                _uiState.update { it.copy(isDownloadingUpdate = false) }
-                                installUpdate(context)
-                            } else {
-                                _uiState.update {
-                                    it.copy(isDownloadingUpdate = false, downloadError = "Download failed")
-                                }
-                            }
-                        }
-                    } finally {
-                        cursor.close()
-                    }
+        appUpdater.downloadAndInstall(update) { state ->
+            _uiState.update {
+                when (state) {
+                    AppUpdater.DownloadState.Started -> it.copy(isDownloadingUpdate = true)
+                    AppUpdater.DownloadState.InstallLaunched -> it.copy(isDownloadingUpdate = false)
+                    is AppUpdater.DownloadState.Failed ->
+                        it.copy(isDownloadingUpdate = false, downloadError = state.message)
                 }
             }
-
-            ContextCompat.registerReceiver(
-                ctx,
-                downloadReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Error downloading update", e)
-            _uiState.update {
-                it.copy(isDownloadingUpdate = false, downloadError = "Failed to start download")
-            }
-        }
-    }
-
-    private fun installUpdate(context: Context) {
-        try {
-            val file = java.io.File(
-                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-                APK_FILENAME
-            )
-            if (!file.exists()) return
-
-            if (!verifyApkSignature(context, file)) {
-                Log.e(TAG, "APK signature verification failed — refusing to install")
-                file.delete()
-                _uiState.update { it.copy(downloadError = "Update verification failed — signature mismatch") }
-                return
-            }
-
-            val apkUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.provider",
-                file
-            )
-
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(installIntent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error installing update", e)
-            _uiState.update { it.copy(downloadError = "Failed to install update") }
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun verifyApkSignature(context: Context, apkFile: java.io.File): Boolean {
-        return try {
-            val currentSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
-                ).signingInfo?.apkContentsSigners
-            } else {
-                context.packageManager.getPackageInfo(
-                    context.packageName, PackageManager.GET_SIGNATURES
-                ).signatures
-            }
-
-            val apkSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
-                )?.signingInfo?.apkContentsSigners
-            } else {
-                context.packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath, PackageManager.GET_SIGNATURES
-                )?.signatures
-            }
-
-            if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
-                Log.e(TAG, "Could not retrieve signatures for verification")
-                return false
-            }
-
-            currentSigs[0].toByteArray().contentEquals(apkSigs[0].toByteArray())
-        } catch (e: Exception) {
-            Log.e(TAG, "Signature verification error", e)
-            false
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        downloadReceiver?.let { receiver ->
-            try { application.applicationContext.unregisterReceiver(receiver) } catch (_: Exception) {}
-        }
-        downloadReceiver = null
+        appUpdater.cleanup()
         _uiState.value.qrCodeBitmap?.recycle()
     }
 

@@ -33,6 +33,10 @@ data class SettingsUiState(
     val qrCodeBitmap: Bitmap? = null,
     val isPaired: Boolean = false,
     val isDefaultMode: Boolean = false,
+    // Channel source: "paired" (managed/default server), "m3u", or "xtream"
+    val sourceType: String = "paired",
+    val m3uUrl: String = "",
+    val xtreamHost: String = "",
     val settingsSaved: Boolean = false,
     // App update
     val isCheckingForUpdate: Boolean = false,
@@ -43,6 +47,9 @@ data class SettingsUiState(
     // Cache
     val isClearingCache: Boolean = false,
     val cacheCleared: Boolean = false,
+    // Guide data reset
+    val isResettingGuide: Boolean = false,
+    val guideReset: Boolean = false,
     // Connection test
     val isTestingConnection: Boolean = false,
     val connectionTestResult: String? = null,

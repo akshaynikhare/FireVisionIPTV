@@ -66,8 +66,11 @@ fun CategoryChip(
                 focused = isFocused,
                 shape = shape,
                 focusedScale = FOCUS_SCALE_TILE,
-                // Chips are flat controls — no resting drop shadow (only the focus glow on TV)
-                restingElevation = 0.dp
+                // Chips are flat controls with translucent fills — any elevation
+                // shadow (resting or focus glow) shows through as a dark box.
+                // Border ring + scale carry the focus cue.
+                restingElevation = 0.dp,
+                focusedElevation = 0.dp
             )
     )
 }

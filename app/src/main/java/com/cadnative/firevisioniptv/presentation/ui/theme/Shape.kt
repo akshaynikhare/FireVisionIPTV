@@ -4,10 +4,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-// ── Corner token scale — YouTube-TV flat style, 3 steps ──────────────
+// ── Corner token scale — YouTube-TV flat style ───────────────────────
 val ShapeSmall  = RoundedCornerShape(4.dp)    // chips, badges, small buttons
 val ShapeMedium = RoundedCornerShape(6.dp)    // cards, panels
-val ShapeLarge  = RoundedCornerShape(12.dp)   // toasts/pills, dialogs
+val ShapeBadge  = RoundedCornerShape(8.dp)    // QR frames, image tiles, badges
+val ShapeLarge  = RoundedCornerShape(12.dp)   // toasts, dialogs
+val ShapePill   = RoundedCornerShape(28.dp)   // fully-rounded action pills / hero chips
 
 // ── Material 3 shape mapping ─────────────────────────────────────────
 val FireVisionShapes = Shapes(

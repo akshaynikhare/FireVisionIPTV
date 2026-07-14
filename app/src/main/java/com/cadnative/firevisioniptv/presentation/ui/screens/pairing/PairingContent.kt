@@ -2,9 +2,11 @@ package com.cadnative.firevisioniptv.presentation.ui.screens.pairing
 
 import android.content.res.Configuration
 import android.graphics.Bitmap
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,22 +19,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
-import com.cadnative.firevisioniptv.presentation.ui.theme.Flame300
-import com.cadnative.firevisioniptv.presentation.ui.theme.Flame50
 import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimHeavy
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 
 @Composable
 internal fun PairingContent(
@@ -49,7 +60,7 @@ internal fun PairingContent(
     pairingUrl: String,
     onRetryClick: () -> Unit,
     onUseDefaultClick: () -> Unit,
-    onUseOwnPlaylistClick: () -> Unit = {}
+    onUseAdvancedClick: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -67,18 +78,25 @@ internal fun PairingContent(
             PortraitLayout(
                 pin, statusMessage, statusColor, countdownText, showCountdown,
                 showRetryButton, qrCodeBitmap, serverUrl, isTvDevice, pairingUrl,
-                onRetryClick, onUseDefaultClick, onUseOwnPlaylistClick
+                onRetryClick, onUseDefaultClick, onUseAdvancedClick
             )
         } else {
             Row(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // LEFT — title, steps, actions
+                // LEFT — title, steps, the PIN (below the instructions), then actions
                 InfoColumn(
                     isTvDevice = isTvDevice,
                     serverUrl = serverUrl,
-                    onUseOwnPlaylistClick = onUseOwnPlaylistClick,
+                    pin = pin,
+                    statusMessage = statusMessage,
+                    statusColor = statusColor,
+                    countdownText = countdownText,
+                    showCountdown = showCountdown,
+                    showRetryButton = showRetryButton,
+                    onRetryClick = onRetryClick,
+                    onUseAdvancedClick = onUseAdvancedClick,
                     onUseDefaultClick = onUseDefaultClick,
                     modifier = Modifier
                         .weight(1f)
@@ -86,7 +104,7 @@ internal fun PairingContent(
                         .padding(end = 40.dp)
                 )
 
-                // RIGHT — big QR (or browser) on top, PIN below
+                // RIGHT — big QR (or browser); PIN now lives beside the steps on the left
                 Column(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     verticalArrangement = Arrangement.Center,
@@ -105,19 +123,6 @@ internal fun PairingContent(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    PinSection(
-                        pin = pin,
-                        statusMessage = statusMessage,
-                        statusColor = statusColor,
-                        countdownText = countdownText,
-                        showCountdown = showCountdown,
-                        showRetryButton = showRetryButton,
-                        onRetryClick = onRetryClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
         }
@@ -137,12 +142,19 @@ internal fun PairingContent(
     }
 }
 
-/** Left panel: title, setup steps, and the two source actions. */
+/** Left panel: title, setup steps, the PIN (in context, below the steps), and actions. */
 @Composable
 private fun InfoColumn(
     isTvDevice: Boolean,
     serverUrl: String,
-    onUseOwnPlaylistClick: () -> Unit,
+    pin: String,
+    statusMessage: String,
+    statusColor: Color,
+    countdownText: String,
+    showCountdown: Boolean,
+    showRetryButton: Boolean,
+    onRetryClick: () -> Unit,
+    onUseAdvancedClick: () -> Unit,
     onUseDefaultClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -157,11 +169,11 @@ private fun InfoColumn(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         if (isTvDevice) {
             StepText("1. Visit $serverUrl and sign in")
-            StepText("2. Enter this PIN to link your TV")
+            StepText("2. Enter the PIN below to link your TV")
             StepText("3. Add channels and start watching!")
         } else {
             StepText("1. Tap 'Pair in Browser' and sign in")
@@ -169,24 +181,31 @@ private fun InfoColumn(
             StepText("3. Add channels and start watching!")
         }
 
-        Spacer(modifier = Modifier.height(36.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        AddPlaylistButton(onClick = onUseOwnPlaylistClick)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Use your own M3U or Xtream Codes playlist — no pairing needed",
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodySmall
+        // PIN sits right under the instructions that reference it.
+        PinSection(
+            pin = pin,
+            statusMessage = statusMessage,
+            statusColor = statusColor,
+            countdownText = countdownText,
+            showCountdown = showCountdown,
+            showRetryButton = showRetryButton,
+            onRetryClick = onRetryClick,
+            horizontalAlignment = Alignment.Start
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        DemoModeButton(onClick = onUseDefaultClick)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Demo mode — pair later for your personal channels",
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            style = MaterialTheme.typography.bodySmall
+        // Secondary paths, de-emphasized: pairing above is the primary flow.
+        SecondaryLink(
+            text = "Just looking? Browse demo channels",
+            onClick = onUseDefaultClick
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SecondaryLink(
+            text = "Use a different source  ▸",
+            onClick = onUseAdvancedClick
         )
     }
 }
@@ -206,7 +225,7 @@ private fun PortraitLayout(
     pairingUrl: String,
     onRetryClick: () -> Unit,
     onUseDefaultClick: () -> Unit,
-    onUseOwnPlaylistClick: () -> Unit
+    onUseAdvancedClick: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
@@ -244,43 +263,42 @@ private fun PortraitLayout(
         )
 
         Spacer(modifier = Modifier.height(20.dp))
-        AddPlaylistButton(onClick = onUseOwnPlaylistClick)
-        Spacer(modifier = Modifier.height(10.dp))
-        DemoModeButton(onClick = onUseDefaultClick)
+        SecondaryLink(text = "Just looking? Browse demo channels", onClick = onUseDefaultClick)
+        Spacer(modifier = Modifier.height(6.dp))
+        SecondaryLink(text = "Use a different source  ▸", onClick = onUseAdvancedClick)
     }
 }
 
+/**
+ * Low-emphasis, D-pad-focusable ghost button for the pairing screen's secondary
+ * paths (demo, advanced source). Resting state is a quiet outline — not a filled
+ * / highlighted button — so it reads clearly as an action without competing with
+ * the primary pairing hero. On focus the outline + label tint amber.
+ */
 @Composable
-private fun AddPlaylistButton(onClick: () -> Unit) {
-    androidx.compose.material3.Button(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.small,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Amber,
-            contentColor = Color.Black
-        )
-    ) {
-        Text(
-            text = "Use My Own Playlist (M3U / Xtream)",
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun DemoModeButton(onClick: () -> Unit) {
+private fun SecondaryLink(text: String, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.05f else 1f,
+        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "linkScale"
+    )
     OutlinedButton(
         onClick = onClick,
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, Flame300.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, if (focused) Amber.copy(alpha = 0.6f) else subtleBorder),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Flame50.copy(alpha = 0.3f),
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
+            contentColor = if (focused) Amber else MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .onFocusChanged { focused = it.isFocused }
     ) {
         Text(
-            text = "Browse Demo Channels",
-            style = MaterialTheme.typography.bodySmall
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
         )
     }
 }

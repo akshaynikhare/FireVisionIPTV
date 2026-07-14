@@ -93,7 +93,11 @@ fun CategoryCard(
         },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // Icon tracks the card's height so it reads at the same visual
+            // weight on the small home-row cards and the taller grid cards.
+            val iconSize = (maxHeight * Dimens.CategoryIconHeightFraction)
+                .coerceIn(Dimens.CategoryIconMin, Dimens.CategoryIconMax)
             // Color gradient background
             Box(
                 modifier = Modifier
@@ -138,8 +142,8 @@ fun CategoryCard(
                 tint = catColor.copy(alpha = 0.4f),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(10.dp)
-                    .size(24.dp)
+                    .padding(Dimens.CardContentPadding)
+                    .size(iconSize)
             )
 
             // Accent line at top

@@ -101,6 +101,7 @@ private fun ContextMenuRow(
     focusRequester: FocusRequester? = null
 ) {
     var focused by remember { mutableStateOf(false) }
+    var pressed by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -110,9 +111,24 @@ private fun ContextMenuRow(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyDown &&
-                    (e.key == Key.DirectionCenter || e.key == Key.Enter)
-                ) { onClick(); true } else false
+                if (e.key != Key.DirectionCenter && e.key != Key.Enter) return@onKeyEvent false
+                when (e.type) {
+                    // Only a fresh press arms the row — a repeat means the key was
+                    // already held when the menu opened (the long-press that
+                    // summoned it), and must not click through.
+                    KeyEventType.KeyDown -> {
+                        if (e.nativeKeyEvent.repeatCount == 0) pressed = true
+                        true
+                    }
+                    KeyEventType.KeyUp -> {
+                        if (pressed) {
+                            pressed = false
+                            onClick()
+                        }
+                        true
+                    }
+                    else -> false
+                }
             }
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.Space3, vertical = Dimens.Space3),

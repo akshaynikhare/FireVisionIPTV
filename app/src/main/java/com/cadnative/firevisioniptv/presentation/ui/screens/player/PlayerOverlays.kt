@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -43,6 +42,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimHeavy
 import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimLight
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapePill
 
 /**
  * All transient overlays layered above the video: info bar, toasts,
@@ -145,7 +145,7 @@ internal fun BoxScope.PlayerOverlays(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
-                .clip(RoundedCornerShape(28.dp))
+                .clip(ShapePill)
                 .background(ScrimHeavy)
                 .padding(horizontal = 24.dp, vertical = 14.dp)
         ) {
