@@ -31,6 +31,7 @@ class ChannelHealthScannerTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         scanner = ChannelHealthScanner(
+            context = mockk(relaxed = true),
             channelHealthDao = mockk(relaxed = true),
             channelDao = mockk(relaxed = true),
             thumbnailExtractor = mockk(relaxed = true),

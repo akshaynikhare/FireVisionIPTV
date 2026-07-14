@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever
 import android.util.Log
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
+import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -70,7 +71,7 @@ class ChannelThumbnailExtractor @Inject constructor(
         for (batch in batches) {
             val channelUrls = withContext(dispatcher) {
                 batch.mapNotNull { id ->
-                    channelDao.getChannelByIdSync(id)?.let { id to it.streamUrl }
+                    channelDao.getChannelByIdSync(id)?.let { id to StreamUrlTemplate.resolve(context, it.streamUrl) }
                 }
             }
 

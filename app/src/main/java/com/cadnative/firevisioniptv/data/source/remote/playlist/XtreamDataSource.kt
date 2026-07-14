@@ -13,7 +13,9 @@ import javax.inject.Singleton
 /**
  * Xtream Codes client. Loads live categories + streams via `player_api.php` and maps
  * them into [ChannelDto]s that reuse the managed-channel pipeline. Live stream URLs
- * follow the standard `/live/{user}/{pass}/{id}.m3u8` form; EPG comes from `xmltv.php`.
+ * follow the standard `/live/{user}/{pass}/{id}.m3u8` form but are stored with
+ * [StreamUrlTemplate] placeholders so credentials never persist in the Room DB;
+ * EPG comes from `xmltv.php`.
  */
 @Singleton
 class XtreamDataSource @Inject constructor(
@@ -41,7 +43,7 @@ class XtreamDataSource @Inject constructor(
             ChannelDto(
                 id = "xtream-${s.streamId}",
                 name = s.name ?: "Channel ${s.streamId}",
-                url = "$base/live/$username/$password/${s.streamId}.m3u8",
+                url = "$base/live/${StreamUrlTemplate.USER_TOKEN}/${StreamUrlTemplate.PASS_TOKEN}/${s.streamId}.m3u8",
                 channelImg = null,
                 tvgLogo = s.streamIcon,
                 groupTitle = categoryNames[s.categoryId] ?: "Uncategorized",

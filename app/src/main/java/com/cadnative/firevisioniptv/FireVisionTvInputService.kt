@@ -13,6 +13,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import org.json.JSONObject
 
 class FireVisionTvInputService : TvInputService() {
@@ -108,6 +109,7 @@ class FireVisionTvInputService : TvInputService() {
                         val internalData = cursor.getString(0)
                         val json = JSONObject(internalData ?: "{}")
                         json.optString("channelUrl").takeIf { it.isNotEmpty() }
+                            ?.let { StreamUrlTemplate.resolve(ctx, it) }
                     } else null
                 }
             } catch (e: Exception) {

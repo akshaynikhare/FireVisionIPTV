@@ -41,12 +41,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.VideoPlayer
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -237,6 +239,7 @@ private fun MultiviewPane(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(6.dp)
+    val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     if (requestInitialFocus) {
         LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
@@ -247,7 +250,9 @@ private fun MultiviewPane(
     val player = remember(channel.id) { viewModel.createPlayer() }
     DisposableEffect(channel.id) {
         channel.streamUrl?.let { url ->
-            player.setMediaItem(MediaItem.Builder().setUri(url).build())
+            player.setMediaItem(
+                MediaItem.Builder().setUri(StreamUrlTemplate.resolve(context, url)).build()
+            )
             player.prepare()
             player.playWhenReady = true
         }

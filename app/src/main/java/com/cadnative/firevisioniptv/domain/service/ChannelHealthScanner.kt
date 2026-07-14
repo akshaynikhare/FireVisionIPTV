@@ -1,13 +1,16 @@
 package com.cadnative.firevisioniptv.domain.service
 
+import android.content.Context
 import android.util.Log
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity
+import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
 import com.cadnative.firevisioniptv.domain.repository.HealthSyncEntry
 import com.cadnative.firevisioniptv.domain.repository.StreamMetricsRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -39,6 +42,7 @@ data class ScanProgress(
 
 @Singleton
 class ChannelHealthScanner @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val channelHealthDao: ChannelHealthDao,
     private val channelDao: ChannelDao,
     private val thumbnailExtractor: ChannelThumbnailExtractor,
@@ -179,7 +183,7 @@ class ChannelHealthScanner @Inject constructor(
             val channelUrls = withContext(dispatcher) {
                 batch.mapNotNull { id ->
                     val entity = channelDao.getChannelByIdSync(id)
-                    entity?.let { id to it.streamUrl }
+                    entity?.let { id to StreamUrlTemplate.resolve(context, it.streamUrl) }
                 }
             }
             if (channelUrls.isEmpty()) {
