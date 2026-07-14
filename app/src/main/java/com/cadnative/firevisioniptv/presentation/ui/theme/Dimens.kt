@@ -63,6 +63,7 @@ object Dimens {
     val KeyboardActionKeyMinWidth = 72.dp   // backspace / clear action keys
     val KeyboardColumnGap = 24.dp           // gap between keyboard and results
     val SearchBarHeightTv = 44.dp           // read-only query bar + voice button (TV)
+    val SearchHeaderHeightTv = 56.dp        // header band: aligns the "Search" title (left) with the query bar (right) so keyboard + results tops line up
 
     // ── Side navigation rail ─────────────────────────────────────────
     val NavRailCollapsedTv = 72.dp
