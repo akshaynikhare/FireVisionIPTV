@@ -18,6 +18,7 @@ import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.ComposeMainActivity
 import com.cadnative.firevisioniptv.PipController
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
 import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
@@ -38,7 +39,7 @@ internal fun prepareChannelStream(
     catchupStartMs: Long,
     catchupDurationMin: Int
 ): Boolean {
-    val url = channel.streamUrl
+    val url = channel.streamUrl?.let { StreamUrlTemplate.resolve(context, it) }
     if (url.isNullOrEmpty()) return false
     errorRecoveryManager.reset()
 
