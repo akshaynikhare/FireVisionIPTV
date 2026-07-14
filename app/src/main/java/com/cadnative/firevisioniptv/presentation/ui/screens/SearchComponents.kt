@@ -1,0 +1,283 @@
+package com.cadnative.firevisioniptv.presentation.ui.screens
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
+import com.cadnative.firevisioniptv.presentation.ui.components.ChannelGridSkeleton
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
+import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
+import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
+
+/** Chips that flag categories whose name matches the query — a "matches genre" cue. */
+@Composable
+internal fun CategoryMatchHints(
+    categories: List<String>,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.Space2)
+    ) {
+        items(categories, key = { it }) { category ->
+            val catColor = categoryColor(category)
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = catColor.copy(alpha = 0.16f),
+                border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
+            ) {
+                Text(
+                    text = "in $category",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = catColor,
+                    modifier = Modifier.padding(horizontal = Dimens.Space3, vertical = Dimens.Space1)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SearchResultsSkeleton(
+    showShimmer: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val isCompact = screenWidthDp < 600
+    val cardWidth = if (isCompact) 100.dp else 140.dp
+    val cellWidthDp = if (isCompact) 116 else 156
+    val columns = (screenWidthDp / cellWidthDp).coerceAtLeast(2)
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .width(160.dp)
+                .height(16.dp)
+                .background(Void700, MaterialTheme.shapes.extraSmall)
+        )
+        Spacer(modifier = Modifier.height(Dimens.RowTitleGap))
+        ChannelGridSkeleton(
+            columns = columns,
+            rows = 3,
+            cardWidth = cardWidth,
+            cardHeight = Dimens.GridCardHeight,
+            showShimmer = showShimmer
+        )
+    }
+}
+
+@Composable
+internal fun SearchPrompt(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = 80.dp)
+            .animateFadeIn(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Find your channels",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Search by name or category",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+internal fun RecentSearches(
+    searches: List<String>,
+    onSearchClick: (String) -> Unit,
+    onClearHistory: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Recent",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            TextButton(onClick = onClearHistory) {
+                Text(
+                    text = "Clear",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(searches, key = { it }) { search ->
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, subtleBorder),
+                    modifier = Modifier.clickable { onSearchClick(search) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+                            modifier = Modifier.size(Dimens.IconSmall)
+                        )
+                        Text(
+                            text = search,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun NoResultsState(
+    query: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = 80.dp)
+            .animateFadeIn(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "No results for \"$query\"",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Try a different search term",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * Read-only query bar for the TV search screen. Input is driven by the on-screen
+ * [com.cadnative.firevisioniptv.presentation.ui.components.TvSearchKeyboard], so
+ * this bar is intentionally non-focusable — it only mirrors the current query
+ * with a caret. Keeping it out of the focus order means the D-pad flows straight
+ * between the keyboard and the results grid.
+ */
+@Composable
+internal fun TvSearchQueryDisplay(
+    query: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, subtleBorder),
+        modifier = modifier.height(Dimens.SearchBarHeightTv)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = if (query.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(Dimens.IconMedium)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            if (query.isNotEmpty()) {
+                Text(
+                    text = query,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+            }
+            // Static caret marks the input position; the keyboard does the typing.
+            // Sits after the query — or ahead of the placeholder when empty, so
+            // the hint never reads as typed text.
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(22.dp)
+                    .background(MaterialTheme.colorScheme.secondary)
+            )
+            if (query.isEmpty()) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Search channels, categories...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}

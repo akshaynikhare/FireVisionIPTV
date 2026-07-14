@@ -139,13 +139,14 @@ class PlaybackManagerTest {
     // ── switchChannel ────────────────────────────────────────────
 
     @Test
-    fun `switchChannel stops existing player, sets new media item, prepares and plays`() = runTest {
+    fun `switchChannel replaces media item in place, prepares and plays`() = runTest {
         val manager = makeManager(this)
         manager.switchChannel("http://new-stream.m3u8")
         runCurrent()
 
-        verify { player.stop() }
-        verify { player.clearMediaItems() }
+        // Faster zapping: renderers are reused, so no stop()/clearMediaItems() teardown.
+        verify(exactly = 0) { player.stop() }
+        verify(exactly = 0) { player.clearMediaItems() }
         verify { player.setMediaItem(any()) }
         verify { player.prepare() }
         verify { player.play() }

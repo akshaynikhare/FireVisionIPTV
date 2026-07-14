@@ -113,9 +113,47 @@ class SettingsViewModel @Inject constructor(
                         isClearingCache = current.isClearingCache,
                         cacheCleared = current.cacheCleared,
                         isTestingConnection = current.isTestingConnection,
-                        connectionTestResult = current.connectionTestResult
+                        connectionTestResult = current.connectionTestResult,
+                        isLoadingPlaylist = current.isLoadingPlaylist,
+                        playlistResult = current.playlistResult,
+                        backExitProtection = current.backExitProtection,
+                        keyUpDownAction = current.keyUpDownAction,
+                        keyLeftRightAction = current.keyLeftRightAction,
+                        longOkAction = current.longOkAction,
+                        sleepTimerDefaultMinutes = current.sleepTimerDefaultMinutes,
+                        alwaysShowProgramBar = current.alwaysShowProgramBar,
+                        infoBarTimeoutSeconds = current.infoBarTimeoutSeconds
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.getBackExitProtection(),
+                userPreferencesRepository.getPlayerKeyUpDownAction(),
+                userPreferencesRepository.getPlayerKeyLeftRightAction(),
+                userPreferencesRepository.getPlayerLongOkAction(),
+                userPreferencesRepository.getSleepTimerDefaultMinutes()
+            ) { backProtection, upDown, leftRight, longOk, sleepTimer ->
+                _uiState.update {
+                    it.copy(
+                        backExitProtection = backProtection,
+                        keyUpDownAction = upDown,
+                        keyLeftRightAction = leftRight,
+                        longOkAction = longOk,
+                        sleepTimerDefaultMinutes = sleepTimer
+                    )
+                }
+            }.collect { }
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.getAlwaysShowProgramBar().collect { enabled ->
+                _uiState.update { it.copy(alwaysShowProgramBar = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.getInfoBarTimeoutSeconds().collect { seconds ->
+                _uiState.update { it.copy(infoBarTimeoutSeconds = seconds) }
             }
         }
     }
@@ -260,6 +298,84 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = userPreferencesRepository.setLayoutDensity(density)
             handleResult(result, "Failed to update layout density")
+        }
+    }
+
+    fun setBackExitProtection(enabled: Boolean) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setBackExitProtection(enabled), "Failed to update back protection")
+        }
+    }
+
+    /** Save an M3U playlist URL as the channel source and load it immediately. */
+    fun saveM3uPlaylist(url: String) {
+        if (url.isBlank()) return
+        AppPreferences.setM3uSource(application, url)
+        loadPlaylist()
+    }
+
+    /** Save Xtream Codes credentials as the channel source and load them immediately. */
+    fun saveXtreamPlaylist(host: String, username: String, password: String) {
+        if (host.isBlank() || username.isBlank()) return
+        AppPreferences.setXtreamSource(application, host, username, password)
+        loadPlaylist()
+    }
+
+    /** Switch back to the managed (paired) source. */
+    fun useManagedSource() {
+        AppPreferences.useManagedSource(application)
+        _uiState.update { it.copy(playlistResult = "Using managed source") }
+    }
+
+    private fun loadPlaylist() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingPlaylist = true, playlistResult = null) }
+            val result = refreshChannelsUseCase(Unit)
+            _uiState.update {
+                it.copy(
+                    isLoadingPlaylist = false,
+                    playlistResult = when (result) {
+                        is Result.Success -> "Playlist loaded"
+                        is Result.Error -> "Failed to load playlist"
+                    }
+                )
+            }
+        }
+    }
+
+    fun setAlwaysShowProgramBar(enabled: Boolean) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setAlwaysShowProgramBar(enabled), "Failed to update program bar")
+        }
+    }
+
+    fun setInfoBarTimeoutSeconds(seconds: Int) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setInfoBarTimeoutSeconds(seconds), "Failed to update banner timeout")
+        }
+    }
+
+    fun setKeyUpDownAction(action: String) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setPlayerKeyUpDownAction(action), "Failed to update key action")
+        }
+    }
+
+    fun setKeyLeftRightAction(action: String) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setPlayerKeyLeftRightAction(action), "Failed to update key action")
+        }
+    }
+
+    fun setLongOkAction(action: String) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setPlayerLongOkAction(action), "Failed to update key action")
+        }
+    }
+
+    fun setSleepTimerDefaultMinutes(minutes: Int) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setSleepTimerDefaultMinutes(minutes), "Failed to update sleep timer")
         }
     }
 

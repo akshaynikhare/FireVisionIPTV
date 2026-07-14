@@ -50,6 +50,7 @@ import javax.inject.Inject
 private const val RECENTLY_WATCHED_LIMIT = 20
 private const val FEATURED_CHANNELS_LIMIT = 5
 private const val POPULAR_CATEGORIES_LIMIT = 10
+private const val FOR_YOU_LIMIT = 12
 private const val HEALTH_SCAN_DEBOUNCE_MS = 500L
 private const val CATEGORY_UPDATE_DEBOUNCE_MS = 1_000L
 private const val GUIDE_URL = "https://github.com/akshaynikhare/FireVisionIPTVServer/blob/main/docs/how-to-add-channels.md"
@@ -87,7 +88,8 @@ class ChannelsViewModel @Inject constructor(
                 state.copy(
                     channels = state.channels.map { enrichWithEpgIfReady(it) },
                     recentlyWatched = state.recentlyWatched.map { enrichWithEpgIfReady(it) },
-                    featuredChannels = state.featuredChannels.map { enrichWithEpgIfReady(it) }
+                    featuredChannels = state.featuredChannels.map { enrichWithEpgIfReady(it) },
+                    forYou = state.forYou.map { enrichWithEpgIfReady(it) }
                 )
             }
         }
@@ -172,6 +174,9 @@ class ChannelsViewModel @Inject constructor(
                                 channels = uiChannels,
                                 categories = allCategories,
                                 categoryLogos = catLogos,
+                                // Only recompute For You from the unfiltered catalog; a
+                                // category filter shows a subset and would skew the mix.
+                                forYou = if (category == null) deriveForYou(uiChannels, it.recentlyWatched) else it.forYou,
                                 isLoading = refreshJob?.isActive == true,
                                 error = if (uiChannels.isNotEmpty()) null else it.error,
                                 errorType = if (uiChannels.isNotEmpty()) ErrorType.NONE else it.errorType,
@@ -231,7 +236,11 @@ class ChannelsViewModel @Inject constructor(
                     }
                     .collect { (recent, featured) ->
                         _uiState.update {
-                            it.copy(recentlyWatched = recent, featuredChannels = featured)
+                            it.copy(
+                                recentlyWatched = recent,
+                                featuredChannels = featured,
+                                forYou = deriveForYou(it.channels, recent)
+                            )
                         }
                     }
             } catch (_: Exception) {
@@ -366,6 +375,11 @@ class ChannelsViewModel @Inject constructor(
         }
     }
 
+    /** Records the channel being opened so the originating screen can restore focus on return. */
+    fun onChannelOpened(channelId: String) {
+        _uiState.update { it.copy(lastPlayedChannelId = channelId) }
+    }
+
     fun onResume() {
         if (!hasResumedBefore) {
             hasResumedBefore = true
@@ -378,10 +392,46 @@ class ChannelsViewModel @Inject constructor(
         _uiState.update { it.copy(error = null, errorType = ErrorType.NONE) }
     }
 
+    /**
+     * Personalized "For You": channels from the categories the user watches
+     * most (weighted by how recently/often they appear in [recentlyWatched]),
+     * excluding channels already in Recently Watched. Pure client-side ranking
+     * over cached data — no API call. Empty until the user has watch history.
+     */
+    private fun deriveForYou(
+        allChannels: List<ChannelUiModel>,
+        recentlyWatched: List<ChannelUiModel>
+    ): List<ChannelUiModel> {
+        if (recentlyWatched.isEmpty() || allChannels.isEmpty()) return emptyList()
+
+        // Weight categories by recency: earlier entries in recentlyWatched
+        // (most recent) score higher.
+        val categoryWeight = mutableMapOf<String, Int>()
+        recentlyWatched.forEachIndexed { index, channel ->
+            val cat = channel.category.ifBlank { "Other" }
+            categoryWeight[cat] = (categoryWeight[cat] ?: 0) + (recentlyWatched.size - index)
+        }
+
+        val recentIds = recentlyWatched.mapTo(HashSet()) { it.id }
+        return allChannels
+            .asSequence()
+            .filter { it.id !in recentIds }
+            .filter { (categoryWeight[it.category.ifBlank { "Other" }] ?: 0) > 0 }
+            .sortedByDescending { categoryWeight[it.category.ifBlank { "Other" }] ?: 0 }
+            .take(FOR_YOU_LIMIT)
+            .toList()
+    }
+
     private fun enrichWithEpgIfReady(channel: ChannelUiModel): ChannelUiModel {
         val tvgId = channel.tvgId ?: return channel
-        val (now, _) = epgRepository.getNowNextIfCached(tvgId) ?: return channel
-        return if (now != null) channel.copy(nowProgramTitle = now.title) else channel
+        val (now, next) = epgRepository.getNowNextIfCached(tvgId) ?: return channel
+        if (now == null && next == null) return channel
+        return channel.copy(
+            nowProgramTitle = now?.title,
+            nextProgramTitle = next?.title,
+            nowProgramStartMs = now?.startTime?.toEpochMilli(),
+            nowProgramEndMs = now?.endTime?.toEpochMilli()
+        )
     }
 
     private fun generateGuideQrCode() {

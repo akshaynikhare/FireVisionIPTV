@@ -9,7 +9,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -49,12 +48,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
-        val certificatePinner = CertificatePinner.Builder()
-            .add("tv.cadnative.com", "sha256/vP6G0qWePuvOXaIjJSRs2qQ2MSjo9KdUfsQU8TEqlWI=")
-            .build()
-
+        // No certificate pinning: the managed server uses Let's Encrypt (leaf rotates
+        // every ~90 days, which breaks a hardcoded pin), and BYO sources use arbitrary
+        // hosts. Standard system-CA TLS validation still applies.
         return OkHttpClient.Builder()
-            .certificatePinner(certificatePinner)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

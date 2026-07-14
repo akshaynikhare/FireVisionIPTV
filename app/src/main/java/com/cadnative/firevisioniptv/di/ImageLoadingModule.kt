@@ -25,27 +25,24 @@ object ImageLoadingModule {
         @ApplicationContext context: Context
     ): ImageLoader {
         return ImageLoader.Builder(context)
-            // Memory cache configuration
             .memoryCache {
                 MemoryCache.Builder(context)
-                    .maxSizePercent(0.25) // Use 25% of app memory
+                    .maxSizePercent(0.25)
                     .build()
             }
-            // Disk cache configuration
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50 * 1024 * 1024) // 50MB disk cache
+                    .maxSizeBytes(50 * 1024 * 1024)
                     .build()
             }
-            // Cache policies
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .networkCachePolicy(CachePolicy.ENABLED)
-            // Optimize for TV screens
-            .crossfade(true)
-            .crossfade(300)
-            // Enable hardware bitmaps for better performance
+            .crossfade(150)
+            // RGB_565 only when the image is guaranteed opaque; PNG logos with
+            // alpha (rendered over colored card backgrounds) keep ARGB_8888.
+            .allowRgb565(true)
             .allowHardware(true)
             .build()
     }

@@ -3,10 +3,12 @@ package com.cadnative.firevisioniptv
 import android.app.PictureInPictureParams
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -31,13 +34,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +49,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -59,16 +64,23 @@ import com.cadnative.firevisioniptv.drm.AmazonDrmManager
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.detectPerfProfile
+import com.cadnative.firevisioniptv.presentation.ui.components.OverlayToast
 import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
+import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import javax.inject.Inject
+
+private const val EXIT_CONFIRM_WINDOW_MS = 2000L
 
 /**
  * Main entry point for the modernized FireVision IPTV app.
@@ -92,6 +104,20 @@ class ComposeMainActivity : ComponentActivity() {
         var isPlayerActive = false
         @Volatile
         var isPlayerPlaying = false
+
+        /** Observable from Compose: the player renders video-only while in PiP. */
+        val isInPipMode = mutableStateOf(false)
+    }
+
+    /** PiP params + RemoteAction wiring; PlayerScreen attaches while composed. */
+    val pipController: PipController by lazy { PipController(this) }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode.value = isInPictureInPictureMode
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -132,32 +158,63 @@ class ComposeMainActivity : ComponentActivity() {
 
         setContent {
             val themeStr by userPreferencesRepository.getTheme().collectAsState(initial = "system")
+            // TV is dark-first: 10-foot UI reads better dark and matches the solid-dark nav rail
             val darkTheme = when (themeStr) {
                 "light" -> false
-                "system" -> isSystemInDarkTheme()
+                "system" -> if (remember { isTvDevice(this) }) true else isSystemInDarkTheme()
                 else -> true
             }
-            FireVisionTheme(darkTheme = darkTheme) {
-                var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
-                val navController = rememberNavController()
-                val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
+            val perfProfile = remember { detectPerfProfile(this) }
+            CompositionLocalProvider(LocalPerfProfile provides perfProfile) {
+                FireVisionTheme(darkTheme = darkTheme) {
+                    var showSplash by rememberSaveable { mutableStateOf(showSplashOnStart) }
+                    val navController = rememberNavController()
+                    val startDestination = if (needsPairing) Screen.Pairing.route else Screen.Home.route
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    FireVisionAppShell(
-                        navController = navController,
-                        startDestination = startDestination
-                    )
-
-                    // Deep link navigation (once only, after splash)
-                    if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
-                        LaunchedEffect(targetChannelId) {
-                            navController.navigate(Screen.Player.createRoute(targetChannelId))
+                    // Confirm-exit guard at the app root (TiviMate-style): with the
+                    // setting on, the first BACK on Home arms a toast; a second press
+                    // within the window falls through to the default and exits.
+                    val confirmAppExit by userPreferencesRepository.getBackExitProtection()
+                        .collectAsState(initial = true)
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    var exitArmed by remember { mutableStateOf(false) }
+                    BackHandler(
+                        enabled = confirmAppExit && !exitArmed &&
+                            currentBackStackEntry?.destination?.route == Screen.Home.route
+                    ) { exitArmed = true }
+                    LaunchedEffect(exitArmed) {
+                        if (exitArmed) {
+                            delay(EXIT_CONFIRM_WINDOW_MS)
+                            exitArmed = false
                         }
                     }
 
-                    // Splash overlay
-                    if (showSplash) {
-                        SplashScreen(onSplashFinished = { showSplash = false })
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        FireVisionAppShell(
+                            navController = navController,
+                            startDestination = startDestination
+                        )
+
+                        if (exitArmed) {
+                            OverlayToast(
+                                text = "Press back again to exit",
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 48.dp)
+                            )
+                        }
+
+                        // Deep link navigation (once only, after splash)
+                        if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
+                            LaunchedEffect(targetChannelId) {
+                                navController.navigate(Screen.Player.createRoute(targetChannelId))
+                            }
+                        }
+
+                        // Splash overlay
+                        if (showSplash) {
+                            SplashScreen(onSplashFinished = { showSplash = false })
+                        }
                     }
                 }
             }
@@ -165,7 +222,8 @@ class ComposeMainActivity : ComponentActivity() {
     }
 
     private fun isTvCodeConfigured(): Boolean {
-        return AppPreferences.hasChannelSelection(this)
+        // A paired code OR a bring-your-own playlist (M3U/Xtream) counts as configured.
+        return AppPreferences.hasAnySource(this)
     }
 
     private fun isFirstLaunch(): Boolean {
@@ -175,7 +233,11 @@ class ComposeMainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isPlayerActive && isPlayerPlaying && isMobileDevice(this)) {
+        // API 31+ auto-enters via setAutoEnterEnabled (PipController) — entering
+        // here as well would double-trigger on some paths.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            isPlayerActive && isPlayerPlaying && isMobileDevice(this)
+        ) {
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
                 .build()
@@ -185,6 +247,7 @@ class ComposeMainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        pipController.detach()
         channelHealthScanner.destroy()
     }
 
@@ -224,45 +287,53 @@ private fun FireVisionAppShell(
         }
     }
 
+    // Single FireVisionNavGraph call site: an if/else per orientation would give
+    // the NavHost two composition identities, so rotating disposes every screen
+    // (the player loses its ExoPlayer and orientation request mid-rotation).
     DiagonalGradientBackground {
-        if (isPortrait) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    FireVisionNavGraph(
-                        navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                if (showNav) {
-                    BottomNavBar(
-                        currentRoute = currentRoute,
-                        onScreenSelected = onNavigate,
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-            ) {
-                if (showNav) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    if (isPortrait) WindowInsets.statusBars else WindowInsets.safeDrawing
+                )
+        ) {
+            Row(modifier = Modifier.weight(1f)) {
+                if (!isPortrait && showNav) {
                     SideNavRail(
                         currentRoute = currentRoute,
                         onScreenSelected = onNavigate,
                         compact = isMobile
                     )
                 }
-                FireVisionNavGraph(
-                    navController = navController,
-                    startDestination = startDestination,
-                    modifier = Modifier.weight(1f)
+                Box(modifier = Modifier.weight(1f)) {
+                    FireVisionNavGraph(
+                        navController = navController,
+                        startDestination = startDestination,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    // Thumb-reachable Search on mobile across the browse screens
+                    if (isPortrait && isMobile && currentRoute in Screen.searchableRoutes) {
+                        FloatingActionButton(
+                            onClick = {
+                                navController.navigate(Screen.Search.route) { launchSingleTop = true }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp),
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                    }
+                }
+            }
+            if (isPortrait && showNav) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onScreenSelected = onNavigate,
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
                 )
             }
         }
@@ -271,10 +342,9 @@ private fun FireVisionAppShell(
 
 private val bottomNavItems = listOf(
     Triple(Screen.Home, Icons.Default.Home, "Home"),
-    Triple(Screen.Search, Icons.Default.Search, "Search"),
-    Triple(Screen.Channels, Icons.Default.LiveTv, "Channels"),
-    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
     Triple(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
+    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
+    Triple(Screen.Guide, Icons.Default.GridView, "Guide"),
     Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
 )
 

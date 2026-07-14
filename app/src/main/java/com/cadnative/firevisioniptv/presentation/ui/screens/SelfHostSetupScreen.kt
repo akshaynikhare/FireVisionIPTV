@@ -58,10 +58,16 @@ fun SelfHostSetupScreen(
     onNavigateBack: () -> Unit,
     onPairDevice: () -> Unit,
     modifier: Modifier = Modifier,
+    onPlaylistLoaded: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
+
+    // Advance to Home once a bring-your-own playlist loads successfully.
+    androidx.compose.runtime.LaunchedEffect(uiState.playlistResult) {
+        if (uiState.playlistResult == "Playlist loaded") onPlaylistLoaded()
+    }
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     val guideQrBitmap = remember {
@@ -187,7 +193,154 @@ fun SelfHostSetupScreen(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Bring-your-own playlist: M3U URL or Xtream Codes login (no server needed)
+        PlaylistSourceCard(
+            isLoading = uiState.isLoadingPlaylist,
+            result = uiState.playlistResult,
+            onSaveM3u = { url -> viewModel.saveM3uPlaylist(url) },
+            onSaveXtream = { host, user, pass -> viewModel.saveXtreamPlaylist(host, user, pass) },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaylistSourceCard(
+    isLoading: Boolean,
+    result: String?,
+    onSaveM3u: (String) -> Unit,
+    onSaveXtream: (String, String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isXtream by remember { mutableStateOf(false) }
+    var m3uUrl by remember { mutableStateOf("") }
+    var host by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    SettingsCard(title = "Add Your Own Playlist", modifier = modifier) {
+        Text(
+            text = "Use your own IPTV playlist — no FireVision server required.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Mode toggle
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FocusAwareOutlinedButton(
+                onClick = { isXtream = false },
+                border = BorderStroke(1.dp, if (!isXtream) SteelBlue else subtleBorder)
+            ) {
+                Text(
+                    "M3U URL",
+                    fontWeight = FontWeight.Medium,
+                    color = if (!isXtream) SteelBlue else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            FocusAwareOutlinedButton(
+                onClick = { isXtream = true },
+                border = BorderStroke(1.dp, if (isXtream) SteelBlue else subtleBorder)
+            ) {
+                Text(
+                    "Xtream Codes",
+                    fontWeight = FontWeight.Medium,
+                    color = if (isXtream) SteelBlue else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (isXtream) {
+            DpadTextField(value = host, onValueChange = { host = it }, placeholder = "http://server:port")
+            Spacer(modifier = Modifier.height(8.dp))
+            DpadTextField(value = username, onValueChange = { username = it }, placeholder = "Username")
+            Spacer(modifier = Modifier.height(8.dp))
+            DpadTextField(value = password, onValueChange = { password = it }, placeholder = "Password")
+        } else {
+            DpadTextField(value = m3uUrl, onValueChange = { m3uUrl = it }, placeholder = "https://example.com/playlist.m3u")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FocusAwareButton(
+                onClick = {
+                    if (isXtream) onSaveXtream(host, username, password) else onSaveM3u(m3uUrl)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("Load Playlist", fontWeight = FontWeight.SemiBold)
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            result?.let {
+                Text(
+                    text = it,
+                    color = if (it == "Playlist loaded") Success else Warning,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DpadTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var editing by remember { mutableStateOf(false) }
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged {
+                if (it.hasFocus && !editing) keyboardController?.hide()
+                if (!it.hasFocus) editing = false
+            }
+            .onKeyEvent { event ->
+                if (!editing &&
+                    event.type == KeyEventType.KeyDown &&
+                    (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                ) {
+                    editing = true
+                    keyboardController?.show()
+                    true
+                } else false
+            },
+        shape = RoundedCornerShape(8.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
 }
 
 @Composable

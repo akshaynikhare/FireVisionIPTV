@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 
 @Composable
 fun LoadingIndicator(
@@ -24,7 +26,8 @@ fun LoadingIndicator(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.Space5),
+            modifier = Modifier.animateFadeIn()
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(36.dp),

@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import kotlinx.coroutines.delay
 
 // ── Easing ──────────────────────────────────────────────────────────
@@ -31,6 +32,17 @@ const val DURATION_EXIT = 200        // Exit (faster than entrance)
 const val STAGGER_DELAY_MS = 50L     // Between staggered items
 const val DURATION_OVERLAY = 300     // Overlay slide in/out
 const val AUTO_HIDE_DELAY_MS = 7000L // Channel overlay auto-hide timeout
+
+// ── Motion hierarchy (named intents, mapped to the durations above) ──
+// Focus feedback is the fastest tier so D-pad navigation feels instant;
+// content entrance is the slowest so it reads as deliberate.
+const val DURATION_FOCUS = DURATION_FAST         // focus/press reaction (150)
+const val DURATION_TRANSITION = DURATION_NORMAL  // screen/state transitions (250)
+
+// ── Focus scale factors (Android TV focus system: 1.025 / 1.05 / 1.1) ──
+const val FOCUS_SCALE_SUBTLE = 1.04f  // large surfaces (hero, wide banners)
+const val FOCUS_SCALE_CARD = 1f       // cards don't grow on focus — border + glow are the cue
+const val FOCUS_SCALE_TILE = 1.10f    // small tiles / chips
 
 // ── Splash Animation (Lottie) ────────────────────────────────────
 const val SPLASH_MIN_DISPLAY_MS = 1500L         // Minimum time to show splash (one full Lottie loop)
@@ -57,6 +69,7 @@ fun screenPopExitTransition(): ExitTransition =
  * Use on grid/list items for a cinematic cascade effect.
  *
  * GPU-accelerated: uses only graphicsLayer (transform + opacity).
+ * On low-end devices ([LocalPerfProfile]) items render instantly — no stagger or translate.
  *
  * @param index Item position for stagger delay.
  * @param maxStagger Cap on stagger count so late items don't feel slow.
@@ -65,6 +78,8 @@ fun Modifier.animateItemEntrance(
     index: Int,
     maxStagger: Int = 8
 ): Modifier = composed {
+    if (LocalPerfProfile.current.reduceMotion) return@composed this
+
     var appeared by remember { mutableStateOf(false) }
     val staggerDelay = (index.coerceAtMost(maxStagger) * STAGGER_DELAY_MS).toInt()
 
@@ -86,6 +101,50 @@ fun Modifier.animateItemEntrance(
 
     graphicsLayer {
         this.alpha = alpha
+        this.translationY = translationY
+    }
+}
+
+/**
+ * Staggered entrance with fade + upward slide + subtle scale — a slightly
+ * richer variant of [animateItemEntrance] for hero / featured content.
+ *
+ * GPU-accelerated (graphicsLayer only). No-op on low-end devices.
+ */
+fun Modifier.animateCardEntrance(
+    index: Int,
+    maxStagger: Int = 8
+): Modifier = composed {
+    if (LocalPerfProfile.current.reduceMotion) return@composed this
+
+    var appeared by remember { mutableStateOf(false) }
+    val staggerDelay = index.coerceAtMost(maxStagger) * STAGGER_DELAY_MS
+
+    LaunchedEffect(Unit) {
+        delay(staggerDelay)
+        appeared = true
+    }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
+        label = "cardEntranceAlpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0.92f,
+        animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
+        label = "cardEntranceScale"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (appeared) 0f else 24f,
+        animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart),
+        label = "cardEntranceTranslateY"
+    )
+
+    graphicsLayer {
+        this.alpha = alpha
+        this.scaleX = scale
+        this.scaleY = scale
         this.translationY = translationY
     }
 }

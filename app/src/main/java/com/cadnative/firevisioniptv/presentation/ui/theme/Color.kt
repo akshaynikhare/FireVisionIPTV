@@ -123,6 +123,12 @@ val FocusGlow        = Color(0x40F7A93A)   // 25% Flame300
 val FocusBorder      = Flame300
 val SelectionOverlay = Color(0x1AFFFFFF)
 
+// ── Guide (EPG) focus ────────────────────────────────────────────────
+val GuideRowWash        = Color(0x1FF7A93A)   // ~12% Flame300 — focused-row gradient wash
+val GuideCellFocusStart = Color(0x59F7A93A)   // ~35% Flame300 — focused cell gradient start
+val GuideCellFocusEnd   = Color(0x26E07818)   // ~15% Flame400 — focused cell gradient end
+const val GuideLiveTintAlpha = 0.10f          // category tint behind currently-airing cells
+
 // ── Borders ──────────────────────────────────────────────────────────
 val SubtleBorderDark  = Color(0x10FFFFFF)   // ~6% white on dark surfaces
 val SubtleBorderLight = Color(0x20000000)   // ~12% black on light surfaces
@@ -132,6 +138,14 @@ val SubtleBorder = SubtleBorderDark         // Backward compat — prefer subtle
 const val EmphasisHigh     = 0.87f
 const val EmphasisMedium   = 0.6f
 const val EmphasisDisabled = 0.38f
+
+// ── Video overlay scrims ─────────────────────────────────────────────
+// For player overlays and toasts rendered on top of video, where theme
+// surfaces don't apply — always dark regardless of app theme.
+val ScrimHeavy = Color(0xBF000000)          // 75% black — toasts, info panels
+val ScrimLight = Color(0x99000000)          // 60% black — number chip, lighter overlays
+val OnVideo    = Color(0xFFFFFFFF)          // text/icons on video scrims
+val VideoOverlayBackground = ScrimHeavy
 
 // ── Background gradient glows ────────────────────────────────────────
 val AmberGlow    = Color(0x0AF7A93A)   // ~4% Flame300

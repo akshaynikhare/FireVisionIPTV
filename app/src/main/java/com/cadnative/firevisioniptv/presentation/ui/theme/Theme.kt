@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.theme
 
+import android.content.res.Configuration
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -8,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 
 /** Composition local to expose whether FireVisionTheme is in dark mode. */
 val LocalIsDarkTheme = compositionLocalOf { true }
@@ -123,10 +125,18 @@ fun FireVisionTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    // Phone (compact/portrait) surfaces use a scaled-down type ramp; TV
+    // (large-screen/landscape) keeps the full-size scale unchanged.
+    val configuration = LocalConfiguration.current
+    val isCompact = configuration.screenWidthDp < 600
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    val typography = if (isCompact || isPortrait) FireVisionTypographyMobile else FireVisionTypography
+
     CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-            typography = FireVisionTypography,
+            typography = typography,
+            shapes = FireVisionShapes,
             content = content
         )
     }

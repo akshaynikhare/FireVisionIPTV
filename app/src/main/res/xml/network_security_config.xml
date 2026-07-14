@@ -7,8 +7,12 @@
         Requirements: TR-012 (Network Security - HTTPS only)
     -->
     
-    <!-- Base configuration for all domains -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Base configuration for all domains.
+         Cleartext is permitted because bring-your-own IPTV sources (M3U/Xtream panels)
+         very commonly serve over http://. The managed FireVision server is still
+         reached over HTTPS with certificate pinning (enforced in OkHttp), so this does
+         not weaken the managed path. -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <!-- Trust system certificate authorities -->
             <certificates src="system" />

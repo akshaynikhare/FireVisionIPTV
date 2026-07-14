@@ -1,15 +1,27 @@
 package com.cadnative.firevisioniptv
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.cadnative.firevisioniptv.worker.WorkManagerInitializer
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.SentryEvent
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
+import javax.inject.Inject
 
 @HiltAndroidApp
-class FireVisionApplication : Application() {
+class FireVisionApplication : Application(), Configuration.Provider {
+
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    // On-demand WorkManager init wired with Hilt's worker factory so @HiltWorker
+    // workers (channel + EPG sync) can be instantiated.
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
@@ -29,6 +41,7 @@ class FireVisionApplication : Application() {
         }
 
         WorkManagerInitializer.scheduleChannelSync(this)
+        WorkManagerInitializer.scheduleEpgSync(this)
     }
 
     companion object {

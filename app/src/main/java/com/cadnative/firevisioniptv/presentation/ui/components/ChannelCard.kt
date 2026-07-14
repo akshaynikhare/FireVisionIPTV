@@ -1,10 +1,13 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -18,15 +21,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -34,11 +41,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import android.graphics.Bitmap
 import android.view.KeyEvent
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -46,17 +55,39 @@ import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
+import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
+import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
+import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
+import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
 private const val LONG_PRESS_THRESHOLD_MS = 600L
+
+// Subtle drop shadow so card text stays legible where the scrim is thinnest.
+private val CardTextShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.8f),
+    offset = Offset(0f, 1f),
+    blurRadius = 4f
+)
+
+/** Initials for the logo-less card placeholder: first letters of up to two words. */
+private fun channelMonogram(name: String): String {
+    val words = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    return when {
+        words.isEmpty() -> "?"
+        words.size == 1 -> words[0].take(2).uppercase()
+        else -> (words[0].take(1) + words[1].take(1)).uppercase()
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -64,19 +95,21 @@ fun ChannelCard(
     channel: ChannelUiModel,
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMultiviewClick: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
     var selectKeyDownTime by remember { mutableLongStateOf(0L) }
+    var showContextMenu by remember { mutableStateOf(false) }
     val isMobile = isMobileDevice(LocalContext.current)
     val haptic = LocalHapticFeedback.current
 
-    val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.06f else 1f,
-        animationSpec = tween(durationMillis = DURATION_NORMAL, easing = EaseOutQuart),
-        label = "cardScale"
-    )
+    // With a multiview callback the long-press opens the context menu;
+    // without one (player overlay) it keeps the legacy instant-favorite.
+    val onLongPressAction = {
+        if (onMultiviewClick != null) showContextMenu = true else onFavoriteClick()
+    }
 
     val catColor = categoryColor(channel.category)
     val catIcon = categoryIcon(channel.category)
@@ -88,10 +121,18 @@ fun ChannelCard(
         isFocused -> BorderStroke(2.dp, FocusBorder)
         else -> BorderStroke(1.dp, subtleBorder)
     }
-    val cardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    // Tonal elevation: container steps up one Void level when focused.
+    val containerColor by animateColorAsState(
+        targetValue = if (isFocused) Void700 else Void800,
+        animationSpec = tween(DURATION_FAST, easing = EaseOutQuart),
+        label = "cardContainer"
+    )
+    val cardColors = CardDefaults.cardColors(containerColor = containerColor)
 
+    // tvFocusVisuals owns scale + brand glow + tonal depth; the Card still
+    // draws its own background/border/clip on top.
     val baseModifier = modifier
-        .graphicsLayer { scaleX = scale; scaleY = scale }
+        .tvFocusVisuals(focused = isFocused, shape = cardShape, glowColor = catColor)
         .onFocusChanged { isFocused = it.isFocused }
 
     if (isMobile) {
@@ -101,7 +142,7 @@ fun ChannelCard(
                     onClick = onClick,
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onFavoriteClick()
+                        onLongPressAction()
                     }
                 ),
             shape = cardShape,
@@ -110,9 +151,9 @@ fun ChannelCard(
         ) {
             ChannelCardContent(
                 channel = channel,
-                isFocused = isFocused,
                 catColor = catColor,
-                catIcon = catIcon
+                catIcon = catIcon,
+                focused = isFocused
             )
         }
     } else {
@@ -126,11 +167,11 @@ fun ChannelCard(
                     val code = keyEvent.nativeKeyEvent.keyCode
                     val action = keyEvent.nativeKeyEvent.action
 
-                    // Menu / Bookmark → instant favorite toggle
+                    // Menu / Bookmark → context menu (or legacy favorite toggle)
                     if (action == KeyEvent.ACTION_DOWN &&
                         (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
                     ) {
-                        onFavoriteClick()
+                        onLongPressAction()
                         return@onPreviewKeyEvent true
                     }
 
@@ -147,7 +188,7 @@ fun ChannelCard(
                                     !longPressHandled
                                 ) {
                                     longPressHandled = true
-                                    onFavoriteClick()
+                                    onLongPressAction()
                                     return@onPreviewKeyEvent true
                                 }
                                 return@onPreviewKeyEvent false
@@ -171,25 +212,44 @@ fun ChannelCard(
         ) {
             ChannelCardContent(
                 channel = channel,
-                isFocused = isFocused,
                 catColor = catColor,
-                catIcon = catIcon
+                catIcon = catIcon,
+                focused = isFocused
             )
         }
+    }
+
+    if (showContextMenu) {
+        ChannelContextMenu(
+            channel = channel,
+            onToggleFavorite = { onFavoriteClick() },
+            onOpenMultiview = {
+                showContextMenu = false
+                onMultiviewClick?.invoke()
+            },
+            onDismiss = { showContextMenu = false }
+        )
     }
 }
 
 @Composable
 private fun ChannelCardContent(
     channel: ChannelUiModel,
-    isFocused: Boolean,
-    catColor: androidx.compose.ui.graphics.Color,
-    catIcon: androidx.compose.ui.graphics.vector.ImageVector
+    catColor: Color,
+    catIcon: ImageVector,
+    focused: Boolean
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    // Decode at the largest card size used by any screen (~240x140dp), not full-res.
+    val (targetWidthPx, targetHeightPx) = remember(density) {
+        with(density) { 240.dp.roundToPx() to 140.dp.roundToPx() }
+    }
+    val placeholderPainter = remember { ColorPainter(Void800) }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // ── Layer 1: Logo / image as full-bleed background ──────────
         // Category gradient base (always visible behind logo)
         Box(
             modifier = Modifier
@@ -217,124 +277,193 @@ private fun ChannelCardContent(
         // Background: thumbnail screenshot (if available)
         if (thumbnailFile != null) {
             AsyncImage(
-                model = thumbnailFile,
+                model = remember(thumbnailFile) {
+                    ImageRequest.Builder(context)
+                        .data(thumbnailFile)
+                        .size(targetWidthPx, targetHeightPx)
+                        // Thumbnails are opaque JPEG video frames — RGB_565 halves memory.
+                        .bitmapConfig(Bitmap.Config.RGB_565)
+                        .build()
+                },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                placeholder = placeholderPainter,
+                error = placeholderPainter,
                 modifier = Modifier.fillMaxSize()
             )
-        } else if (channel.logoUrl == null) {
-            Icon(
-                imageVector = catIcon,
-                contentDescription = null,
-                tint = catColor.copy(alpha = 0.3f),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(48.dp)
-            )
-        }
+        } else {
+            val hasLogo = channel.logoUrl != null
+            // Missing OR broken logo URLs are common in real playlists — fall back to
+            // the designed placeholder on load failure, not just when the URL is null.
+            var logoFailed by remember(channel.id, channel.logoUrl) { mutableStateOf(false) }
+            val showPlaceholder = !hasLogo || logoFailed
 
-        // Foreground: logo overlay (on top of thumbnail or gradient)
-        if (channel.logoUrl != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(surfaceColor.copy(alpha = 0.80f)),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                AsyncImage(
-                    model = channel.logoUrl,
-                    contentDescription = null,
+            if (showPlaceholder) {
+                // Designed placeholder tile: category-tinted fill + centered monogram,
+                // so the card is never an empty black box.
+                Box(
                     modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    catColor.copy(alpha = 0.38f),
+                                    catColor.copy(alpha = 0.12f)
+                                )
+                            )
+                        )
+                )
+                Text(
+                    text = channelMonogram(channel.name),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = catColor.copy(alpha = 0.95f),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                // Backdrop panel so light channel artwork stays legible on the card.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(surfaceColor.copy(alpha = 0.55f))
+                )
+            }
+
+            if (hasLogo && !logoFailed) {
+                AsyncImage(
+                    model = remember(channel.logoUrl) {
+                        ImageRequest.Builder(context)
+                            .data(channel.logoUrl)
+                            .size(targetWidthPx, targetHeightPx)
+                            .build()
+                    },
+                    contentDescription = null,
+                    onError = { logoFailed = true },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
                         .fillMaxSize(0.6f)
-                        .padding(top = 6.dp),
+                        .padding(top = Dimens.CardLogoTopPadding),
                     contentScale = ContentScale.Fit
                 )
             }
         }
 
-        // ── Layer 2: Translucent scrim for text readability ─────────
+        // ── Layer 2: Single refined bottom scrim for text legibility ──
+        // Always a dark bottom-up ramp (transparent → near-opaque black), like
+        // the video overlay scrims — the text sits over arbitrary thumbnail
+        // artwork, so a theme surface tint can't guarantee contrast. Deepens on
+        // focus so raised cards keep their text crisp.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .fillMaxHeight(0.50f)
+                .fillMaxHeight(0.75f)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            surfaceColor.copy(alpha = 0f),
-                            surfaceColor.copy(alpha = 0.5f),
-                            surfaceColor.copy(alpha = 0.92f)
+                            Color.Black.copy(alpha = 0f),
+                            Color.Black.copy(alpha = 0.65f),
+                            Color.Black.copy(alpha = if (focused) 0.95f else 0.92f)
                         )
                     )
                 )
         )
 
-        // ── Layer 3: Text, badges, accent line ──────────────────────
-        // Health indicator — top-right
-        if (channel.healthStatus != ChannelHealthStatus.UNKNOWN) {
-            HealthIndicatorDot(
-                status = channel.healthStatus,
+        // ── Layer 3: Text, badges ───────────────────────────────────
+        // Bottom-right stack: favorite heart above the stream-health dot,
+        // sitting on the card's dark bottom scrim so no extra backing needed.
+        // Shares the text block's padding so the dot lines up with the
+        // channel name's bottom edge.
+        val showHealth = channel.healthStatus != ChannelHealthStatus.UNKNOWN
+        if (channel.isFavorite || showHealth) {
+            Column(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-            )
+                    .align(Alignment.BottomEnd)
+                    .padding(Dimens.CardContentPadding)
+                    .padding(bottom = Dimens.CardBadgeBaselineNudge),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimens.Space1)
+            ) {
+                FavoriteBadge(isFavorite = channel.isFavorite)
+                if (showHealth) {
+                    HealthIndicatorDot(status = channel.healthStatus)
+                }
+            }
         }
 
-        // Favorite badge — top-left
-        if (channel.isFavorite) {
-            Icon(
-                imageVector = Icons.Filled.Favorite,
-                contentDescription = "Favorite",
-                tint = Amber,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .size(16.dp)
-            )
-        }
-
-        // Channel name + category — bottom
+        // Channel name + category — bottom; end inset keeps clear of the badges
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            surfaceColor.copy(alpha = 0f),
-                            surfaceColor.copy(alpha = 0.6f)
-                        )
-                    )
-                )
-                .padding(10.dp),
+                .padding(Dimens.CardContentPadding)
+                .padding(end = Dimens.Space6),
             verticalArrangement = Arrangement.Bottom
         ) {
             Text(
                 text = channel.category,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 12.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EmphasisMedium)
+                style = LabelBadge,
+                color = catColor.copy(alpha = EmphasisMedium)
             )
             if (channel.nowProgramTitle != null) {
                 Text(
                     text = channel.nowProgramTitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall.copy(shadow = CardTextShadow),
+                    // Text sits on the always-dark bottom scrim — use the
+                    // on-video token so it stays legible in both themes.
+                    color = OnVideo.copy(alpha = 0.9f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
             Text(
                 text = channel.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.copy(shadow = CardTextShadow),
                 fontWeight = FontWeight.SemiBold,
-                color = catColor,
-                maxLines = 1,
+                color = OnVideo,
+                // Long channel names wrap to a second line instead of a hard
+                // ellipsis; focus raises the ceiling so nothing gets clipped.
+                maxLines = if (focused) 2 else 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
+}
+
+/**
+ * Favorite heart that pops in when toggled on (a quick spring overshoot),
+ * gated on reduceMotion. Renders nothing when not a favorite.
+ */
+@Composable
+private fun FavoriteBadge(
+    isFavorite: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!isFavorite) return
+    val reduceMotion = LocalPerfProfile.current.reduceMotion
+    // Spring the scale from 0 → 1 with a bouncy overshoot each time this badge
+    // (re)appears — i.e. when the channel is favorited. Skipped on low-end boxes.
+    val scale = remember { Animatable(if (reduceMotion) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!reduceMotion) {
+            scale.snapTo(0f)
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+    }
+    Icon(
+        imageVector = Icons.Filled.Favorite,
+        contentDescription = "Favorite",
+        tint = Amber,
+        modifier = modifier
+            .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+            .size(Dimens.IconSmall)
+    )
 }
 
 @Composable
@@ -375,7 +504,7 @@ private fun HealthIndicatorDot(
 
     Box(
         modifier = modifier
-            .size(8.dp)
+            .size(Dimens.HealthDotSize)
             .clip(CircleShape)
             .background(dotColor.copy(alpha = alpha))
             .semantics { contentDescription = label },

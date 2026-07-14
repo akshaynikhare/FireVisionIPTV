@@ -33,7 +33,15 @@ class UserPreferencesRepositoryImplTest {
         every { prefs.getFloat("font_size", 1.0f) } returns 1.0f
         every { prefs.getFloat("animation_speed", 1.0f) } returns 1.0f
         every { prefs.getString("layout_density", "comfortable") } returns "comfortable"
+        every { prefs.getBoolean("back_exit_protection", true) } returns true
+        every { prefs.getString("player_key_up_down", any()) } returns "zap"
+        every { prefs.getString("player_key_left_right", any()) } returns "zap"
+        every { prefs.getString("player_long_ok", any()) } returns "favorite"
+        every { prefs.getInt("sleep_timer_default_minutes", 0) } returns 0
+        every { prefs.getBoolean("always_show_program_bar", false) } returns false
+        every { prefs.getInt("info_bar_timeout_seconds", 4) } returns 4
         every { prefs.edit() } returns editor
+        every { editor.putBoolean(any(), any()) } returns editor
         every { editor.putString(any(), any()) } returns editor
         every { editor.putInt(any(), any()) } returns editor
         every { editor.putFloat(any(), any()) } returns editor
@@ -126,6 +134,40 @@ class UserPreferencesRepositoryImplTest {
         assertTrue(result is Result.Success)
         verify { editor.putString("layout_density", "compact") }
         assertEquals("compact", repo.getLayoutDensity().first())
+    }
+
+    @Test
+    fun `getSleepTimerDefaultMinutes emits initial value from SharedPreferences`() = runTest {
+        val repo = createRepo()
+        assertEquals(0, repo.getSleepTimerDefaultMinutes().first())
+    }
+
+    @Test
+    fun `setSleepTimerDefaultMinutes persists to prefs and updates flow`() = runTest {
+        val repo = createRepo()
+
+        val result = repo.setSleepTimerDefaultMinutes(60)
+
+        assertTrue(result is Result.Success)
+        verify { editor.putInt("sleep_timer_default_minutes", 60) }
+        assertEquals(60, repo.getSleepTimerDefaultMinutes().first())
+    }
+
+    @Test
+    fun `getInfoBarTimeoutSeconds emits initial value from SharedPreferences`() = runTest {
+        val repo = createRepo()
+        assertEquals(4, repo.getInfoBarTimeoutSeconds().first())
+    }
+
+    @Test
+    fun `setInfoBarTimeoutSeconds persists to prefs and updates flow`() = runTest {
+        val repo = createRepo()
+
+        val result = repo.setInfoBarTimeoutSeconds(8)
+
+        assertTrue(result is Result.Success)
+        verify { editor.putInt("info_bar_timeout_seconds", 8) }
+        assertEquals(8, repo.getInfoBarTimeoutSeconds().first())
     }
 
     @Test

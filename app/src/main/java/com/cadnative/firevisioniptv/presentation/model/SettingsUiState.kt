@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.model
 
 import android.graphics.Bitmap
+import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 
 /**
  * UI state for the settings screen.
@@ -15,6 +16,14 @@ data class SettingsUiState(
     val animationSpeed: Float = 1.0f,
     val layoutDensity: String = "comfortable",
     val autoPlay: Boolean = true,
+    // Player controls
+    val backExitProtection: Boolean = true,
+    val keyUpDownAction: String = PlayerKeyAction.ZAP,
+    val keyLeftRightAction: String = PlayerKeyAction.ZAP,
+    val longOkAction: String = PlayerKeyAction.FAVORITE,
+    val sleepTimerDefaultMinutes: Int = 0,
+    val alwaysShowProgramBar: Boolean = false,
+    val infoBarTimeoutSeconds: Int = 4,
     val isLoading: Boolean = false,
     val error: String? = null,
     // Server configuration
@@ -36,7 +45,10 @@ data class SettingsUiState(
     val cacheCleared: Boolean = false,
     // Connection test
     val isTestingConnection: Boolean = false,
-    val connectionTestResult: String? = null
+    val connectionTestResult: String? = null,
+    // Bring-your-own playlist (M3U / Xtream)
+    val isLoadingPlaylist: Boolean = false,
+    val playlistResult: String? = null
 )
 
 data class UpdateInfo(

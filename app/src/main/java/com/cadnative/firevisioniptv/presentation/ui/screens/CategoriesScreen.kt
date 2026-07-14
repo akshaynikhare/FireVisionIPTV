@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +18,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +29,7 @@ fun CategoriesScreen(
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
 
     LaunchedEffect(Unit) {
         viewModel.loadChannels()
@@ -91,11 +94,19 @@ fun CategoriesScreen(
                         }
 
                         LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 160.dp),
+                            columns = if (isCompact) GridCells.Fixed(2)
+                                      else GridCells.Adaptive(minSize = 160.dp),
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            contentPadding = PaddingValues(
+                                horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile else 24.dp,
+                                vertical = if (isCompact) Dimens.ScreenPaddingVerticalMobile else 24.dp
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                if (isCompact) Dimens.CategoryCardGap else 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(
+                                if (isCompact) Dimens.CategoryCardGap else 16.dp
+                            )
                         ) {
                             itemsIndexed(categoriesData) { index, (category, count, imageUrl) ->
                                 CategoryCard(
@@ -107,7 +118,7 @@ fun CategoriesScreen(
                                     onToggleFavorite = { viewModel.toggleCategoryFavorite(category) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(130.dp)
+                                        .height(if (isCompact) Dimens.CategoryCardHeightMobile else 130.dp)
                                         .animateItemEntrance(index)
                                 )
                             }
