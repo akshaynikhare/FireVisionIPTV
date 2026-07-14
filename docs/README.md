@@ -14,8 +14,10 @@
 | [ARCHITECTURE](ARCHITECTURE.md) | Clean Architecture layers, DI modules, key design decisions |
 | [API](API.md) | REST API endpoints, repository interfaces, use cases, Room schema |
 | [USER_GUIDE](USER_GUIDE.md) | Pairing, navigation, player controls, settings, troubleshooting |
-| [APP_STARTUP_FLOW](APP_STARTUP_FLOW.md) | Splash → pairing → home flow with Mermaid diagrams |
-| [PLAYER_BACK_PRESS_FLOW](PLAYER_BACK_PRESS_FLOW.md) | Player back press handling logic |
+| [APP_STARTUP_FLOW](workflow/APP_STARTUP_FLOW.md) | Splash → pairing → home flow with Mermaid diagrams |
+| [PLAYER_BACK_PRESS_FLOW](workflow/PLAYER_BACK_PRESS_FLOW.md) | Player back press handling logic |
+| [FAVORITES_WORKFLOW](workflow/FAVORITES_WORKFLOW.md) | Favorites: optimistic UI, local persistence, server sync/pull |
+| [HEALTH_SCANNER_LIFECYCLE](workflow/HEALTH_SCANNER_LIFECYCLE.md) | Channel health scanner: batch checks, server sync, lifecycle |
 
 ## Module Deep-Dives
 
@@ -37,3 +39,4 @@
 |-----|-------------|
 | [ADR-001](decisions/001-unified-color-palette.md) | Unified color palette across platforms |
 | [ADR-002](decisions/002-pre-warm-viewmodel-during-splash.md) | Pre-warm ViewModel during splash screen |
+| [ADR-003](decisions/003-plaintext-tv-code-storage.md) | Keep TV pairing code in plaintext SharedPreferences |
