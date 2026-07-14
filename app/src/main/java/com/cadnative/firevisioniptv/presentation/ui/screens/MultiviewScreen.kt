@@ -13,8 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -335,8 +339,16 @@ private fun ChannelPickerOverlay(
     onDismiss: () -> Unit
 ) {
     BackHandler { onDismiss() }
-    val firstFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    val initialFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { initialFocus.requestFocus() } }
+
+    // Start at the pane's current channel — on large playlists the picker
+    // otherwise opens thousands of rows away from the selection.
+    val selectedIndex = remember(channels, currentId) {
+        channels.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+    }
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = selectedIndex)
+    val maxPickerHeight = (LocalConfiguration.current.screenHeightDp * 0.8f).dp
 
     Box(
         modifier = Modifier
@@ -348,11 +360,10 @@ private fun ChannelPickerOverlay(
         Column(
             modifier = Modifier
                 .width(460.dp)
+                .heightIn(max = maxPickerHeight)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "Choose channel",
@@ -360,13 +371,22 @@ private fun ChannelPickerOverlay(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 6.dp)
             )
-            channels.forEachIndexed { i, ch ->
-                PickerRow(
-                    label = ch.name,
-                    selected = ch.id == currentId,
-                    focusRequester = if (i == 0) firstFocus else null,
-                    onClick = { onPick(ch.id) }
-                )
+            // Lazy: playlists run to thousands of channels, and composing them
+            // all at once while multiple panes are decoding video kills low-end
+            // boxes. Only the visible rows exist.
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                itemsIndexed(channels, key = { _, ch -> ch.id }) { index, ch ->
+                    PickerRow(
+                        label = ch.name,
+                        selected = ch.id == currentId,
+                        focusRequester = if (index == selectedIndex) initialFocus else null,
+                        onClick = { onPick(ch.id) }
+                    )
+                }
             }
         }
     }
