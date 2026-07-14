@@ -82,8 +82,6 @@ internal fun BoxScope.PlayerOverlays(
     val fullInfoBarVisible = state.showInfoBar && canShowInfoBar
     val pinnedInfoBarVisible = alwaysShowInfoBar && !state.showInfoBar && canShowInfoBar
     val infoBarVisible = fullInfoBarVisible || pinnedInfoBarVisible
-    // Keep bottom-center toasts above the info bar when both are on screen
-    val toastBottomPadding = if (infoBarVisible) 96.dp else 32.dp
 
     // Now/next info bar — revealed on zap or INFO key, auto-hides
     AnimatedVisibility(
@@ -201,18 +199,6 @@ internal fun BoxScope.PlayerOverlays(
                 .background(ScrimLight)
                 .padding(horizontal = 20.dp, vertical = 6.dp)
         )
-    }
-
-    // Key hints — bottom-center on the first few launches
-    AnimatedVisibility(
-        visible = state.showKeyHints && !uiState.showChannelOverlay,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = toastBottomPadding)
-    ) {
-        OverlayToast("OK: channels   ▲▼ ◀▶: zap   MENU: options   Hold OK: favorite   ⏪: last ch   0-9: channel #")
     }
 
     // Live quick-actions bar (TV) — bottom-left, auto-hides with the other

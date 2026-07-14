@@ -12,7 +12,6 @@ object AppPreferences {
     private const val SERVER_URL_KEY = "server_url"
     private const val TV_CODE_KEY = "tv_code"
     private const val DEMO_MODE_KEY = "is_demo_mode"
-    private const val PLAYER_HINT_COUNT_KEY = "player_hint_count"
     private const val EPG_XMLTV_URL_KEY = "epg_xmltv_url"
     private const val PLAYLIST_EPG_URL_KEY = "playlist_epg_url"
     private const val PLAYLIST_SOURCE_TYPE_KEY = "playlist_source_type"
@@ -26,7 +25,6 @@ object AppPreferences {
     const val SOURCE_PAIRED = "paired"
     const val SOURCE_M3U = "m3u"
     const val SOURCE_XTREAM = "xtream"
-    const val PLAYER_HINT_MAX_SHOWS = 3
 
     fun getServerUrl(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -74,16 +72,6 @@ object AppPreferences {
             .putBoolean(DEMO_MODE_KEY, true)
             .putString(PLAYLIST_SOURCE_TYPE_KEY, SOURCE_PAIRED)
             .apply()
-    }
-
-    fun getPlayerHintCount(context: Context): Int {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getInt(PLAYER_HINT_COUNT_KEY, 0)
-    }
-
-    fun incrementPlayerHintCount(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putInt(PLAYER_HINT_COUNT_KEY, getPlayerHintCount(context) + 1).apply()
     }
 
     /**

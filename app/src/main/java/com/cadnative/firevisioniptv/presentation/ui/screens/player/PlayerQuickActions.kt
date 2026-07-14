@@ -54,8 +54,10 @@ internal fun nextSleepTimerStep(current: Int?): Int? {
 
 /**
  * Live-player quick-actions bar: favorite toggle, sleep-timer cycler, and
- * open-channel-list. Summoned + focused via MENU on TV (see PlayerKeyHandler);
- * ◀▶ move between buttons, OK activates, ▲/BACK/MENU exit back to the player.
+ * open-channel-list. Summoned + focused via MENU or ◀▶ on TV (see
+ * PlayerKeyHandler — ◀▶ maps to the "menu" action by default since Google TV
+ * remotes lack a MENU button); once focused, ◀▶ move between buttons, OK
+ * activates, ▲/BACK/MENU exit back to the player.
  *
  * Live-appropriate only — no scrub/seek/speed. The sleep timer cycles through
  * preset durations (Off → 30 → 60 → 90 → 120 → Off); every action is a single
