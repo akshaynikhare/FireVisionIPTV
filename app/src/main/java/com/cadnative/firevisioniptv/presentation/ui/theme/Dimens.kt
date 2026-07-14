@@ -59,6 +59,11 @@ object Dimens {
     val CategoryCardHeightTv = 100.dp
     val CategoryCardWidthMobile = 140.dp
     val CategoryCardHeightMobile = 80.dp
+    // Decorative corner icon scales with card height (home row cards are
+    // 80-100dp tall, the Categories grid 130dp) instead of a fixed size.
+    const val CategoryIconHeightFraction = 0.28f
+    val CategoryIconMin = 22.dp
+    val CategoryIconMax = 36.dp
 
     // ── Icons ────────────────────────────────────────────────────────
     val IconSmall = 16.dp              // badges, inline indicators

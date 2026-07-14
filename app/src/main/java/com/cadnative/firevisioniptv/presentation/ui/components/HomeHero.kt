@@ -65,6 +65,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
 import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
@@ -189,22 +190,14 @@ fun HomeHero(
     }
 }
 
-/** Category pill matching the player info bar's badge treatment. */
+/** Category label matching the channel cards' small text treatment. */
 @Composable
 private fun HeroCategoryBadge(category: String) {
-    val catColor = categoryColor(category)
-    Surface(
-        shape = ShapeSmall,
-        color = catColor.copy(alpha = 0.2f),
-        border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
-    ) {
-        Text(
-            text = category,
-            style = LabelBadge,
-            color = catColor,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-    }
+    Text(
+        text = category,
+        style = LabelBadge,
+        color = categoryColor(category).copy(alpha = EmphasisMedium)
+    )
 }
 
 /** Now-playing block beside the Watch now button: title, live progress, next-up. */

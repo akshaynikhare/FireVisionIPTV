@@ -59,6 +59,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
+import com.cadnative.firevisioniptv.presentation.ui.theme.LabelCardProgram
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOffline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthOnline
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthUnknown
@@ -411,10 +412,11 @@ private fun ChannelCardContent(
             if (channel.nowProgramTitle != null) {
                 Text(
                     text = channel.nowProgramTitle,
-                    style = MaterialTheme.typography.labelSmall.copy(shadow = CardTextShadow),
+                    style = LabelCardProgram.copy(shadow = CardTextShadow),
                     // Text sits on the always-dark bottom scrim — use the
                     // on-video token so it stays legible in both themes.
-                    color = OnVideo.copy(alpha = 0.9f),
+                    // Faded so the channel name below stays the focal point.
+                    color = OnVideo.copy(alpha = EmphasisMedium),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
