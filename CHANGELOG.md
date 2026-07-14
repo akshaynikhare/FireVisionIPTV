@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2] - 2026-07-14
+
+### Fixed
+- make player menu reachable on remotes without a MENU button
+
+---
+
 ## [2.2.1] - 2026-07-14
 
 ### Fixed
