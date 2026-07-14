@@ -224,11 +224,17 @@ fun MultiviewScreen(
     }
 
     if (pickerForPane >= 0) {
+        // Capture the pane index so the closure holds a stable value, not live
+        // state — a D-pad key-repeat can fire onPick twice, and the second call
+        // would otherwise read pickerForPane after it was reset to -1.
+        val paneIndex = pickerForPane
         ChannelPickerOverlay(
             channels = channels,
-            currentId = assignments.getOrNull(pickerForPane),
+            currentId = assignments.getOrNull(paneIndex),
             onPick = { id ->
-                assignments = assignments.toMutableList().also { it[pickerForPane] = id }
+                if (paneIndex in assignments.indices) {
+                    assignments = assignments.toMutableList().also { it[paneIndex] = id }
+                }
                 pickerForPane = -1
             },
             onDismiss = { pickerForPane = -1 }

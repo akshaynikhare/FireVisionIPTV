@@ -90,6 +90,22 @@ class EpgRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun clearAll(): Unit = withContext(dispatcher) {
+        loadMutex.withLock {
+            try {
+                epgDao.deleteAll()
+            } catch (_: Exception) {
+                // Room wipe failed — still drop the read cache; stale rows get
+                // replaced by the next successful refresh.
+            }
+            cache.clear()
+            // Room and cache now agree (both empty); re-arm the session guard so
+            // the next guide access refetches from sources instead of serving this.
+            hydrated = true
+            refreshedThisSession = false
+        }
+    }
+
     private fun keyOf(tvgId: String): String = tvgId.trim().lowercase()
 
     private fun nowNextFrom(programs: List<EpgProgram>?): Pair<EpgProgram?, EpgProgram?> {

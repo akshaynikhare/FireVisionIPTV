@@ -49,6 +49,10 @@ interface EpgDao {
     @Query("DELETE FROM epg_programs WHERE endTimeMs < :cutoffMs")
     suspend fun deleteEndedBefore(cutoffMs: Long)
 
+    /** Wipe the whole guide — used by Settings → Clear Cache. */
+    @Query("DELETE FROM epg_programs")
+    suspend fun deleteAll()
+
     /** Delete current/future programs for the given channels — used to replace a stale schedule. */
     @Query("DELETE FROM epg_programs WHERE channelEpgId IN (:channelEpgIds) AND endTimeMs > :fromMs")
     suspend fun deleteUpcomingForChannels(channelEpgIds: List<String>, fromMs: Long)

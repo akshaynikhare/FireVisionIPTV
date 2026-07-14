@@ -131,7 +131,6 @@ object Dimens {
     val GuideCellMinWidth = 56.dp           // floor width for very short programs
     val GuideNowLineWidth = 2.dp            // vertical "now" indicator thickness
     val GuideChannelLogoSize = 40.dp        // logo in the channel column
-    val GuideDetailPanelHeight = 84.dp      // focused-program detail panel; trimmed to offset the new header band
     val GuideTickLabelInset = 6.dp          // time label offset from tick
     val GuideFocusBorderWidth = 2.dp        // border on the focused program/channel cell
     val GuideRowAccentWidth = 3.dp          // category accent bar on the focused row's channel cell
@@ -146,5 +145,7 @@ object Dimens {
     val GuideMinuteWidthMobile = 5.dp           // horizontal px per timeline minute (mobile)
     val GuideCellPaddingMobile = 8.dp           // text inset inside a program cell (mobile)
     val GuideChannelLogoSizeMobile = 28.dp      // logo in the channel column (mobile)
-    val GuideDetailPanelHeightMobile = 84.dp    // focused-program detail header (mobile, compact)
+
+    // ── Dialogs ──────────────────────────────────────────────────────
+    val DialogMaxWidth = 480.dp             // confirmation dialog card cap (TV + mobile landscape)
 }

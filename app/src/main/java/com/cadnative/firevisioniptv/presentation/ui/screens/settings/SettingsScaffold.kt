@@ -19,12 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +42,7 @@ import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
+import com.cadnative.firevisioniptv.presentation.ui.components.ScreenScaffold
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
@@ -57,6 +54,8 @@ internal class SettingsActions(
     val onNavigateToSelfHost: () -> Unit,
     val onCheckLiveliness: () -> Unit,
     val onClearCache: () -> Unit,
+    val onResetGuide: () -> Unit,
+    val onResetAppData: () -> Unit,
     val onBackExitProtectionChange: (Boolean) -> Unit,
     val onKeyUpDownChange: (String) -> Unit,
     val onKeyLeftRightChange: (String) -> Unit,
@@ -79,7 +78,6 @@ internal enum class SettingsSection(val label: String) {
 
 private val SectionListWidth = 280.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsScaffold(
     uiState: SettingsUiState,
@@ -89,36 +87,20 @@ internal fun SettingsScaffold(
 ) {
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) { paddingValues ->
+    ScreenScaffold(title = "Settings", modifier = modifier) {
         if (isPortrait) {
             StackedSettings(
                 uiState = uiState,
                 scanProgress = scanProgress,
                 actions = actions,
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+                modifier = Modifier.fillMaxSize()
             )
         } else {
             TwoPaneSettings(
                 uiState = uiState,
                 scanProgress = scanProgress,
                 actions = actions,
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
@@ -137,7 +119,7 @@ private fun TwoPaneSettings(
     val contentFocusRequester = remember { FocusRequester() }
     val listFocusRequester = remember { FocusRequester() }
 
-    Row(modifier = modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+    Row(modifier = modifier.padding(horizontal = Dimens.ScreenPaddingHorizontalTv)) {
         Column(
             modifier = Modifier
                 .width(SectionListWidth)
@@ -257,8 +239,9 @@ private fun StackedSettings(
         modifier = modifier
             .verticalScroll(rememberScrollState())
             .padding(
-                horizontal = Dimens.ScreenPaddingHorizontalMobile,
-                vertical = Dimens.ScreenPaddingVerticalMobile
+                start = Dimens.ScreenPaddingHorizontalMobile,
+                end = Dimens.ScreenPaddingHorizontalMobile,
+                bottom = Dimens.ScreenPaddingVerticalMobile
             ),
         verticalArrangement = Arrangement.spacedBy(Dimens.Space3)
     ) {
@@ -299,6 +282,10 @@ private fun SectionContent(
             isClearingCache = uiState.isClearingCache,
             cacheCleared = uiState.cacheCleared,
             onClearCache = actions.onClearCache,
+            isResettingGuide = uiState.isResettingGuide,
+            guideReset = uiState.guideReset,
+            onResetGuide = actions.onResetGuide,
+            onResetAppData = actions.onResetAppData,
             modifier = modifier
         )
         SettingsSection.Controls -> ControlsSection(

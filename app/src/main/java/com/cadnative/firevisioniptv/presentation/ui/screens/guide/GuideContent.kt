@@ -2,11 +2,9 @@ package com.cadnative.firevisioniptv.presentation.ui.screens.guide
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -25,9 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
 import com.cadnative.firevisioniptv.presentation.model.GuideUiState
+import com.cadnative.firevisioniptv.presentation.ui.components.ScreenScaffold
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
 import java.time.Duration
@@ -35,8 +33,12 @@ import java.time.Instant
 import kotlinx.coroutines.delay
 
 /**
- * Guide layout: a detail header for the focused program on top, the channels × time
- * grid below. The header updates as D-pad focus moves between program cells.
+ * Guide layout on the shared [ScreenScaffold]: "Guide" title band with the
+ * focused-program details (or the timeline-unavailable notice) right-aligned in
+ * the trailing slot, then filter chips, then the channels × time grid. Keeping
+ * the details inside the fixed header band costs the description line but gives
+ * the reclaimed panel height back to the grid, and the grid never jumps as
+ * focus moves.
  */
 @Composable
 internal fun GuideContent(
@@ -58,19 +60,24 @@ internal fun GuideContent(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        GuideDetailPanel(
-            focused = focused,
-            showTimelineNotice = state.timelineUnavailable
-        )
-
-        GuideFilterBar(
-            categories = state.categories,
-            selectedFilter = state.selectedFilter,
-            hasFavorites = state.hasFavorites,
-            onSelectFilter = onSelectFilter
-        )
-
+    ScreenScaffold(
+        title = "Guide",
+        modifier = modifier,
+        trailing = {
+            GuideHeaderDetail(
+                focused = focused,
+                timelineUnavailable = state.timelineUnavailable
+            )
+        },
+        belowHeader = {
+            GuideFilterBar(
+                categories = state.categories,
+                selectedFilter = state.selectedFilter,
+                hasFavorites = state.hasFavorites,
+                onSelectFilter = onSelectFilter
+            )
+        }
+    ) {
         GuideGrid(
             rows = state.rows,
             windowStart = state.windowStart,
@@ -85,93 +92,81 @@ internal fun GuideContent(
     }
 }
 
-/** Focused-program detail: title, time range, and description (when the server sends one). */
+/**
+ * Focused-program details in the header band's trailing slot: [live dot +]
+ * title over time range · channel, right-aligned. The description doesn't fit
+ * the fixed band and is dropped — the trade for giving the old detail panel's
+ * height to the grid. Passive and never focusable.
+ */
 @Composable
-private fun GuideDetailPanel(
+private fun GuideHeaderDetail(
     focused: GuideFocusedProgram?,
-    showTimelineNotice: Boolean,
-    modifier: Modifier = Modifier
+    timelineUnavailable: Boolean
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(if (isCompact) Dimens.GuideDetailPanelHeightMobile else Dimens.GuideDetailPanelHeight)
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(
-                horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile
-                else Dimens.ScreenPaddingHorizontalTv,
-                vertical = Dimens.Space2
-            ),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        // With no timeline there are no program cells to focus, so the notice
-        // shares the header row with the static title instead of costing a row.
-        if (showTimelineNotice) {
-            Text(
-                text = "No program schedule available — showing channels only",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .clip(ShapeMedium)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2)
-            )
-        }
-        if (focused == null) {
-            Text(
-                text = "Program Guide",
-                style = if (isCompact) MaterialTheme.typography.titleMedium
-                else MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            return@Box
-        }
 
-        val program = focused.program
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space1)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.Space2)
-            ) {
-                if (program.isLive) {
-                    Icon(
-                        imageVector = Icons.Filled.FiberManualRecord,
-                        contentDescription = "Live now",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.height(Dimens.IconSmall)
-                    )
-                }
-                Text(
-                    text = program.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+    if (timelineUnavailable) {
+        // With no timeline there are no program cells to focus — show the
+        // notice pill instead of the (always empty) program details.
+        Text(
+            text = "No program schedule available — showing channels only",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .clip(ShapeMedium)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2)
+        )
+        return
+    }
+
+    if (focused == null) {
+        Text(
+            text = "Highlight a program for details",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        return
+    }
+
+    val program = focused.program
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(Dimens.Space1)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space2)
+        ) {
+            if (program.isLive) {
+                Icon(
+                    imageVector = Icons.Filled.FiberManualRecord,
+                    contentDescription = "Live now",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.height(Dimens.IconSmall)
                 )
             }
             Text(
-                text = buildTimeRange(program.startTime, program.endTime) + " · " + focused.channelName,
-                style = if (isCompact) MaterialTheme.typography.labelSmall
-                else MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                text = program.title,
+                style = if (isCompact) MaterialTheme.typography.labelMedium
+                else MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            program.description?.takeIf { it.isNotBlank() }?.let { desc ->
-                Text(
-                    text = desc,
-                    style = if (isCompact) MaterialTheme.typography.bodySmall
-                    else MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
+        Text(
+            text = buildTimeRange(program.startTime, program.endTime) + " · " + focused.channelName,
+            style = if (isCompact) MaterialTheme.typography.labelSmall
+            else MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

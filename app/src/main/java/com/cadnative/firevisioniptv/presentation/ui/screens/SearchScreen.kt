@@ -1,6 +1,5 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
-import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -37,13 +36,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.components.AppTextField
+import com.cadnative.firevisioniptv.presentation.ui.components.ScreenScaffold
 import com.cadnative.firevisioniptv.presentation.ui.components.VoiceSearchButton
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
@@ -65,12 +64,9 @@ fun SearchScreen(
     val firstKeyFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val isMobile = isMobileDevice(LocalContext.current)
-    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
-    val horizontalPadding = if (isPortrait) {
-        Dimens.ScreenPaddingHorizontalMobile
-    } else {
-        Dimens.ScreenPaddingHorizontalTv
-    }
+    // Match ScreenHeader's internal compact branch so header and content share
+    // the same horizontal inset on landscape phones (width ≥ 600dp).
+    val isCompact = LocalConfiguration.current.screenWidthDp < 600
 
     // Mobile keeps the real field + system keyboard; TV lands on the on-screen
     // keyboard's first key so the D-pad can drive input with no IME.
@@ -84,90 +80,96 @@ fun SearchScreen(
         viewModel.onQueryChange(q)
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = horizontalPadding, vertical = Dimens.ScreenPaddingVertical)
-    ) {
-        if (isMobile) {
-            Text(
-                text = "Search",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+    if (isMobile) {
+        ScreenScaffold(title = "Search", modifier = modifier) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile
+                                     else Dimens.ScreenPaddingHorizontalTv
+                    )
             ) {
-                AppTextField(
-                    value = searchQuery,
-                    onValueChange = { setQuery(it) },
-                    placeholder = "Search channels…",
-                    dpadEditToggle = false,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(Dimens.IconMedium)
-                        )
-                    },
-                    trailingIcon = {
-                        AnimatedVisibility(
-                            visible = searchQuery.isNotEmpty(),
-                            enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-                            exit = fadeOut(tween(DURATION_FAST, easing = EaseOutQuart))
-                        ) {
-                            IconButton(onClick = { setQuery("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.Space3)
+                ) {
+                    AppTextField(
+                        value = searchQuery,
+                        onValueChange = { setQuery(it) },
+                        placeholder = "Search channels…",
+                        dpadEditToggle = false,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(Dimens.IconMedium)
+                            )
+                        },
+                        trailingIcon = {
+                            AnimatedVisibility(
+                                visible = searchQuery.isNotEmpty(),
+                                enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
+                                exit = fadeOut(tween(DURATION_FAST, easing = EaseOutQuart))
+                            ) {
+                                IconButton(onClick = { setQuery("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester)
-                        .onFocusChanged { if (it.hasFocus) keyboardController?.show() }
-                )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { if (it.hasFocus) keyboardController?.show() }
+                    )
 
-                VoiceSearchButton(
-                    onResult = { text -> setQuery(text) },
-                    onStatusChange = { voiceStatus = it }
+                    VoiceSearchButton(
+                        onResult = { text -> setQuery(text) },
+                        onStatusChange = { voiceStatus = it }
+                    )
+                }
+
+                voiceStatus?.let { status ->
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(top = Dimens.Space2)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Dimens.Space5))
+
+                SearchResultsArea(
+                    uiState = uiState,
+                    searchQuery = searchQuery,
+                    isMobile = true,
+                    onChannelClick = onChannelClick,
+                    onFavoriteClick = { viewModel.toggleFavorite(it) },
+                    onMultiviewClick = onMultiviewClick,
+                    onRetry = { viewModel.onQueryChange(searchQuery) },
+                    onRecentSearchClick = { setQuery(it) },
+                    onClearHistory = { viewModel.clearHistory() },
+                    keyboardController = keyboardController,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-
-            voiceStatus?.let { status ->
-                Text(
-                    text = status,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(top = 8.dp)
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = Dimens.ScreenPaddingHorizontalTv,
+                    vertical = Dimens.ScreenPaddingVertical
                 )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SearchResultsArea(
-                uiState = uiState,
-                searchQuery = searchQuery,
-                isMobile = true,
-                onChannelClick = onChannelClick,
-                onFavoriteClick = { viewModel.toggleFavorite(it) },
-                onMultiviewClick = onMultiviewClick,
-                onRetry = { viewModel.onQueryChange(searchQuery) },
-                onRecentSearchClick = { setQuery(it) },
-                onClearHistory = { viewModel.clearHistory() },
-                keyboardController = keyboardController,
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
+        ) {
             TvSearchContent(
                 query = searchQuery,
                 uiState = uiState,

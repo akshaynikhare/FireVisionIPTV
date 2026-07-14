@@ -1,6 +1,8 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.app.ActivityManager
 import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -10,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
@@ -37,6 +40,7 @@ class SettingsViewModel @Inject constructor(
     private val application: Application,
     private val channelHealthScanner: ChannelHealthScanner,
     private val refreshChannelsUseCase: RefreshChannelsUseCase,
+    private val epgRepository: EpgRepository,
     private val appUpdater: AppUpdater
 ) : ViewModel() {
 
@@ -391,6 +395,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isClearingCache = true, cacheCleared = false) }
             val result = userPreferencesRepository.clearCache()
+            // Guide programs are cached data too — purge them with the rest so a
+            // cache clear really starts fresh (they refetch on next guide access).
+            epgRepository.clearAll()
             when (result) {
                 is Result.Success -> {
                     _uiState.update { it.copy(isClearingCache = false, cacheCleared = true) }
@@ -408,6 +415,33 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    /** Wipe cached guide programs and re-download the schedule from all EPG sources. */
+    fun resetGuideData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResettingGuide = true, guideReset = false) }
+            epgRepository.clearAll()
+            epgRepository.refreshNow()
+            _uiState.update { it.copy(isResettingGuide = false, guideReset = true) }
+            delay(3_000)
+            _uiState.update { it.copy(guideReset = false) }
+        }
+    }
+
+    /**
+     * Factory-reset the app: the system wipes ALL app data (database, preferences,
+     * pairing, caches) and kills the process — next launch starts at pairing, like
+     * a fresh install. Only reachable through a confirmation dialog.
+     */
+    fun resetAppData() {
+        val activityManager =
+            application.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val requested = activityManager.clearApplicationUserData()
+        if (!requested) {
+            // On success the process dies before this line; only failure lands here.
+            _uiState.update { it.copy(error = "Failed to reset app data") }
         }
     }
 

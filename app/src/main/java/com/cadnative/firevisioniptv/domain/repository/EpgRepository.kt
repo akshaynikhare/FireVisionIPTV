@@ -26,4 +26,11 @@ interface EpgRepository {
         from: Instant,
         to: Instant
     ): Map<String, List<EpgProgram>>
+
+    /**
+     * Purge all cached guide data (Room rows + in-memory cache) and re-arm the
+     * per-session refresh guard so the next guide access refetches from sources.
+     * Used by Settings → Clear Cache.
+     */
+    suspend fun clearAll()
 }

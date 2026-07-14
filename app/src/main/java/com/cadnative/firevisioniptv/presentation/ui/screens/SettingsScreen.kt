@@ -42,6 +42,8 @@ fun SettingsScreen(
             onNavigateToSelfHost = onNavigateToSelfHost,
             onCheckLiveliness = viewModel::triggerLivelinessCheck,
             onClearCache = viewModel::clearCache,
+            onResetGuide = viewModel::resetGuideData,
+            onResetAppData = viewModel::resetAppData,
             onBackExitProtectionChange = viewModel::setBackExitProtection,
             onKeyUpDownChange = viewModel::setKeyUpDownAction,
             onKeyLeftRightChange = viewModel::setKeyLeftRightAction,

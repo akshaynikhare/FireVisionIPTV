@@ -16,9 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRestorer
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,7 +29,6 @@ import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.viewmodel.FavoritesViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     onNavigateBack: () -> Unit,
@@ -45,57 +42,36 @@ fun FavoritesScreen(
     // Hoisted so scroll position survives navigation to the player and back
     val gridState = rememberLazyGridState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Favorites",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
+    ScreenScaffold(title = "Favorites", modifier = modifier) {
+        val hasAnyContent = uiState.favorites.isNotEmpty() || uiState.favoriteCategories.isNotEmpty()
+        val contentState = when {
+            uiState.isLoading && !hasAnyContent -> "loading"
+            uiState.error != null && !hasAnyContent -> "error"
+            !hasAnyContent -> "empty"
+            else -> "content"
         }
-    ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            val hasAnyContent = uiState.favorites.isNotEmpty() || uiState.favoriteCategories.isNotEmpty()
-            val contentState = when {
-                uiState.isLoading && !hasAnyContent -> "loading"
-                uiState.error != null && !hasAnyContent -> "error"
-                !hasAnyContent -> "empty"
-                else -> "content"
-            }
 
-            Crossfade(
-                targetState = contentState,
-                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-                label = "favoritesState"
-            ) { state ->
-                when (state) {
-                    "loading" -> ChannelsGridLoadingSkeleton()
-                    "error" -> ErrorState(
-                        message = uiState.error ?: "Failed to load favorites",
-                        onRetry = { viewModel.retryLoadFavorites() }
-                    )
-                    "empty" -> EmptyState(message = "No favorites yet")
-                    else -> FavoritesContent(
-                        favorites = uiState.favorites,
-                        favoriteCategories = uiState.favoriteCategories,
-                        gridState = gridState,
-                        onChannelClick = onChannelClick,
-                        onCategoryClick = onCategoryClick,
-                        onRemoveFavorite = viewModel::removeFavorite,
-                        onMultiviewClick = onMultiviewClick
-                    )
-                }
+        Crossfade(
+            targetState = contentState,
+            animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+            label = "favoritesState"
+        ) { state ->
+            when (state) {
+                "loading" -> ChannelsGridLoadingSkeleton()
+                "error" -> ErrorState(
+                    message = uiState.error ?: "Failed to load favorites",
+                    onRetry = { viewModel.retryLoadFavorites() }
+                )
+                "empty" -> EmptyState(message = "No favorites yet")
+                else -> FavoritesContent(
+                    favorites = uiState.favorites,
+                    favoriteCategories = uiState.favoriteCategories,
+                    gridState = gridState,
+                    onChannelClick = onChannelClick,
+                    onCategoryClick = onCategoryClick,
+                    onRemoveFavorite = viewModel::removeFavorite,
+                    onMultiviewClick = onMultiviewClick
+                )
             }
         }
     }
@@ -131,7 +107,7 @@ private fun FavoritesContent(
         if (favoriteCategories.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column {
-                    SectionTitle("Categories")
+                    SectionHeader(title = "Categories", accentColor = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.CardGapMobile else Dimens.CategoryCardGap)
@@ -153,7 +129,7 @@ private fun FavoritesContent(
                     }
                     if (favorites.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(if (isCompact) Dimens.HeroCardGapMobile else Dimens.HeroCardGap))
-                        SectionTitle("Channels")
+                        SectionHeader(title = "Channels", accentColor = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -172,14 +148,4 @@ private fun FavoritesContent(
             )
         }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary
-    )
 }

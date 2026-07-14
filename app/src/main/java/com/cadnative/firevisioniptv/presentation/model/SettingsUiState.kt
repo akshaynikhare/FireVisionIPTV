@@ -47,6 +47,9 @@ data class SettingsUiState(
     // Cache
     val isClearingCache: Boolean = false,
     val cacheCleared: Boolean = false,
+    // Guide data reset
+    val isResettingGuide: Boolean = false,
+    val guideReset: Boolean = false,
     // Connection test
     val isTestingConnection: Boolean = false,
     val connectionTestResult: String? = null,
