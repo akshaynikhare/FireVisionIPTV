@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.2.0] - 2026-07-14
+
+### Added
+- EPG guide upgrades, mobile player overhaul, PiP, and TV search redesign
+- live EPG guide, playlist import, multiview and TV UI overhaul
+
+### Changed
+- polish README for public discoverability
+
+### Fixed
+- redact credentials from thumbnail-extractor URL logs
+- EPG refresh reliability and correctness (Greptile)
+- encrypt Xtream credentials + guard XMLTV EPG fetch (Greptile)
+
+### Other
+- Refactor settings UI components for better layout and responsiveness
+- snapshot: WIP UI (audit fixes + in-progress screens) before mobile overhaul
+
+---
+
 ## [2.1.3] - 2026-04-05
 
 ### Added
