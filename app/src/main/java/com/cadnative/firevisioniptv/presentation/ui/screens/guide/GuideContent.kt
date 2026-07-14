@@ -59,7 +59,10 @@ internal fun GuideContent(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        GuideDetailPanel(focused = focused)
+        GuideDetailPanel(
+            focused = focused,
+            showTimelineNotice = state.timelineUnavailable
+        )
 
         GuideFilterBar(
             categories = state.categories,
@@ -67,10 +70,6 @@ internal fun GuideContent(
             hasFavorites = state.hasFavorites,
             onSelectFilter = onSelectFilter
         )
-
-        if (state.timelineUnavailable) {
-            GuideTimelineNotice()
-        }
 
         GuideGrid(
             rows = state.rows,
@@ -90,6 +89,7 @@ internal fun GuideContent(
 @Composable
 private fun GuideDetailPanel(
     focused: GuideFocusedProgram?,
+    showTimelineNotice: Boolean,
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
@@ -105,6 +105,22 @@ private fun GuideDetailPanel(
             ),
         contentAlignment = Alignment.CenterStart
     ) {
+        // With no timeline there are no program cells to focus, so the notice
+        // shares the header row with the static title instead of costing a row.
+        if (showTimelineNotice) {
+            Text(
+                text = "No program schedule available — showing channels only",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .clip(ShapeMedium)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2)
+            )
+        }
         if (focused == null) {
             Text(
                 text = "Program Guide",
@@ -156,25 +172,6 @@ private fun GuideDetailPanel(
                 )
             }
         }
-    }
-}
-
-/** Shown when channels loaded but no program timeline was available. */
-@Composable
-private fun GuideTimelineNotice(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimens.ScreenPaddingHorizontalTv, vertical = Dimens.Space2)
-            .clip(ShapeMedium)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2)
-    ) {
-        Text(
-            text = "No program schedule available — showing channels only",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

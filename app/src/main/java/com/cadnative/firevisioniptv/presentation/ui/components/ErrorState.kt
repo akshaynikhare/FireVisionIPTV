@@ -119,10 +119,14 @@ fun ErrorState(
                 border = retryBorder,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier
+                    // Outlined = transparent fill: elevation shadows show through
+                    // as a dark box. Border ring + scale carry the focus cue.
                     .tvFocusVisuals(
                         focused = retryFocused,
                         shape = MaterialTheme.shapes.medium,
-                        focusedScale = FOCUS_SCALE_TILE
+                        focusedScale = FOCUS_SCALE_TILE,
+                        restingElevation = 0.dp,
+                        focusedElevation = 0.dp
                     )
                     .onFocusChanged { retryFocused = it.isFocused }
             ) {

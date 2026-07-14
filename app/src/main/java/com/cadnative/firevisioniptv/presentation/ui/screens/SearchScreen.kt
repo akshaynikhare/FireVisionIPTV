@@ -92,15 +92,15 @@ fun SearchScreen(
             .fillMaxSize()
             .padding(horizontal = horizontalPadding, vertical = Dimens.ScreenPaddingVertical)
     ) {
-        Text(
-            text = "Search",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
         if (isMobile) {
+            Text(
+                text = "Search",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

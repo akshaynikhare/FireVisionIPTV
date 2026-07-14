@@ -93,10 +93,12 @@ internal fun GuideChannelHeader(
             }
         }
         Column {
+            // Same tokens as the program lane's "No information" label so the
+            // row reads as one line of type; titleSmall truncated most names.
             Text(
                 text = name,
-                style = if (isCompact) MaterialTheme.typography.bodySmall
-                else MaterialTheme.typography.titleSmall,
+                style = if (isCompact) MaterialTheme.typography.labelSmall
+                else MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

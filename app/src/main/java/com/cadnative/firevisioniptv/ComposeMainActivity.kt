@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -73,6 +74,8 @@ import com.cadnative.firevisioniptv.presentation.ui.components.SideNavRail
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.SplashScreen
+import com.cadnative.firevisioniptv.presentation.ui.screens.UpdateAvailableScreen
+import com.cadnative.firevisioniptv.presentation.viewmodel.AppUpdateViewModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
 import com.cadnative.firevisioniptv.presentation.ui.theme.FireVisionTheme
 import com.google.firebase.FirebaseApp
@@ -208,6 +211,32 @@ class ComposeMainActivity : ComponentActivity() {
                         if (!showSplash && targetChannelId != null && savedInstanceState == null && !needsPairing) {
                             LaunchedEffect(targetChannelId) {
                                 navController.navigate(Screen.Player.createRoute(targetChannelId))
+                            }
+                        }
+
+                        // Update-available overlay — checks once after splash on a
+                        // configured device; shows full-screen over the app when a
+                        // newer version is published. Session-only dismiss.
+                        if (!needsPairing) {
+                            val updateViewModel: AppUpdateViewModel = hiltViewModel()
+                            val updateState by updateViewModel.uiState.collectAsState()
+
+                            LaunchedEffect(showSplash) {
+                                if (!showSplash) updateViewModel.checkForUpdate()
+                            }
+
+                            val update = updateState.updateInfo
+                            if (!showSplash && update != null && !updateState.dismissed) {
+                                BackHandler(enabled = !updateState.isDownloading) {
+                                    updateViewModel.dismiss()
+                                }
+                                UpdateAvailableScreen(
+                                    updateInfo = update,
+                                    isDownloading = updateState.isDownloading,
+                                    downloadError = updateState.downloadError,
+                                    onUpdateNow = { updateViewModel.downloadAndInstallUpdate() },
+                                    onDismiss = { updateViewModel.dismiss() }
+                                )
                             }
                         }
 

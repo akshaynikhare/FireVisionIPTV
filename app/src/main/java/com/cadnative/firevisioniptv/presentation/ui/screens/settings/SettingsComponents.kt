@@ -38,11 +38,9 @@ import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
-import com.cadnative.firevisioniptv.presentation.ui.theme.Elevation
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
-import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 
 @Composable
@@ -51,33 +49,14 @@ internal fun SettingsCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    var hasFocus by remember { mutableStateOf(false) }
-
-    val borderColor by animateColorAsState(
-        targetValue = if (hasFocus) FocusBorder.copy(alpha = 0.5f) else subtleBorder,
-        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-        label = "cardBorder"
-    )
-    val borderWidth by animateDpAsState(
-        targetValue = if (hasFocus) 2.dp else 1.dp,
-        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-        label = "cardBorderWidth"
-    )
-
-    val elevation by animateDpAsState(
-        targetValue = if (hasFocus) Elevation.Level2 else Elevation.Level1,
-        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
-        label = "cardElevation"
-    )
-
+    // Static, flat card — no focus highlight and no drop shadow. The card's inner
+    // controls (buttons, options) show their own focus; a card-level glow/shadow
+    // just doubles the highlight and reads as noisy.
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .softShadow(elevation, ShapeMedium)
-            .onFocusChanged { hasFocus = it.hasFocus },
+        modifier = modifier.fillMaxWidth(),
         shape = ShapeMedium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(borderWidth, borderColor)
+        border = BorderStroke(1.dp, subtleBorder)
     ) {
         Column(modifier = Modifier.padding(Dimens.Space3)) {
             Text(

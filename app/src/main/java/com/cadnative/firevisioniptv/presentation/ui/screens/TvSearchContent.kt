@@ -48,11 +48,18 @@ internal fun TvSearchContent(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        // Title sits inline with the query bar so the search input rides up into
+        // the header row instead of taking a full row of its own below the title.
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.Space3)
+            horizontalArrangement = Arrangement.spacedBy(Dimens.Space5)
         ) {
+            Text(
+                text = "Search",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
             TvSearchQueryDisplay(query = query, modifier = Modifier.weight(1f))
             VoiceSearchButton(
                 onResult = onVoiceResult,

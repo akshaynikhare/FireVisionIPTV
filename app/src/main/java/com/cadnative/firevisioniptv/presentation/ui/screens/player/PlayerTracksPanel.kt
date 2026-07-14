@@ -184,7 +184,14 @@ private fun TrackRow(
         modifier = Modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged { isFocused = it.isFocused }
-            .tvFocusVisuals(focused = isFocused, shape = ShapeSmall)
+            // No elevation shadow: rows have transparent fills over the panel
+            // scrim, so the shadow body reads as a dark box (see QuickActions).
+            .tvFocusVisuals(
+                focused = isFocused,
+                shape = ShapeSmall,
+                restingElevation = 0.dp,
+                focusedElevation = 0.dp
+            )
             .clip(ShapeSmall)
             .background(if (isFocused) Amber.copy(alpha = 0.18f) else Color.Transparent)
             .clickable(onClick = onClick)
