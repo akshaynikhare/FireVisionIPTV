@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -18,6 +17,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeBadge
 
 private val InvertColorFilter = ColorFilter.colorMatrix(
     ColorMatrix(
@@ -40,7 +40,7 @@ fun ThemeAwareQrCode(
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = ShapeBadge,
         color = if (isDark) Color.Black else Color.White,
         modifier = modifier.size(size)
     ) {

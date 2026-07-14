@@ -55,10 +55,6 @@ internal class SettingsActions(
     val onResetPairing: () -> Unit,
     val onPairDevice: () -> Unit,
     val onNavigateToSelfHost: () -> Unit,
-    val onServerUrlChange: (String) -> Unit,
-    val onTvCodeChange: (String) -> Unit,
-    val onSave: () -> Boolean,
-    val onTestConnection: () -> Unit,
     val onCheckLiveliness: () -> Unit,
     val onClearCache: () -> Unit,
     val onBackExitProtectionChange: (Boolean) -> Unit,
@@ -295,10 +291,6 @@ private fun SectionContent(
             onResetPairing = actions.onResetPairing,
             onPairDevice = actions.onPairDevice,
             onNavigateToSelfHost = actions.onNavigateToSelfHost,
-            onServerUrlChange = actions.onServerUrlChange,
-            onTvCodeChange = actions.onTvCodeChange,
-            onSave = actions.onSave,
-            onTestConnection = actions.onTestConnection,
             modifier = modifier
         )
         SettingsSection.Channels -> ChannelsSection(

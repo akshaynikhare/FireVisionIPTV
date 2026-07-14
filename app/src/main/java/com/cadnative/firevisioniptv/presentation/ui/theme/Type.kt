@@ -336,7 +336,7 @@ val DisplayNumberChip = TextStyle(
 val DisplayPairingCode = TextStyle(
     fontFamily = FontFamily.Monospace,
     fontWeight = FontWeight.Bold,
-    fontSize = 52.sp,
-    lineHeight = 58.sp,
-    letterSpacing = 6.sp
+    fontSize = 36.sp,
+    lineHeight = 40.sp,
+    letterSpacing = 4.sp
 )

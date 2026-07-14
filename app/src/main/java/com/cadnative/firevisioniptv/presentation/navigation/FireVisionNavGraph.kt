@@ -31,7 +31,7 @@ import com.cadnative.firevisioniptv.presentation.ui.screens.guide.GuideScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PairingScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.PlayerScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.SearchScreen
-import com.cadnative.firevisioniptv.presentation.ui.screens.SelfHostSetupScreen
+import com.cadnative.firevisioniptv.presentation.ui.screens.AddSourceScreen
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsScreen
 import com.cadnative.firevisioniptv.presentation.viewmodel.PairingViewModel
 import kotlinx.coroutines.delay
@@ -97,7 +97,7 @@ fun FireVisionNavGraph(
                 pairingUrl = uiState.pairingUrl,
                 onRetryClick = { viewModel.requestNewPairing() },
                 onUseDefaultClick = { viewModel.useDefaultChannelList() },
-                onUseOwnPlaylistClick = { navController.navigate(Screen.SelfHostSetup.route) }
+                onUseAdvancedClick = { navController.navigate(Screen.AddSource.route) }
             )
         }
 
@@ -266,14 +266,14 @@ fun FireVisionNavGraph(
                     }
                 },
                 onNavigateToSelfHost = {
-                    navController.navigate(Screen.SelfHostSetup.route)
+                    navController.navigate(Screen.AddSource.route)
                 }
             )
         }
 
-        // ── Self-Host Setup ───────────────────────────────────────────
-        composable(route = Screen.SelfHostSetup.route) {
-            SelfHostSetupScreen(
+        // ── Add a different source (self-hosted / M3U / Xtream) ────────
+        composable(route = Screen.AddSource.route) {
+            AddSourceScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onPairDevice = {
                     navController.navigate(Screen.Pairing.route)

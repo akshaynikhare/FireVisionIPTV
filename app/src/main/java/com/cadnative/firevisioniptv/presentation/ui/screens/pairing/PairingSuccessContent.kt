@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -34,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
 
@@ -134,7 +134,7 @@ internal fun PairingSuccessContent(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Button(
+                FocusAwareButton(
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(channelManagerUrl))
                         context.startActivity(intent)
@@ -143,7 +143,6 @@ internal fun PairingSuccessContent(
                         containerColor = SteelBlue,
                         contentColor = Color.White
                     ),
-                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(52.dp)
@@ -173,13 +172,12 @@ internal fun PairingSuccessContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
+            FocusAwareButton(
                 onClick = onContinue,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Amber,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
                     .height(48.dp)

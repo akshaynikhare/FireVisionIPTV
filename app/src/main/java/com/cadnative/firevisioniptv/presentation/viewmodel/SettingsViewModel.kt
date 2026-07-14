@@ -104,6 +104,9 @@ class SettingsViewModel @Inject constructor(
                         qrCodeBitmap = current.qrCodeBitmap,
                         isPaired = current.isPaired,
                         isDefaultMode = current.isDefaultMode,
+                        sourceType = current.sourceType,
+                        m3uUrl = current.m3uUrl,
+                        xtreamHost = current.xtreamHost,
                         settingsSaved = current.settingsSaved,
                         isCheckingForUpdate = current.isCheckingForUpdate,
                         updateInfo = current.updateInfo,
@@ -171,11 +174,35 @@ class SettingsViewModel @Inject constructor(
                 tvCode = tvCode,
                 isPaired = isPaired,
                 isDefaultMode = isDefaultMode,
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
+                m3uUrl = AppPreferences.getM3uUrl(ctx),
+                xtreamHost = AppPreferences.getXtreamHost(ctx),
                 appVersion = getAppVersion()
             )
         }
 
         generateQRCode(serverUrl)
+    }
+
+    /**
+     * Re-reads the active channel-source config from prefs. Called when Settings
+     * resumes (e.g. returning from the AddSource screen) so a source change made
+     * there — self-hosted connect, M3U/Xtream load — is reflected immediately.
+     */
+    fun refreshSource() {
+        val ctx = application.applicationContext
+        val tvCode = AppPreferences.getTvCode(ctx)
+        _uiState.update {
+            it.copy(
+                serverUrl = AppPreferences.getServerUrl(ctx),
+                tvCode = tvCode,
+                isPaired = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(ctx),
+                isDefaultMode = AppPreferences.isDemoMode(ctx),
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
+                m3uUrl = AppPreferences.getM3uUrl(ctx),
+                xtreamHost = AppPreferences.getXtreamHost(ctx)
+            )
+        }
     }
 
     fun onServerUrlChange(url: String) {
@@ -194,21 +221,20 @@ class SettingsViewModel @Inject constructor(
         if (!url.startsWith("https://")) return false
         if (!android.util.Patterns.WEB_URL.matcher(url).matches()) return false
 
-        viewModelScope.launch(Dispatchers.IO) {
-            val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString("server_url", url)
-                .putString("tv_code", code)
-                .apply()
-        }
+        // Route through AppPreferences so the playlist source type flips back to
+        // "paired" (and the demo flag clears) — otherwise a prior M3U/Xtream source
+        // stays active and Connection keeps showing the old source.
+        val ctx = application.applicationContext
+        AppPreferences.setServerUrl(ctx, url)
+        AppPreferences.setTvCode(ctx, code)
 
-        val isPaired = code.isNotEmpty() && !AppPreferences.isDemoMode(application.applicationContext)
         _uiState.update {
             it.copy(
                 serverUrl = url,
                 tvCode = code,
-                isPaired = isPaired,
-                isDefaultMode = AppPreferences.isDemoMode(application.applicationContext),
+                isPaired = true,
+                isDefaultMode = false,
+                sourceType = AppPreferences.getPlaylistSourceType(ctx),
                 settingsSaved = true,
                 error = null
             )

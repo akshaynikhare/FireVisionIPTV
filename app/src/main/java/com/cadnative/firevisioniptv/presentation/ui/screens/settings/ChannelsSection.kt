@@ -10,11 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -29,12 +26,15 @@ import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.components.AppSpinner
+import com.cadnative.firevisioniptv.presentation.ui.components.Status
+import com.cadnative.firevisioniptv.presentation.ui.components.StatusText
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareOutlinedButton
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
 import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
-import com.cadnative.firevisioniptv.presentation.ui.theme.Success
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 
 @Composable
@@ -93,7 +93,7 @@ private fun StreamHealthRow(
                         modifier = Modifier
                             .weight(1f)
                             .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
+                            .clip(ShapeSmall),
                         color = HealthChecking,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
@@ -112,14 +112,12 @@ private fun StreamHealthRow(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
+                StatusText(
                     text = if (scanProgress.total > 0)
                         "Last scan: ${scanProgress.scanned}/${scanProgress.total} checked"
                     else
                         "Scan channels to check if streams are online",
-                    color = if (scanProgress.total > 0) Success
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
+                    status = if (scanProgress.total > 0) Status.SUCCESS else Status.NEUTRAL
                 )
             }
         },
@@ -134,11 +132,7 @@ private fun StreamHealthRow(
                 )
             ) {
                 if (scanProgress.isScanning) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    AppSpinner(color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
@@ -170,10 +164,9 @@ private fun CacheRow(
                 enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
                 exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
             ) {
-                Text(
+                StatusText(
                     text = "Cache cleared — refreshing channels",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Success
+                    status = Status.SUCCESS
                 )
             }
             if (!cacheCleared) {
@@ -189,11 +182,7 @@ private fun CacheRow(
             // focused node resets TV focus to the section rail.
             FocusAwareOutlinedButton(onClick = { if (!isClearingCache) onClearCache() }) {
                 if (isClearingCache) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    AppSpinner()
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(

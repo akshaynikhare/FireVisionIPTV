@@ -3,9 +3,7 @@ package com.cadnative.firevisioniptv.presentation.ui.screens.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,11 +11,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
+import com.cadnative.firevisioniptv.presentation.ui.components.AppSpinner
+import com.cadnative.firevisioniptv.presentation.ui.components.Status
+import com.cadnative.firevisioniptv.presentation.ui.components.StatusText
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareOutlinedButton
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
-import com.cadnative.firevisioniptv.presentation.ui.theme.Success
-import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
 
 @Composable
 internal fun AboutSection(
@@ -55,11 +54,7 @@ internal fun AboutSection(
                     }
                 ) {
                     if (busy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        AppSpinner()
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
@@ -76,12 +71,7 @@ internal fun AboutSection(
         )
         downloadError?.let { error ->
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = error,
-                color = Warning,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium
-            )
+            StatusText(text = error, status = Status.WARNING, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -100,10 +90,9 @@ private fun VersionLabel(
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(2.dp))
-        Text(
+        StatusText(
             text = if (upToDate) "$appVersion  ·  Up to date" else appVersion,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (upToDate) Success else MaterialTheme.colorScheme.onSurfaceVariant
+            status = if (upToDate) Status.SUCCESS else Status.NEUTRAL
         )
     }
 }

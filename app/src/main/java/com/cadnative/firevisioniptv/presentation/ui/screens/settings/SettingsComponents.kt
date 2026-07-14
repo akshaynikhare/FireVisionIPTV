@@ -1,5 +1,5 @@
 // Package intentionally stays `presentation.ui.screens` (not `.settings`):
-// SelfHostSetupScreen.kt uses these components via same-package resolution.
+// AddSourceScreen.kt uses these components via same-package resolution.
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
 import androidx.compose.animation.animateColorAsState
@@ -45,13 +45,14 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
 
 @Composable
 internal fun SettingsCard(
-    title: String,
+    title: String?,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
     // Static, flat card — no focus highlight and no drop shadow. The card's inner
     // controls (buttons, options) show their own focus; a card-level glow/shadow
-    // just doubles the highlight and reads as noisy.
+    // just doubles the highlight and reads as noisy. A null [title] renders a
+    // header-less card when the body already carries enough context.
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = ShapeMedium,
@@ -59,13 +60,15 @@ internal fun SettingsCard(
         border = BorderStroke(1.dp, subtleBorder)
     ) {
         Column(modifier = Modifier.padding(Dimens.Space3)) {
-            Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(Dimens.Space3))
+            if (title != null) {
+                Text(
+                    text = title,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(Dimens.Space3))
+            }
             content()
         }
     }

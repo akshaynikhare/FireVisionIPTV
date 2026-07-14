@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cadnative.firevisioniptv.presentation.ui.screens.settings.SettingsActions
 import com.cadnative.firevisioniptv.presentation.ui.screens.settings.SettingsScaffold
@@ -26,6 +28,10 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scanProgress by viewModel.scanProgress.collectAsStateWithLifecycle()
 
+    // Re-read the source config each time Settings resumes so a change made on the
+    // AddSource screen (self-hosted connect, M3U/Xtream load) shows on return.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshSource() }
+
     val actions = remember(viewModel, onPairDevice, onResetPairing, onNavigateToSelfHost) {
         SettingsActions(
             onResetPairing = {
@@ -34,10 +40,6 @@ fun SettingsScreen(
             },
             onPairDevice = onPairDevice,
             onNavigateToSelfHost = onNavigateToSelfHost,
-            onServerUrlChange = viewModel::onServerUrlChange,
-            onTvCodeChange = viewModel::onTvCodeChange,
-            onSave = viewModel::saveServerSettings,
-            onTestConnection = viewModel::testConnection,
             onCheckLiveliness = viewModel::triggerLivelinessCheck,
             onClearCache = viewModel::clearCache,
             onBackExitProtectionChange = viewModel::setBackExitProtection,

@@ -24,7 +24,7 @@ fun PairingScreen(
     channelManagerQrBitmap: Bitmap? = null,
     onRetryClick: () -> Unit,
     onUseDefaultClick: () -> Unit,
-    onUseOwnPlaylistClick: () -> Unit = {},
+    onUseAdvancedClick: () -> Unit = {},
     onContinue: () -> Unit = {}
 ) {
     if (isPaired) {
@@ -50,7 +50,7 @@ fun PairingScreen(
             pairingUrl = pairingUrl,
             onRetryClick = onRetryClick,
             onUseDefaultClick = onUseDefaultClick,
-            onUseOwnPlaylistClick = onUseOwnPlaylistClick
+            onUseAdvancedClick = onUseAdvancedClick
         )
     }
 }

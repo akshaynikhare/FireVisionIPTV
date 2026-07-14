@@ -1,5 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,15 +27,25 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
+import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 import com.cadnative.firevisioniptv.presentation.ui.components.ChannelGridSkeleton
+import com.cadnative.firevisioniptv.presentation.ui.components.tvFocusVisuals
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
@@ -100,7 +112,7 @@ internal fun SearchPrompt(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = 80.dp)
+            .padding(top = Dimens.StateTopPadding)
             .animateFadeIn(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -145,10 +157,24 @@ internal fun RecentSearches(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            TextButton(onClick = onClearHistory) {
+            // D-pad focus feedback: the Clear button scales + shifts to the accent
+            // color when focused so it doesn't read as dead on TV.
+            var clearFocused by remember { mutableStateOf(false) }
+            val clearScale by animateFloatAsState(
+                targetValue = if (clearFocused) 1.1f else 1f,
+                animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+                label = "clearScale"
+            )
+            TextButton(
+                onClick = onClearHistory,
+                modifier = Modifier
+                    .graphicsLayer { scaleX = clearScale; scaleY = clearScale }
+                    .onFocusChanged { clearFocused = it.isFocused }
+            ) {
                 Text(
                     text = "Clear",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if (clearFocused) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -158,11 +184,15 @@ internal fun RecentSearches(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(searches, key = { it }) { search ->
+                var chipFocused by remember { mutableStateOf(false) }
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, subtleBorder),
-                    modifier = Modifier.clickable { onSearchClick(search) }
+                    border = BorderStroke(1.dp, if (chipFocused) FocusBorder.copy(alpha = 0.6f) else subtleBorder),
+                    modifier = Modifier
+                        .onFocusChanged { chipFocused = it.isFocused }
+                        .tvFocusVisuals(focused = chipFocused, shape = MaterialTheme.shapes.small)
+                        .clickable { onSearchClick(search) }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -195,7 +225,7 @@ internal fun NoResultsState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = 80.dp)
+            .padding(top = Dimens.StateTopPadding)
             .animateFadeIn(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

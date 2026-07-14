@@ -107,6 +107,7 @@ object Dimens {
 
     // ── Empty / error / loading states ───────────────────────────────
     val StateMedallionSize = 72.dp          // tinted icon medallion for empty/error states
+    val StateTopPadding = 80.dp             // top inset for centered prompt/no-results columns
     val SkeletonTitleWidth = 140.dp         // placeholder section-title bar width
     val SkeletonTitleHeight = 20.dp         // placeholder section-title bar height
 

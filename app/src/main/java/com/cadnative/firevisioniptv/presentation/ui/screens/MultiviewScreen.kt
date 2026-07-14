@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,8 +53,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.domain.model.Channel
+import com.cadnative.firevisioniptv.presentation.ui.components.SelectableRow
+import com.cadnative.firevisioniptv.presentation.ui.components.tvFocusVisuals
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.VideoPlayer
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
 import com.cadnative.firevisioniptv.presentation.viewmodel.MultiviewViewModel
 import com.cadnative.firevisioniptv.presentation.viewmodel.MultiviewViewModel.Companion.MAX_PANES
 import kotlin.math.min
@@ -242,7 +246,7 @@ private fun MultiviewPane(
     viewModel: MultiviewViewModel,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = ShapeMedium
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     if (requestInitialFocus) {
@@ -304,7 +308,9 @@ private fun LayoutChip(count: Int, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .tvFocusVisuals(focused = focused, shape = ShapeMedium)
+            .clip(ShapeMedium)
             .background(
                 when {
                     focused -> Amber
@@ -312,15 +318,8 @@ private fun LayoutChip(count: Int, selected: Boolean, onClick: () -> Unit) {
                     else -> MaterialTheme.colorScheme.surface
                 }
             )
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
-            .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyDown &&
-                    (e.key == Key.DirectionCenter || e.key == Key.Enter)
-                ) { onClick(); true } else false
-            }
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = Dimens.Space4, vertical = 6.dp)
     ) {
         Text(
             text = "$count",
@@ -361,7 +360,7 @@ private fun ChannelPickerOverlay(
             modifier = Modifier
                 .width(460.dp)
                 .heightIn(max = maxPickerHeight)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(ShapeLarge)
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
         ) {
@@ -399,27 +398,11 @@ private fun PickerRow(
     onClick: () -> Unit,
     focusRequester: FocusRequester? = null
 ) {
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (focused) Amber.copy(alpha = 0.20f) else Color.Transparent)
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
-            .onKeyEvent { e ->
-                if (e.type == KeyEventType.KeyDown &&
-                    (e.key == Key.DirectionCenter || e.key == Key.Enter)
-                ) { onClick(); true } else false
-            }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-    ) {
-        Text(
-            text = if (selected) "✓  $label" else label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) Amber else MaterialTheme.colorScheme.onSurface
-        )
-    }
+    SelectableRow(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+        focusRequester = focusRequester,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
