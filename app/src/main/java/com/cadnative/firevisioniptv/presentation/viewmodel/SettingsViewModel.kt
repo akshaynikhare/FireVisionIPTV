@@ -653,11 +653,16 @@ class SettingsViewModel @Inject constructor(
                 }
             }
 
+            // Must be exported: ACTION_DOWNLOAD_COMPLETE is sent by the Download
+            // Provider app, not the system UID, so a NOT_EXPORTED receiver is
+            // never delivered on Android 13+ and the UI hangs at "Downloading...".
+            // Safe: the receiver checks the download id, queries DownloadManager
+            // for the real status, and the APK signature is verified pre-install.
             ContextCompat.registerReceiver(
                 ctx,
                 downloadReceiver,
                 IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
+                ContextCompat.RECEIVER_EXPORTED
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading update", e)
