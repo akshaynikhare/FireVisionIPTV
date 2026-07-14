@@ -12,32 +12,27 @@ import javax.inject.Singleton
 class GuideUiMapper @Inject constructor() {
 
     /**
-     * Builds Guide rows for [channels], clamping each channel's programs to the
-     * [windowStart, windowEnd] axis. Row order matches [channels]; the row number
-     * is the 1-based position so users see a stable channel numbering.
+     * Lightweight rows for every channel with no programs yet. Row order matches
+     * [channels] and the row number is the 1-based position, so channel numbering is
+     * stable no matter which filter is active. Programs are hydrated later, per row,
+     * as the row scrolls into view.
      */
-    fun toRows(
-        channels: List<Channel>,
-        programsByTvgId: Map<String, List<EpgProgram>>,
-        windowStart: Instant,
-        windowEnd: Instant,
-        now: Instant
-    ): List<GuideRowUiModel> {
-        return channels.mapIndexed { index, channel ->
-            val programs = channel.tvgId
-                ?.let { programsByTvgId[it] }
-                .orEmpty()
-                .map { it.toUiModel(now) }
+    fun toSkeletonRows(channels: List<Channel>): List<GuideRowUiModel> =
+        channels.mapIndexed { index, channel ->
             GuideRowUiModel(
                 channelId = channel.id,
                 channelName = channel.name,
                 channelNumber = index + 1,
                 logoUrl = channel.logoUrl,
                 category = channel.category,
-                programs = programs
+                programs = emptyList(),
+                isHydrated = false
             )
         }
-    }
+
+    /** Map one channel's raw EPG programs to UI models, clamped implicitly by the caller's window. */
+    fun toPrograms(programs: List<EpgProgram>, now: Instant): List<GuideProgramUiModel> =
+        programs.map { it.toUiModel(now) }
 
     private fun EpgProgram.toUiModel(now: Instant): GuideProgramUiModel =
         GuideProgramUiModel(

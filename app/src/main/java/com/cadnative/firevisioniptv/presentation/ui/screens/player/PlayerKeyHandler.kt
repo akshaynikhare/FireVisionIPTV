@@ -26,7 +26,14 @@ internal fun performKeyAction(
                 if (forward) viewModel.nextChannel() else viewModel.previousChannel()
             }
         }
-        PlayerKeyAction.LAST_CHANNEL -> viewModel.recallLastChannel()
+        PlayerKeyAction.LAST_CHANNEL -> {
+            // Recall is a channel switch too — same debounce as ZAP
+            val now = System.currentTimeMillis()
+            if (now - state.lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS) {
+                state.lastChannelSwitchTime = now
+                viewModel.recallLastChannel()
+            }
+        }
         PlayerKeyAction.FAVORITE -> {
             viewModel.toggleFavorite()
             state.flashFavIndicator()
@@ -155,6 +162,13 @@ internal fun handlePlayerKeyEvent(
         KeyEvent.KEYCODE_MEDIA_PREVIOUS,
         KeyEvent.KEYCODE_CHANNEL_DOWN -> {
             performKeyAction(PlayerKeyAction.ZAP, false, exoPlayer, viewModel, state)
+            true
+        }
+        // ⏪ is dead weight on live streams — repurposed as last-channel recall
+        // (TiviMate's ◀ convention). KEYCODE_LAST_CHANNEL is the CEC reference key.
+        KeyEvent.KEYCODE_MEDIA_REWIND,
+        KeyEvent.KEYCODE_LAST_CHANNEL -> {
+            performKeyAction(PlayerKeyAction.LAST_CHANNEL, true, exoPlayer, viewModel, state)
             true
         }
         in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {

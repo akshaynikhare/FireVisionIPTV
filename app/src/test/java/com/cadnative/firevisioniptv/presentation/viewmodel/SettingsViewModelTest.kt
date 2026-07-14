@@ -96,6 +96,7 @@ class SettingsViewModelTest {
         every { userPreferencesRepository.getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
         every { userPreferencesRepository.getSleepTimerDefaultMinutes() } returns flowOf(0)
         every { userPreferencesRepository.getAlwaysShowProgramBar() } returns flowOf(false)
+        every { userPreferencesRepository.getInfoBarTimeoutSeconds() } returns flowOf(4)
 
         // Mock scanner
         every { channelHealthScanner.scanProgress } returns scanProgressFlow

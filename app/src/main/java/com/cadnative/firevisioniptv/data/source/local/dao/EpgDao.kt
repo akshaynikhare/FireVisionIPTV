@@ -66,8 +66,17 @@ interface EpgDao {
         fromMs: Long,
         prunedBeforeMs: Long
     ) {
-        if (channelEpgIds.isNotEmpty()) deleteUpcomingForChannels(channelEpgIds, fromMs)
+        // Chunk the IN(...) delete so a large channel list can't exceed SQLite's
+        // ~999 bound-parameter limit (a 5000-channel playlist would otherwise crash).
+        channelEpgIds.chunked(SQLITE_MAX_IN_ARGS).forEach { chunk ->
+            if (chunk.isNotEmpty()) deleteUpcomingForChannels(chunk, fromMs)
+        }
         upsertAll(programs)
         deleteEndedBefore(prunedBeforeMs)
+    }
+
+    companion object {
+        /** Kept well under SQLite's 999-variable ceiling to leave room for other bound args. */
+        private const val SQLITE_MAX_IN_ARGS = 900
     }
 }

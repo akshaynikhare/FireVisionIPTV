@@ -151,16 +151,17 @@ fun CategoryCard(
                     .background(catColor.copy(alpha = 0.8f))
             )
 
-            // Favorite badge
+            // Favorite badge — bottom-right, matching the channel card
             if (isFavorite) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
                     contentDescription = "Favorite",
                     tint = Amber,
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .size(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .padding(Dimens.CardContentPadding)
+                        .padding(bottom = Dimens.CardBadgeBaselineNudge)
+                        .size(Dimens.IconSmall)
                 )
             }
 
@@ -176,11 +177,12 @@ fun CategoryCard(
                 )
             }
 
-            // Text content — bottom
+            // Text content — bottom; end inset keeps the name clear of the heart
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(12.dp)
+                    .padding(end = Dimens.Space6),
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Text(

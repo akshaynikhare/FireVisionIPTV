@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv
 import android.app.PictureInPictureParams
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import androidx.activity.ComponentActivity
@@ -103,6 +104,20 @@ class ComposeMainActivity : ComponentActivity() {
         var isPlayerActive = false
         @Volatile
         var isPlayerPlaying = false
+
+        /** Observable from Compose: the player renders video-only while in PiP. */
+        val isInPipMode = mutableStateOf(false)
+    }
+
+    /** PiP params + RemoteAction wiring; PlayerScreen attaches while composed. */
+    val pipController: PipController by lazy { PipController(this) }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode.value = isInPictureInPictureMode
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -218,7 +233,11 @@ class ComposeMainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isPlayerActive && isPlayerPlaying && isMobileDevice(this)) {
+        // API 31+ auto-enters via setAutoEnterEnabled (PipController) — entering
+        // here as well would double-trigger on some paths.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            isPlayerActive && isPlayerPlaying && isMobileDevice(this)
+        ) {
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
                 .build()
@@ -228,6 +247,7 @@ class ComposeMainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        pipController.detach()
         channelHealthScanner.destroy()
     }
 
@@ -267,13 +287,25 @@ private fun FireVisionAppShell(
         }
     }
 
+    // Single FireVisionNavGraph call site: an if/else per orientation would give
+    // the NavHost two composition identities, so rotating disposes every screen
+    // (the player loses its ExoPlayer and orientation request mid-rotation).
     DiagonalGradientBackground {
-        if (isPortrait) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(
+                    if (isPortrait) WindowInsets.statusBars else WindowInsets.safeDrawing
+                )
+        ) {
+            Row(modifier = Modifier.weight(1f)) {
+                if (!isPortrait && showNav) {
+                    SideNavRail(
+                        currentRoute = currentRoute,
+                        onScreenSelected = onNavigate,
+                        compact = isMobile
+                    )
+                }
                 Box(modifier = Modifier.weight(1f)) {
                     FireVisionNavGraph(
                         navController = navController,
@@ -281,7 +313,7 @@ private fun FireVisionAppShell(
                         modifier = Modifier.fillMaxSize()
                     )
                     // Thumb-reachable Search on mobile across the browse screens
-                    if (isMobile && currentRoute in Screen.searchableRoutes) {
+                    if (isPortrait && isMobile && currentRoute in Screen.searchableRoutes) {
                         FloatingActionButton(
                             onClick = {
                                 navController.navigate(Screen.Search.route) { launchSingleTop = true }
@@ -296,31 +328,12 @@ private fun FireVisionAppShell(
                         }
                     }
                 }
-                if (showNav) {
-                    BottomNavBar(
-                        currentRoute = currentRoute,
-                        onScreenSelected = onNavigate,
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-                    )
-                }
             }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-            ) {
-                if (showNav) {
-                    SideNavRail(
-                        currentRoute = currentRoute,
-                        onScreenSelected = onNavigate,
-                        compact = isMobile
-                    )
-                }
-                FireVisionNavGraph(
-                    navController = navController,
-                    startDestination = startDestination,
-                    modifier = Modifier.weight(1f)
+            if (isPortrait && showNav) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onScreenSelected = onNavigate,
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
                 )
             }
         }

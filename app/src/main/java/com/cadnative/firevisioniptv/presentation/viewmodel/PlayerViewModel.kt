@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
+import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
 import com.cadnative.firevisioniptv.domain.service.AnalyticsHelper
@@ -13,6 +14,7 @@ import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsUseCase
+import com.cadnative.firevisioniptv.domain.usecase.GetGuideProgramsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetPlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ReportStreamPlayUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ReportStreamStatusUseCase
@@ -53,6 +55,10 @@ private const val SLEEP_TIMER_COARSE_TICK_SECONDS = 30
 private const val STILL_WATCHING_WINDOW_MS = 60_000L
 private const val INACTIVITY_TIMEOUT_MS = 4 * 60 * 60 * 1_000L
 private const val INACTIVITY_CHECK_INTERVAL_MS = 60_000L
+private const val MAX_RECENT_CHANNELS = 3
+private const val BOUNDARY_GRACE_MS = 2_000L      // let the clock actually pass endTime
+private const val BOUNDARY_MIN_DELAY_MS = 5_000L  // floor so a stale/past endTime can't spin
+private const val EPG_TICK_MS = 60_000L
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
@@ -68,6 +74,7 @@ class PlayerViewModel @Inject constructor(
     private val channelHealthDao: ChannelHealthDao,
     private val thumbnailExtractor: ChannelThumbnailExtractor,
     private val epgRepository: EpgRepository,
+    private val getGuideProgramsUseCase: GetGuideProgramsUseCase,
     private val analyticsHelper: AnalyticsHelper,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val playerFactory: PlayerFactory
@@ -105,6 +112,11 @@ class PlayerViewModel @Inject constructor(
                 _uiState.update { it.copy(alwaysShowProgramBar = enabled) }
             }
         }
+        viewModelScope.launch {
+            userPreferencesRepository.getInfoBarTimeoutSeconds().collect { seconds ->
+                _uiState.update { it.copy(infoBarTimeoutSeconds = seconds) }
+            }
+        }
     }
 
     private var savePositionJob: Job? = null
@@ -116,6 +128,10 @@ class PlayerViewModel @Inject constructor(
     private var countdownJob: Job? = null
     private var playReportJob: Job? = null
     private var epgJob: Job? = null
+    private var boundaryJob: Job? = null
+    private var scheduleJob: Job? = null
+    private var epgTickJob: Job? = null
+    private var epgEnrichKickJob: Job? = null
     private var sleepTimerJob: Job? = null
     private var stillWatchingJob: Job? = null
     private var inactivityJob: Job? = null
@@ -173,7 +189,9 @@ class PlayerViewModel @Inject constructor(
                         // Preload channel list for next/prev navigation
                         preloadChannelList()
                         // Fetch EPG now/next non-blocking
+                        boundaryJob?.cancel()
                         fetchEpg(channel.tvgId)
+                        loadSchedule(channel.tvgId)
                     }
                     is Result.Error -> {
                         _uiState.update {
@@ -218,9 +236,137 @@ class PlayerViewModel @Inject constructor(
                 val now = result.first
                 val next = result.second
                 _uiState.update { it.copy(nowPlaying = now, nextProgram = next) }
+                if (now != null) scheduleProgramBoundary(tvgId, now)
             } catch (_: Exception) {
                 // EPG failure is non-fatal; overlay shows channel info only
             }
+        }
+    }
+
+    /**
+     * Wakes at the current program's end time, refetches now/next, and bumps
+     * [PlayerUiState.programChangedToken] on a real transition so the UI can
+     * re-reveal the info banner. A stale guide (endTime already past, same
+     * program returned) gets one retry, then the watcher stops until the next
+     * zap restarts it via [fetchEpg].
+     */
+    private fun scheduleProgramBoundary(tvgId: String, firstCurrent: EpgProgram) {
+        boundaryJob?.cancel()
+        val channelId = _uiState.value.channel?.id ?: return
+        boundaryJob = viewModelScope.launch {
+            var current = firstCurrent
+            var retried = false
+            while (true) {
+                delay(
+                    (current.endTime.toEpochMilli() - System.currentTimeMillis() + BOUNDARY_GRACE_MS)
+                        .coerceAtLeast(BOUNDARY_MIN_DELAY_MS)
+                )
+                if (_uiState.value.channel?.id != channelId) return@launch
+                val (now, next) = try {
+                    epgRepository.getNowNext(tvgId)
+                } catch (_: Exception) {
+                    return@launch
+                }
+                _uiState.update { it.copy(nowPlaying = now, nextProgram = next) }
+                when {
+                    now == null -> return@launch // guide exhausted
+                    now.startTime != current.startTime -> {
+                        _uiState.update { it.copy(programChangedToken = it.programChangedToken + 1) }
+                        current = now
+                        retried = false
+                    }
+                    retried -> return@launch // stale guide — give up until next zap
+                    else -> {
+                        current = now
+                        retried = true
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Overlay EPG enrichment (now/next + progress on channel lists) ──
+
+    private fun epgKey(tvgId: String?): String? =
+        tvgId?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
+
+    private fun enrichWithEpgIfReady(channel: ChannelUiModel): ChannelUiModel {
+        val tvgId = channel.tvgId ?: return channel
+        // Null = cache not hydrated (keep whatever we have); a loaded pair always
+        // overwrites so stale programs clear once the guide moves on.
+        val (now, next) = epgRepository.getNowNextIfCached(tvgId) ?: return channel
+        return channel.copy(
+            nowProgramTitle = now?.title,
+            nextProgramTitle = next?.title,
+            nowProgramStartMs = now?.startTime?.toEpochMilli(),
+            nowProgramEndMs = now?.endTime?.toEpochMilli()
+        )
+    }
+
+    private fun buildOverlayEpg(channels: List<ChannelUiModel>): Map<String, Pair<EpgProgram?, EpgProgram?>> =
+        channels.mapNotNull { epgKey(it.tvgId) }.distinct()
+            .mapNotNull { key -> epgRepository.getNowNextIfCached(key)?.let { key to it } }
+            .toMap()
+
+    private fun reEnrichOverlay() {
+        _uiState.update { state ->
+            val enriched = state.overlayChannels.map(::enrichWithEpgIfReady)
+            state.copy(overlayChannels = enriched, overlayEpg = buildOverlayEpg(enriched))
+        }
+        scheduleOverlayEpgRefresh()
+    }
+
+    /** One-shot: once the EPG cache hydrates, re-enrich whatever list is showing. */
+    private fun kickEpgEnrichment() {
+        if (epgEnrichKickJob?.isActive == true) return
+        epgEnrichKickJob = viewModelScope.launch {
+            try {
+                epgRepository.ensureLoaded()
+            } catch (_: Exception) {
+                return@launch
+            }
+            reEnrichOverlay()
+        }
+    }
+
+    /**
+     * One-shot refresh armed at the earliest listed program's end time (60s
+     * floor so a stale guide can't spin). Re-arms itself through
+     * [reEnrichOverlay] only while there is program data to expire.
+     */
+    private fun scheduleOverlayEpgRefresh() {
+        epgTickJob?.cancel()
+        val earliestEnd = _uiState.value.overlayChannels
+            .mapNotNull { it.nowProgramEndMs }
+            .minOrNull() ?: return
+        epgTickJob = viewModelScope.launch {
+            delay(
+                (earliestEnd - System.currentTimeMillis() + BOUNDARY_GRACE_MS)
+                    .coerceAtLeast(EPG_TICK_MS)
+            )
+            reEnrichOverlay()
+        }
+    }
+
+    /** Load today's schedule for the current channel (mobile Schedule tab). */
+    private fun loadSchedule(tvgId: String?) {
+        scheduleJob?.cancel()
+        if (tvgId.isNullOrBlank()) {
+            _uiState.update { it.copy(schedulePrograms = emptyList(), scheduleLoading = false) }
+            return
+        }
+        scheduleJob = viewModelScope.launch {
+            _uiState.update { it.copy(scheduleLoading = true) }
+            val zone = java.time.ZoneId.systemDefault()
+            val startOfDay = java.time.LocalDate.now(zone).atStartOfDay(zone).toInstant()
+            val endOfDay = startOfDay.plus(java.time.Duration.ofDays(1))
+            val programs = try {
+                getGuideProgramsUseCase(GetGuideProgramsUseCase.Params(listOf(tvgId), startOfDay, endOfDay))
+                    .values.firstOrNull().orEmpty()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            _uiState.update { it.copy(schedulePrograms = programs, scheduleLoading = false) }
         }
     }
 
@@ -468,14 +614,20 @@ class PlayerViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
+                            .map(::enrichWithEpgIfReady)
                         val categories = uiChannels.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
                         _uiState.update {
                             it.copy(
                                 overlayChannels = uiChannels,
+                                overlayEpg = buildOverlayEpg(uiChannels),
                                 overlayCategories = categories,
-                                overlayIsLoadingChannels = false
+                                overlayIsLoadingChannels = false,
+                                // Full list — drop recents no longer in the playlist
+                                recentChannels = it.recentChannels.filter { r -> uiChannels.any { c -> c.id == r.id } }
                             )
                         }
+                        kickEpgEnrichment()
+                        scheduleOverlayEpgRefresh()
                     }
                     is Result.Error -> { /* silent — preload is best-effort */ }
                 }
@@ -509,6 +661,7 @@ class PlayerViewModel @Inject constructor(
                 when (result) {
                     is Result.Success -> {
                         val uiChannels = channelUiMapper.toUiModelsWithHealth(result.data, healthList)
+                            .map(::enrichWithEpgIfReady)
                         // Always load all categories when loading all channels
                         val categories = if (category == null || _uiState.value.overlayCategories.isEmpty()) {
                             uiChannels.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
@@ -518,10 +671,13 @@ class PlayerViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 overlayChannels = uiChannels,
+                                overlayEpg = buildOverlayEpg(uiChannels),
                                 overlayCategories = categories,
                                 overlayIsLoadingChannels = false
                             )
                         }
+                        kickEpgEnrichment()
+                        scheduleOverlayEpgRefresh()
                     }
                     is Result.Error -> {
                         _uiState.update { it.copy(overlayIsLoadingChannels = false) }
@@ -532,6 +688,9 @@ class PlayerViewModel @Inject constructor(
     }
 
     // ── Next / Previous Channel (D-Pad & remote buttons) ───────────
+
+    /** Zap order for the mobile portrait Channels tab — same list ▲▼/swipe zap walks. */
+    fun zapChannels(): List<ChannelUiModel> = zapList()
 
     /** Same-category channels excluding offline ones (current channel always kept). */
     private fun zapList(): List<ChannelUiModel> {
@@ -576,9 +735,16 @@ class PlayerViewModel @Inject constructor(
             return
         }
         _uiState.value.channel?.let { current ->
-            _uiState.update { it.copy(lastChannel = current) }
+            _uiState.update { state ->
+                state.copy(
+                    recentChannels = (listOf(current) + state.recentChannels.filter { it.id != current.id })
+                        .filter { it.id != channelId } // never stack the target we're switching to
+                        .take(MAX_RECENT_CHANNELS)
+                )
+            }
         }
         logWatchDuration()
+        boundaryJob?.cancel()
         countdownJob?.cancel()
         playReportJob?.cancel()
         playReportedForChannel = null
@@ -614,6 +780,7 @@ class PlayerViewModel @Inject constructor(
                         }
                         loadPlaybackPosition(channelId)
                         fetchEpg(channel.tvgId)
+                        loadSchedule(channel.tvgId)
                     }
                     is Result.Error -> {
                         _uiState.update {
@@ -824,6 +991,10 @@ class PlayerViewModel @Inject constructor(
         countdownJob?.cancel()
         playReportJob?.cancel()
         epgJob?.cancel()
+        boundaryJob?.cancel()
+        scheduleJob?.cancel()
+        epgTickJob?.cancel()
+        epgEnrichKickJob?.cancel()
         sleepTimerJob?.cancel()
         stillWatchingJob?.cancel()
         inactivityJob?.cancel()

@@ -317,6 +317,11 @@ fun FireVisionNavGraph(
                         navController.navigate(Screen.Search.route) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToGuide = {
+                        navController.navigate(Screen.Guide.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

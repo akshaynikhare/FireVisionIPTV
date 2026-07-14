@@ -3,27 +3,18 @@ package com.cadnative.firevisioniptv.presentation.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -35,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
-import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.BodyOverlay
 import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.LabelBadge
@@ -47,9 +37,6 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceElevated
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
-import kotlinx.coroutines.delay
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 // Flat vertical scrim — no blur/shadow, cheap on low-end boxes
 private val InfoBarScrim = Brush.verticalGradient(
@@ -59,17 +46,6 @@ private val InfoBarScrim = Brush.verticalGradient(
 )
 
 private val LogoSize = 40.dp
-private val ProgressBarHeight = 3.dp
-private val ProgressBarShape = RoundedCornerShape(1.5.dp)
-
-private val epgTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-private fun formatEpgTime(program: EpgProgram): String {
-    val zone = ZoneId.systemDefault()
-    val start = program.startTime.atZone(zone).format(epgTimeFormatter)
-    val end = program.endTime.atZone(zone).format(epgTimeFormatter)
-    return "$start-$end"
-}
 
 /**
  * Bottom-anchored now-playing bar content for the player. Renders the bar
@@ -104,17 +80,17 @@ fun PlayerInfoBar(
 
         if (nowPlaying != null) {
             Text(
-                text = "Now: ${nowPlaying.title}  ${formatEpgTime(nowPlaying)}",
+                text = "Now: ${nowPlaying.title}  ${formatEpgTimeRange(nowPlaying)}",
                 style = BodyOverlay,
                 color = OnVideo,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            NowProgressBar(nowPlaying)
+            EpgProgressBar(nowPlaying)
         }
         if (nextProgram != null) {
             Text(
-                text = "Next: ${nextProgram.title}  ${formatEpgTime(nextProgram)}",
+                text = "Next: ${nextProgram.title}  ${formatEpgTimeRange(nextProgram)}",
                 style = LabelToast,
                 color = OnVideo.copy(alpha = EmphasisMedium),
                 maxLines = 1,
@@ -166,7 +142,7 @@ private fun CompactInfoBar(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = formatEpgTime(nowPlaying),
+                    text = formatEpgTimeRange(nowPlaying),
                     style = LabelToast,
                     color = OnVideo.copy(alpha = EmphasisMedium),
                     maxLines = 1
@@ -174,7 +150,7 @@ private fun CompactInfoBar(
             }
         }
         if (nowPlaying != null) {
-            NowProgressBar(nowPlaying)
+            EpgProgressBar(nowPlaying)
         }
         if (nextProgram != null) {
             Text(
@@ -236,35 +212,3 @@ private fun ChannelInfoRow(channel: ChannelUiModel) {
     }
 }
 
-@Composable
-private fun NowProgressBar(program: EpgProgram) {
-    // Recompute once per minute — no continuous animation
-    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(program) {
-        while (true) {
-            nowMillis = System.currentTimeMillis()
-            delay(60_000L)
-        }
-    }
-
-    val start = program.startTime.toEpochMilli()
-    val end = program.endTime.toEpochMilli()
-    val fraction = if (end <= start) 0f
-    else ((nowMillis - start).toFloat() / (end - start)).coerceIn(0f, 1f)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(ProgressBarHeight)
-            .background(OnVideo.copy(alpha = 0.24f), ProgressBarShape)
-    ) {
-        if (fraction > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction)
-                    .background(Amber, ProgressBarShape)
-            )
-        }
-    }
-}

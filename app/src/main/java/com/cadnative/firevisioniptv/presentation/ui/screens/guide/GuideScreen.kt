@@ -78,6 +78,8 @@ fun GuideScreen(
                         }
                     },
                     onChannelSelected = onChannelClick,
+                    onSelectFilter = viewModel::selectFilter,
+                    onVisibleRangeChanged = viewModel::onVisibleRangeChanged,
                     modifier = Modifier.fillMaxSize()
                 )
         }

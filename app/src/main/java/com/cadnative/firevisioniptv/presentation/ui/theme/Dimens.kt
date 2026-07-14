@@ -55,6 +55,15 @@ object Dimens {
     val IconLarge = 32.dp              // nav rail, prominent actions
     val ChannelLogoSize = 48.dp
 
+    // ── TV on-screen search keyboard (A–Z grid) ──────────────────────
+    // 40dp keys keep the 7-row block (6 key rows + action row) inside the
+    // 540dp baseline height with slack for overscan; 44dp filled it exactly.
+    val KeyboardKeySize = 40.dp             // square letter/digit key
+    val KeyboardKeyGap = 6.dp               // gap between keys and rows
+    val KeyboardActionKeyMinWidth = 72.dp   // backspace / clear action keys
+    val KeyboardColumnGap = 24.dp           // gap between keyboard and results
+    val SearchBarHeightTv = 44.dp           // read-only query bar + voice button (TV)
+
     // ── Side navigation rail ─────────────────────────────────────────
     val NavRailCollapsedTv = 72.dp
     val NavRailCollapsedMobile = 52.dp
@@ -83,6 +92,18 @@ object Dimens {
     val LiveDotSize = 6.dp                  // pulsing LIVE indicator dot
     val BadgePaddingV = 2.dp                // tight vertical padding inside small pills (LIVE)
 
+    // ── Player chrome (mobile + overlay upgrades) ────────────────────
+    val EpgProgressHeight = 3.dp            // thin live-program progress line
+    val OverlayDetailStripHeight = 84.dp    // fixed focused-channel strip in the channel overlay
+    val PlayerControlButton = 52.dp         // circular scrim buttons in mobile chrome
+    val PlayerTopBarHeight = 64.dp          // mobile landscape top bar
+    val PlayerZapRowHeight = 64.dp          // portrait Channels-tab row
+    val PlayerZapRowLogo = 44.dp            // logo inside a zap row
+    val PlayerPortraitDetailLogo = 52.dp    // channel logo in the portrait detail section
+    val GestureIndicatorWidth = 160.dp      // brightness/volume pill level bar width
+    val GestureIndicatorBarHeight = 4.dp    // level bar thickness inside the pill
+    val TracksPanelMaxWidth = 420.dp        // audio/subtitle panel cap (fills 92% on phones)
+
     // ── Empty / error / loading states ───────────────────────────────
     val StateMedallionSize = 72.dp          // tinted icon medallion for empty/error states
     val SkeletonTitleWidth = 140.dp         // placeholder section-title bar width
@@ -90,7 +111,7 @@ object Dimens {
 
     // ── EPG Guide grid (channels × time) ─────────────────────────────
     val GuideChannelColumnWidth = 200.dp    // sticky left channel column
-    val GuideRowHeight = 76.dp              // one channel row height
+    val GuideRowHeight = 70.dp              // one channel row height
     val GuideTimelineHeight = 44.dp         // top time-axis strip height
     val GuideMinuteWidth = 6.dp             // horizontal px per timeline minute
     val GuideCellGap = 4.dp                 // gap between adjacent program cells
@@ -98,8 +119,11 @@ object Dimens {
     val GuideCellMinWidth = 56.dp           // floor width for very short programs
     val GuideNowLineWidth = 2.dp            // vertical "now" indicator thickness
     val GuideChannelLogoSize = 40.dp        // logo in the channel column
-    val GuideDetailPanelHeight = 132.dp     // focused-program detail header
+    val GuideDetailPanelHeight = 100.dp     // focused-program detail header (compact)
     val GuideTickLabelInset = 6.dp          // time label offset from tick
+    val GuideFocusBorderWidth = 2.dp        // border on the focused program/channel cell
+    val GuideRowAccentWidth = 3.dp          // category accent bar on the focused row's channel cell
+    val GuideFilterChipGap = 10.dp          // gap between filter chips above the grid
 
     // Mobile (compact) variants — screens branch on isCompact. TV values above
     // are far too large/cramped on a phone; these keep the guide legible and
@@ -110,5 +134,5 @@ object Dimens {
     val GuideMinuteWidthMobile = 5.dp           // horizontal px per timeline minute (mobile)
     val GuideCellPaddingMobile = 8.dp           // text inset inside a program cell (mobile)
     val GuideChannelLogoSizeMobile = 28.dp      // logo in the channel column (mobile)
-    val GuideDetailPanelHeightMobile = 104.dp   // focused-program detail header (mobile)
+    val GuideDetailPanelHeightMobile = 84.dp    // focused-program detail header (mobile, compact)
 }

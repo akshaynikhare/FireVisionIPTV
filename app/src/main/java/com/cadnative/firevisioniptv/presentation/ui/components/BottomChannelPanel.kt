@@ -18,12 +18,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -36,14 +35,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceDark
-import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
 
 // Flush, square-topped sheet — edge-to-edge, no rounded corner or drag handle.
 private val PanelShape = RoundedCornerShape(0.dp)
@@ -51,7 +49,8 @@ private val PanelShape = RoundedCornerShape(0.dp)
 @Composable
 internal fun BottomChannelPanel(
     currentChannel: ChannelUiModel?,
-    lastChannel: ChannelUiModel?,
+    recentChannels: List<ChannelUiModel>,
+    overlayEpg: Map<String, Pair<EpgProgram?, EpgProgram?>>,
     channels: List<ChannelUiModel>,
     categories: List<String>,
     selectedCategory: String?,
@@ -68,13 +67,18 @@ internal fun BottomChannelPanel(
     val categoryFocusRequester = remember { FocusRequester() }
     val channelFocusRequester = remember { FocusRequester() }
 
-    // Pin the last-watched channel first for quick recall
-    val pinnedLast = lastChannel?.takeIf { it.id != currentChannel?.id }
-    val displayChannels = if (pinnedLast != null) {
-        listOf(pinnedLast) + channels.filter { it.id != pinnedLast.id }
+    // Pin the recently watched channels first for quick recall (most recent first)
+    val pinnedRecents = recentChannels.filter { it.id != currentChannel?.id }
+    val pinnedIds = pinnedRecents.mapTo(HashSet()) { it.id }
+    val displayChannels = if (pinnedRecents.isNotEmpty()) {
+        pinnedRecents + channels.filter { it.id !in pinnedIds }
     } else {
         channels
     }
+
+    // What the detail strip describes: the focused card, else the playing channel
+    var focusedChannel by remember { mutableStateOf<ChannelUiModel?>(null) }
+    val stripChannel = focusedChannel ?: currentChannel
 
     // Auto-scroll to the current channel when overlay appears or channels change
     val currentIndex = displayChannels.indexOfFirst { it.id == currentChannel?.id }
@@ -139,12 +143,9 @@ internal fun BottomChannelPanel(
             )
         }
 
-        Text(
-            text = "Switch Channel",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = TextSecondary,
-            modifier = Modifier.padding(horizontal = 24.dp)
+        OverlayDetailStrip(
+            channel = stripChannel,
+            epg = overlayEpgKey(stripChannel?.tvgId)?.let { overlayEpg[it] }
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -202,9 +203,10 @@ internal fun BottomChannelPanel(
                     OverlayChannelItem(
                         channel = channel,
                         isCurrentChannel = channel.id == currentChannel?.id,
-                        isLastChannel = pinnedLast != null && index == 0,
+                        recentIndex = index.takeIf { it < pinnedRecents.size },
                         onClick = { onChannelClick(channel.id) },
                         onFavoriteClick = { onFavoriteClick(channel.id) },
+                        onFocused = { focusedChannel = channel },
                         modifier = Modifier.animateItemEntrance(index)
                     )
                 }

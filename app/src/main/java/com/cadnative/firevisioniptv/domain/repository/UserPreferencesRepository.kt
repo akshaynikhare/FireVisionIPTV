@@ -130,6 +130,13 @@ interface UserPreferencesRepository {
     fun getAlwaysShowProgramBar(): Flow<Boolean>
 
     suspend fun setAlwaysShowProgramBar(enabled: Boolean): Result<Unit>
+
+    /**
+     * How long the player's info banner lingers before auto-hiding, in seconds.
+     */
+    fun getInfoBarTimeoutSeconds(): Flow<Int>
+
+    suspend fun setInfoBarTimeoutSeconds(seconds: Int): Result<Unit>
 }
 
 /**

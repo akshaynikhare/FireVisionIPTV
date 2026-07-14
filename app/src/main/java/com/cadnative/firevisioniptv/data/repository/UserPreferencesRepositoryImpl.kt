@@ -37,6 +37,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     private val _longOkAction = MutableStateFlow(prefs.getString(KEY_PLAYER_LONG_OK, PlayerKeyAction.FAVORITE) ?: PlayerKeyAction.FAVORITE)
     private val _sleepTimerDefaultMinutes = MutableStateFlow(prefs.getInt(KEY_SLEEP_TIMER_DEFAULT, 0))
     private val _alwaysShowProgramBar = MutableStateFlow(prefs.getBoolean(KEY_ALWAYS_SHOW_PROGRAM_BAR, false))
+    private val _infoBarTimeoutSeconds = MutableStateFlow(prefs.getInt(KEY_INFO_BAR_TIMEOUT_SECONDS, DEFAULT_INFO_BAR_TIMEOUT_SECONDS))
 
     override fun getTheme(): Flow<String> = _theme.asStateFlow()
 
@@ -206,8 +207,24 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getInfoBarTimeoutSeconds(): Flow<Int> = _infoBarTimeoutSeconds.asStateFlow()
+
+    override suspend fun setInfoBarTimeoutSeconds(seconds: Int): Result<Unit> {
+        return try {
+            withContext(ioDispatcher) {
+                prefs.edit().putInt(KEY_INFO_BAR_TIMEOUT_SECONDS, seconds).apply()
+            }
+            _infoBarTimeoutSeconds.value = seconds
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "firevision_preferences"
+        private const val DEFAULT_INFO_BAR_TIMEOUT_SECONDS = 4
+        private const val KEY_INFO_BAR_TIMEOUT_SECONDS = "info_bar_timeout_seconds"
         private const val KEY_SLEEP_TIMER_DEFAULT = "sleep_timer_default_minutes"
         private const val KEY_ALWAYS_SHOW_PROGRAM_BAR = "always_show_program_bar"
         private const val KEY_BACK_EXIT_PROTECTION = "back_exit_protection"

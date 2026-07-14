@@ -123,6 +123,12 @@ val FocusGlow        = Color(0x40F7A93A)   // 25% Flame300
 val FocusBorder      = Flame300
 val SelectionOverlay = Color(0x1AFFFFFF)
 
+// ── Guide (EPG) focus ────────────────────────────────────────────────
+val GuideRowWash        = Color(0x1FF7A93A)   // ~12% Flame300 — focused-row gradient wash
+val GuideCellFocusStart = Color(0x59F7A93A)   // ~35% Flame300 — focused cell gradient start
+val GuideCellFocusEnd   = Color(0x26E07818)   // ~15% Flame400 — focused cell gradient end
+const val GuideLiveTintAlpha = 0.10f          // category tint behind currently-airing cells
+
 // ── Borders ──────────────────────────────────────────────────────────
 val SubtleBorderDark  = Color(0x10FFFFFF)   // ~6% white on dark surfaces
 val SubtleBorderLight = Color(0x20000000)   // ~12% black on light surfaces

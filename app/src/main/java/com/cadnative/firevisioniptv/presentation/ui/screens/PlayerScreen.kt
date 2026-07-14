@@ -1,15 +1,17 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens
 
-import android.app.Activity
-import android.content.pm.ActivityInfo
+import android.content.Context
+import android.content.res.Configuration
+import android.media.AudioManager
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -23,44 +25,36 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.ComposeMainActivity
-import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.components.ChannelOverlay
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
-import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.ASPECT_MODES
-import com.cadnative.firevisioniptv.presentation.ui.screens.player.CHANNEL_SWITCH_DEBOUNCE_MS
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.MobileChromeActions
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PipRemoteActionsEffect
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerGestureActions
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlayTimers
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlays
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerPlaybackListenerEffect
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerPortraitSections
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerStateOverlays
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerTracksPanel
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PortraitSectionActions
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.TvBackgroundPauseEffect
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.VideoPlayer
-import com.cadnative.firevisioniptv.presentation.ui.screens.player.capturePlayerThumbnail
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.handlePlayerKeyEvent
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.playerGestures
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.prepareChannelStream
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOrientationController
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOverlayState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import java.net.URLEncoder
 
 /**
  * Full-screen video player. Stateful root: owns the ExoPlayer lifecycle,
@@ -76,6 +70,7 @@ fun PlayerScreen(
     catchupDurationMin: Int = 0,
     onNavigateToSettings: (() -> Unit)? = null,
     onNavigateToSearch: (() -> Unit)? = null,
+    onNavigateToGuide: (() -> Unit)? = null,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -83,6 +78,17 @@ fun PlayerScreen(
     val coroutineScope = rememberCoroutineScope()
     val isMobile = isMobileDevice(context)
     val overlayState = rememberPlayerOverlayState()
+
+    // Layout inputs: configChanges in the manifest means rotation recomposes
+    // instead of recreating — the branch below is pure Compose.
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isInPip by ComposeMainActivity.isInPipMode
+    val isPortraitMobile = isMobile && !isLandscape && !isInPip
+    val orientation = rememberPlayerOrientationController(isMobile, isLandscape)
+    val mainActivity = context as? ComposeMainActivity
+    val audioManager = remember {
+        context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    }
 
     // Auto-navigate back when stream is confirmed dead
     LaunchedEffect(uiState.shouldNavigateBack) {
@@ -106,8 +112,10 @@ fun PlayerScreen(
     // directly. BackHandler stays for mobile gesture/system back.
     val onBackAction = {
         when {
+            overlayState.screenLocked -> overlayState.revealLockChip()
             uiState.showChannelOverlay -> viewModel.hideOverlay()
             overlayState.controlsFocused -> overlayState.exitQuickActions()
+            isMobile && isLandscape -> orientation.exitFullscreen()
             else -> onNavigateBack()
         }
     }
@@ -160,143 +168,56 @@ fun PlayerScreen(
     // Set up media item when channel loads
     LaunchedEffect(uiState.channel) {
         uiState.channel?.let { channel ->
-            val url = channel.streamUrl
-            if (url.isNullOrEmpty()) {
+            val prepared = prepareChannelStream(
+                context, exoPlayer, errorRecoveryManager, channel,
+                catchupStartMs, catchupDurationMin
+            )
+            if (!prepared) {
                 viewModel.onStreamDead("Invalid stream URL")
                 return@let
             }
-            errorRecoveryManager.reset()
-
-            // Catch-up: play the Xtream timeshift archive URL for a past program.
-            val catchupUrl = if (catchupStartMs > 0) {
-                buildCatchupUrl(context, channel.id, catchupStartMs, catchupDurationMin)
-            } else null
-
-            if (catchupUrl != null) {
-                // Single archive stream — no live alternates/proxy.
-                errorRecoveryManager.setStreamSlots(
-                    listOf(ErrorRecoveryManager.StreamSlot(catchupUrl, null, isPrimary = true))
-                )
-                exoPlayer.setMediaItem(MediaItem.Builder().setUri(catchupUrl).build())
-            } else {
-                // Build stream slots: primary + alternates, each with optional proxy
-                val serverUrl = AppPreferences.getServerUrl(context).trimEnd('/')
-                val tvCode = AppPreferences.getTvCode(context)
-                val canProxy = tvCode.isNotEmpty() && !AppPreferences.isDemoMode(context)
-
-                fun buildProxyUrl(streamUrl: String): String? {
-                    if (!canProxy) return null
-                    return "$serverUrl/api/v1/tv/stream/$tvCode?url=${URLEncoder.encode(streamUrl, "UTF-8")}"
-                }
-
-                val slots = mutableListOf<ErrorRecoveryManager.StreamSlot>()
-                slots.add(ErrorRecoveryManager.StreamSlot(url, buildProxyUrl(url), isPrimary = true))
-                channel.alternateStreamUrls.take(3).forEach { altUrl ->
-                    slots.add(ErrorRecoveryManager.StreamSlot(altUrl, buildProxyUrl(altUrl), isPrimary = false))
-                }
-                errorRecoveryManager.setStreamSlots(slots)
-
-                exoPlayer.setMediaItem(MediaItem.Builder().setUri(url).build())
-            }
-            exoPlayer.prepare()
-
             // Reveal transient chrome on every zap / channel entry
             overlayState.revealControls()
             overlayState.revealInfoBar()
         }
     }
 
-    // Playback state listener
-    DisposableEffect(exoPlayer) {
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) {
-                    viewModel.updatePlaybackState(
-                        isPlaying = false,
-                        position = exoPlayer.currentPosition,
-                        duration = exoPlayer.duration.coerceAtLeast(0)
-                    )
-                }
-            }
+    PlayerPlaybackListenerEffect(
+        exoPlayer = exoPlayer,
+        viewModel = viewModel,
+        isMobile = isMobile,
+        pipController = mainActivity?.pipController,
+        errorRecoveryManager = errorRecoveryManager,
+        getPlayerView = { playerViewRef },
+        shouldCaptureThumbnail = { uiState.isPlaying || uiState.channel != null }
+    )
 
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                ComposeMainActivity.isPlayerPlaying = isPlaying
-                viewModel.updatePlaybackState(
-                    isPlaying = isPlaying,
-                    position = exoPlayer.currentPosition,
-                    duration = exoPlayer.duration.coerceAtLeast(0)
-                )
-            }
-        }
-        exoPlayer.addListener(listener)
+    TvBackgroundPauseEffect(exoPlayer)
 
-        onDispose {
-            // Capture thumbnail before releasing player
-            if (uiState.isPlaying || uiState.channel != null) {
-                capturePlayerThumbnail(playerViewRef)?.let { bitmap ->
-                    viewModel.saveThumbnailFromPlayer(bitmap)
-                }
-            }
-            exoPlayer.removeListener(listener)
-            errorRecoveryManager.release()
-            exoPlayer.stop()
-            exoPlayer.release()
-        }
-    }
-
-    // On TV devices: pause playback when backgrounded, resume when foregrounded
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var wasPlayingBeforeStop by remember { mutableStateOf(true) }
-    DisposableEffect(lifecycleOwner, exoPlayer) {
-        if (!isTvDevice(context)) {
-            onDispose { }
-        } else {
-            val observer = LifecycleEventObserver { _, event ->
-                when (event) {
-                    Lifecycle.Event.ON_STOP -> {
-                        wasPlayingBeforeStop = exoPlayer.isPlaying
-                        exoPlayer.pause()
-                    }
-                    Lifecycle.Event.ON_START -> {
-                        if (wasPlayingBeforeStop) exoPlayer.play()
-                    }
-                    else -> {}
-                }
-            }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-        }
-    }
-
-    // Immersive mode + reset orientation when leaving player on mobile
-    DisposableEffect(isMobile) {
-        if (isMobile) {
-            (context as? Activity)?.window?.let { window ->
-                val controller = WindowInsetsControllerCompat(window, window.decorView)
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
-        onDispose {
-            if (isMobile) {
-                (context as? Activity)?.let { act ->
-                    act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                    act.window?.let { window ->
-                        val controller = WindowInsetsControllerCompat(window, window.decorView)
-                        controller.show(WindowInsetsCompat.Type.systemBars())
-                    }
-                }
-            }
-        }
-    }
+    PipRemoteActionsEffect(
+        isMobile = isMobile,
+        pipController = mainActivity?.pipController,
+        viewModel = viewModel
+    )
 
     // Auto-hide timers for the transient overlays
     PlayerOverlayTimers(
         state = overlayState,
         isMobile = isMobile,
+        infoBarTimeoutMs = uiState.infoBarTimeoutSeconds * 1000L,
         onCommitChannelNumber = { viewModel.switchToChannelNumber(it) }
     )
+
+    // Program boundary crossed: re-reveal the banner with the fresh now/next
+    // (skipped while a panel is open or the compact bar is pinned — it updates in place)
+    LaunchedEffect(uiState.programChangedToken) {
+        if (uiState.programChangedToken > 0 &&
+            !uiState.showChannelOverlay && !showTracksPanel &&
+            !uiState.alwaysShowProgramBar
+        ) {
+            overlayState.revealInfoBar()
+        }
+    }
 
     // Single focus owner: channel overlay > tracks panel > quick-actions bar > root box.
     // Modals grab their own first row internally; this effect stands down while they're
@@ -321,6 +242,51 @@ fun PlayerScreen(
         overlayState.flashFavIndicator()
         overlayState.revealControls()
     }
+    val onPlayPause = {
+        val nowPlaying = !exoPlayer.isPlaying
+        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+        overlayState.flashPlayPause(isPlaying = nowPlaying)
+    }
+    val onCycleAspect = {
+        aspectModeIndex = (aspectModeIndex + 1) % ASPECT_MODES.size
+        overlayState.revealControls()
+    }
+    val onCycleSleepTimer = { minutes: Int? ->
+        viewModel.setSleepTimer(minutes)
+        overlayState.revealControls()
+    }
+    val onShowTracks = { showTracksPanel = true }
+    val onShowChannelList = { viewModel.showOverlay() }
+    val onEnterPip: () -> Unit = { mainActivity?.pipController?.enterPip() }
+
+    val gestureActions = PlayerGestureActions(
+        onToggleChrome = {
+            if (overlayState.showControls) overlayState.hideControls() else overlayState.revealControls()
+        },
+        onPlayPause = onPlayPause,
+        onLongPressFavorite = onToggleFavorite,
+        onZap = { forward -> if (forward) viewModel.nextChannel() else viewModel.previousChannel() },
+        onPinchAspect = { zoomIn -> aspectModeIndex = if (zoomIn) 1 else 0 }, // Zoom / Fit
+        onDismissOverlay = { viewModel.hideOverlay() },
+        onCancelSleepExpiry = { viewModel.cancelSleepTimerExpiry() }
+    )
+    val mobileChromeActions = MobileChromeActions(
+        onBack = onBackAction,
+        onToggleFavorite = onToggleFavorite,
+        onShowChannelList = onShowChannelList,
+        onShowTracks = onShowTracks,
+        onCycleAspect = onCycleAspect,
+        onCycleSleepTimer = onCycleSleepTimer,
+        onPrevChannel = { viewModel.previousChannel() },
+        onNextChannel = { viewModel.nextChannel() },
+        onEnterPip = onEnterPip,
+        onEnterFullscreen = { orientation.enterFullscreen() },
+        onExitFullscreen = { orientation.exitFullscreen() }
+    )
+    // Same category-filtered order the swipe/CH± zap uses
+    val zapChannels = remember(uiState.overlayChannels, uiState.channel?.id) {
+        viewModel.zapChannels()
+    }
 
     Box(
         modifier = modifier
@@ -328,49 +294,6 @@ fun PlayerScreen(
             .background(MaterialTheme.colorScheme.scrim)
             .focusRequester(rootFocusRequester)
             .focusable()
-            .then(
-                if (isMobile) Modifier.pointerInput(uiState.showChannelOverlay) {
-                    var totalDrag = 0f
-                    coroutineScope {
-                        launch {
-                            detectTapGestures(
-                                onTap = {
-                                    if (uiState.showChannelOverlay) {
-                                        viewModel.hideOverlay()
-                                    } else {
-                                        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                        overlayState.revealControls()
-                                    }
-                                },
-                                onLongPress = {
-                                    if (!uiState.showChannelOverlay) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onToggleFavorite()
-                                    }
-                                }
-                            )
-                        }
-                        launch {
-                            detectHorizontalDragGestures(
-                                onDragStart = { totalDrag = 0f },
-                                onDragEnd = {
-                                    if (!uiState.showChannelOverlay) {
-                                        val now = System.currentTimeMillis()
-                                        if (kotlin.math.abs(totalDrag) > 100f &&
-                                            now - overlayState.lastChannelSwitchTime >= CHANNEL_SWITCH_DEBOUNCE_MS
-                                        ) {
-                                            overlayState.lastChannelSwitchTime = now
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            if (totalDrag > 0) viewModel.previousChannel() else viewModel.nextChannel()
-                                        }
-                                    }
-                                },
-                                onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount }
-                            )
-                        }
-                    }
-                } else Modifier
-            )
             .onKeyEvent { keyEvent ->
                 // BACK must be consumed here: if it bubbles unhandled, Compose
                 // clears focus and eats ACTION_DOWN, so BackHandler never runs.
@@ -393,93 +316,110 @@ fun PlayerScreen(
                 )
             }
     ) {
-        if (uiState.channel != null && !uiState.isLoading && uiState.error == null) {
-            VideoPlayer(
-                exoPlayer = exoPlayer,
-                onPlayerViewCreated = { playerViewRef = it },
-                modifier = Modifier.fillMaxSize(),
-                resizeMode = ASPECT_MODES[aspectModeIndex].first
-            )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // The video Box keeps the same tree position in both layouts —
+            // only its size modifier flips, so the surface never detaches.
+            Box(
+                modifier = (
+                    if (isPortraitMobile) Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                    else Modifier.fillMaxSize()
+                ).then(
+                    if (isMobile && !isInPip) Modifier.playerGestures(
+                        state = overlayState,
+                        exoPlayer = exoPlayer,
+                        activity = mainActivity,
+                        audioManager = audioManager,
+                        haptic = haptic,
+                        overlayVisible = uiState.showChannelOverlay,
+                        sleepTimerExpired = uiState.sleepTimerExpired,
+                        actions = gestureActions
+                    ) else Modifier
+                )
+            ) {
+                if (uiState.channel != null && !uiState.isLoading && uiState.error == null) {
+                    VideoPlayer(
+                        exoPlayer = exoPlayer,
+                        onPlayerViewCreated = { playerViewRef = it },
+                        modifier = Modifier.fillMaxSize(),
+                        resizeMode = ASPECT_MODES[aspectModeIndex].first
+                    )
+                }
+
+                if (!isInPip) {
+                    PlayerStateOverlays(
+                        uiState = uiState,
+                        maxRecoveryAttempts = errorRecoveryManager.maxTotalAttempts,
+                        onRetry = {
+                            viewModel.clearError()
+                            viewModel.loadChannel(channelId)
+                        },
+                        onDismissDeadStream = { viewModel.cancelDeadStreamCountdown() }
+                    )
+
+                    PlayerOverlays(
+                        uiState = uiState,
+                        state = overlayState,
+                        isMobile = isMobile,
+                        isPortrait = isPortraitMobile,
+                        alwaysShowInfoBar = uiState.alwaysShowProgramBar,
+                        aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+                        quickActionsFocusRequester = quickActionsFocusRequester,
+                        onToggleFavorite = onToggleFavorite,
+                        onCycleSleepTimer = onCycleSleepTimer,
+                        onCycleAspect = onCycleAspect,
+                        onShowTracks = onShowTracks,
+                        onShowChannelList = onShowChannelList,
+                        onShowGuide = onNavigateToGuide,
+                        mobileChromeActions = if (isMobile) mobileChromeActions else null
+                    )
+                }
+            }
+
+            if (isPortraitMobile) {
+                PlayerPortraitSections(
+                    uiState = uiState,
+                    zapChannels = zapChannels,
+                    aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+                    actions = PortraitSectionActions(
+                        onToggleFavorite = onToggleFavorite,
+                        onShowTracks = onShowTracks,
+                        onCycleAspect = onCycleAspect,
+                        onCycleSleepTimer = onCycleSleepTimer,
+                        onEnterPip = onEnterPip,
+                        onZapTo = { viewModel.switchChannel(it) }
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
-        PlayerStateOverlays(
-            uiState = uiState,
-            maxRecoveryAttempts = errorRecoveryManager.maxTotalAttempts,
-            onRetry = {
-                viewModel.clearError()
-                viewModel.loadChannel(channelId)
-            },
-            onDismissDeadStream = { viewModel.cancelDeadStreamCountdown() }
-        )
+        if (!isInPip) {
+            if (showTracksPanel) {
+                PlayerTracksPanel(
+                    exoPlayer = exoPlayer,
+                    onDismiss = { showTracksPanel = false }
+                )
+            }
 
-        PlayerOverlays(
-            uiState = uiState,
-            state = overlayState,
-            isMobile = isMobile,
-            alwaysShowInfoBar = uiState.alwaysShowProgramBar,
-            aspectLabel = ASPECT_MODES[aspectModeIndex].second,
-            quickActionsFocusRequester = quickActionsFocusRequester,
-            onToggleFavorite = onToggleFavorite,
-            onCycleSleepTimer = { minutes ->
-                viewModel.setSleepTimer(minutes)
-                overlayState.revealControls()
-            },
-            onCycleAspect = {
-                aspectModeIndex = (aspectModeIndex + 1) % ASPECT_MODES.size
-                overlayState.revealControls()
-            },
-            onShowTracks = { showTracksPanel = true },
-            onShowChannelList = { viewModel.showOverlay() }
-        )
-
-        if (showTracksPanel) {
-            PlayerTracksPanel(
-                exoPlayer = exoPlayer,
-                onDismiss = { showTracksPanel = false }
+            ChannelOverlay(
+                isVisible = uiState.showChannelOverlay,
+                currentChannel = uiState.channel,
+                recentChannels = uiState.recentChannels,
+                overlayEpg = uiState.overlayEpg,
+                channels = uiState.overlayChannels,
+                categories = uiState.overlayCategories,
+                selectedCategory = uiState.overlaySelectedCategory,
+                isLoadingChannels = uiState.overlayIsLoadingChannels,
+                isSwitchingChannel = uiState.isSwitchingChannel,
+                nowProgram = uiState.nowPlaying,
+                nextProgram = uiState.nextProgram,
+                onChannelClick = { viewModel.switchChannel(it) },
+                onCategorySelected = { viewModel.loadChannelList(it) },
+                onFavoriteClick = { viewModel.toggleOverlayFavorite(it) },
+                onInteraction = { viewModel.resetAutoHideTimer() },
+                onDismiss = { viewModel.hideOverlay() },
+                modifier = Modifier.fillMaxSize()
             )
         }
-
-        ChannelOverlay(
-            isVisible = uiState.showChannelOverlay,
-            currentChannel = uiState.channel,
-            lastChannel = uiState.lastChannel,
-            channels = uiState.overlayChannels,
-            categories = uiState.overlayCategories,
-            selectedCategory = uiState.overlaySelectedCategory,
-            isLoadingChannels = uiState.overlayIsLoadingChannels,
-            isSwitchingChannel = uiState.isSwitchingChannel,
-            nowProgram = uiState.nowPlaying,
-            nextProgram = uiState.nextProgram,
-            onChannelClick = { viewModel.switchChannel(it) },
-            onCategorySelected = { viewModel.loadChannelList(it) },
-            onFavoriteClick = { viewModel.toggleOverlayFavorite(it) },
-            onInteraction = { viewModel.resetAutoHideTimer() },
-            onDismiss = { viewModel.hideOverlay() },
-            modifier = Modifier.fillMaxSize()
-        )
     }
-}
-
-/**
- * Build an Xtream catch-up (timeshift) URL for a past program:
- * `{host}/timeshift/{user}/{pass}/{durationMin}/{yyyy-MM-dd:HH-mm}/{streamId}.m3u8`.
- * Returns null when the source isn't Xtream or credentials are missing.
- */
-private fun buildCatchupUrl(
-    context: android.content.Context,
-    channelId: String,
-    startMs: Long,
-    durationMin: Int
-): String? {
-    if (!channelId.startsWith("xtream-")) return null
-    val host = AppPreferences.getXtreamHost(context).trimEnd('/')
-    val user = AppPreferences.getXtreamUser(context)
-    val pass = AppPreferences.getXtreamPass(context)
-    if (host.isBlank() || user.isBlank()) return null
-    val streamId = channelId.removePrefix("xtream-")
-    val duration = durationMin.coerceAtLeast(1)
-    val start = java.time.Instant.ofEpochMilli(startMs)
-        .atZone(java.time.ZoneOffset.UTC)
-        .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd:HH-mm"))
-    return "$host/timeshift/$user/$pass/$duration/$start/$streamId.m3u8"
 }

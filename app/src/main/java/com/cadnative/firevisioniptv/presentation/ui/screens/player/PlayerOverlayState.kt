@@ -16,8 +16,15 @@ private const val CONTROLS_AUTO_HIDE_MS = 5000L
 private const val FAV_INDICATOR_DURATION_MS = 2000L
 private const val NUMBER_COMMIT_MS = 2000L
 private const val KEY_HINT_DURATION_MS = 4000L
-private const val INFO_BAR_AUTO_HIDE_MS = 4000L
 private const val PLAY_PAUSE_FLASH_MS = 800L
+private const val GESTURE_INDICATOR_HIDE_MS = 700L
+private const val ZAP_OVERLAY_HIDE_MS = 1500L
+private const val LOCK_CHIP_HIDE_MS = 3000L
+
+/** Which gesture-zone indicator is showing on the mobile player. */
+internal enum class GestureIndicatorType { BRIGHTNESS, VOLUME }
+
+internal data class GestureIndicator(val type: GestureIndicatorType, val level: Float)
 
 /**
  * Transient player overlay state. Reveal/flash fields are incrementing
@@ -35,6 +42,14 @@ internal class PlayerOverlayState {
     var controlsFocused by mutableStateOf(false)          // derived from bar onFocusChanged
     var controlsFocusRequest by mutableIntStateOf(0)      // >0 → bar claims D-pad focus
 
+    // Mobile gesture layer (indicator pills, zap flash, screen lock)
+    var gestureIndicator by mutableStateOf<GestureIndicator?>(null)
+    var gestureIndicatorReveal by mutableIntStateOf(0)
+    var zapOverlayReveal by mutableIntStateOf(0)
+    var screenLocked by mutableStateOf(false)
+    var lockChipReveal by mutableIntStateOf(0)
+    var unlockArmed by mutableStateOf(false)
+
     // Non-observable input bookkeeping (key handler only)
     var lastChannelSwitchTime = 0L
     var longPressConsumed = false
@@ -43,8 +58,30 @@ internal class PlayerOverlayState {
     val showFavIndicator get() = favIndicatorToken > 0
     val showInfoBar get() = infoBarReveal > 0
     val showPlayPauseFlash get() = playPauseFlashToken > 0
+    val showGestureIndicator get() = gestureIndicatorReveal > 0
+    val showZapOverlay get() = zapOverlayReveal > 0
+    val showLockChip get() = lockChipReveal > 0
 
     fun revealControls() { controlsReveal = bump(controlsReveal) }
+    fun hideControls() { controlsReveal = 0 }
+    fun showGestureLevel(type: GestureIndicatorType, level: Float) {
+        gestureIndicator = GestureIndicator(type, level.coerceIn(0f, 1f))
+        gestureIndicatorReveal = bump(gestureIndicatorReveal)
+    }
+    fun flashZapOverlay() { zapOverlayReveal = bump(zapOverlayReveal) }
+    fun revealLockChip() { lockChipReveal = bump(lockChipReveal) }
+    fun lockScreen() {
+        screenLocked = true
+        unlockArmed = false
+        controlsReveal = 0
+        revealLockChip()
+    }
+    fun unlockScreen() {
+        screenLocked = false
+        unlockArmed = false
+        lockChipReveal = 0
+        revealControls()
+    }
     fun focusQuickActions() {
         revealControls()
         controlsFocusRequest = bump(controlsFocusRequest)
@@ -71,6 +108,7 @@ internal fun rememberPlayerOverlayState(): PlayerOverlayState = remember { Playe
 internal fun PlayerOverlayTimers(
     state: PlayerOverlayState,
     isMobile: Boolean,
+    infoBarTimeoutMs: Long,
     onCommitChannelNumber: (Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -88,9 +126,10 @@ internal fun PlayerOverlayTimers(
             state.favIndicatorToken = 0
         }
     }
-    LaunchedEffect(state.infoBarReveal) {
+    // Keyed on the timeout too: changing the setting mid-display restarts the countdown
+    LaunchedEffect(state.infoBarReveal, infoBarTimeoutMs) {
         if (state.infoBarReveal > 0) {
-            delay(INFO_BAR_AUTO_HIDE_MS)
+            delay(infoBarTimeoutMs)
             state.infoBarReveal = 0
         }
     }
@@ -98,6 +137,25 @@ internal fun PlayerOverlayTimers(
         if (state.playPauseFlashToken > 0) {
             delay(PLAY_PAUSE_FLASH_MS)
             state.playPauseFlashToken = 0
+        }
+    }
+    LaunchedEffect(state.gestureIndicatorReveal) {
+        if (state.gestureIndicatorReveal > 0) {
+            delay(GESTURE_INDICATOR_HIDE_MS)
+            state.gestureIndicatorReveal = 0
+        }
+    }
+    LaunchedEffect(state.zapOverlayReveal) {
+        if (state.zapOverlayReveal > 0) {
+            delay(ZAP_OVERLAY_HIDE_MS)
+            state.zapOverlayReveal = 0
+        }
+    }
+    LaunchedEffect(state.lockChipReveal) {
+        if (state.lockChipReveal > 0) {
+            delay(LOCK_CHIP_HIDE_MS)
+            state.lockChipReveal = 0
+            state.unlockArmed = false
         }
     }
     // Direct channel number entry commits after a short pause

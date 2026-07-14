@@ -39,6 +39,7 @@ class UserPreferencesRepositoryImplTest {
         every { prefs.getString("player_long_ok", any()) } returns "favorite"
         every { prefs.getInt("sleep_timer_default_minutes", 0) } returns 0
         every { prefs.getBoolean("always_show_program_bar", false) } returns false
+        every { prefs.getInt("info_bar_timeout_seconds", 4) } returns 4
         every { prefs.edit() } returns editor
         every { editor.putBoolean(any(), any()) } returns editor
         every { editor.putString(any(), any()) } returns editor
@@ -150,6 +151,23 @@ class UserPreferencesRepositoryImplTest {
         assertTrue(result is Result.Success)
         verify { editor.putInt("sleep_timer_default_minutes", 60) }
         assertEquals(60, repo.getSleepTimerDefaultMinutes().first())
+    }
+
+    @Test
+    fun `getInfoBarTimeoutSeconds emits initial value from SharedPreferences`() = runTest {
+        val repo = createRepo()
+        assertEquals(4, repo.getInfoBarTimeoutSeconds().first())
+    }
+
+    @Test
+    fun `setInfoBarTimeoutSeconds persists to prefs and updates flow`() = runTest {
+        val repo = createRepo()
+
+        val result = repo.setInfoBarTimeoutSeconds(8)
+
+        assertTrue(result is Result.Success)
+        verify { editor.putInt("info_bar_timeout_seconds", 8) }
+        assertEquals(8, repo.getInfoBarTimeoutSeconds().first())
     }
 
     @Test

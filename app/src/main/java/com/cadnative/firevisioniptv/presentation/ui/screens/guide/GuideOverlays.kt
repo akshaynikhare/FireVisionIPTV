@@ -57,11 +57,11 @@ internal fun GuideChannelHeader(
         modifier = modifier
             .fillMaxWidth()
             .padding(
-                horizontal = if (isCompact) Dimens.Space2 else Dimens.Space4,
-                vertical = Dimens.Space2
+                horizontal = if (isCompact) Dimens.Space1 else Dimens.Space3,
+                vertical = Dimens.Space1
             ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.Space2 else Dimens.Space3)
+        horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.Space1 else Dimens.Space2)
     ) {
         Text(
             text = number.toString(),

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material3.Icon
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
 import com.cadnative.firevisioniptv.presentation.model.GuideUiState
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.delay
@@ -43,6 +43,8 @@ internal fun GuideContent(
     state: GuideUiState,
     onProgramSelected: (channelId: String, program: com.cadnative.firevisioniptv.presentation.model.GuideProgramUiModel) -> Unit,
     onChannelSelected: (channelId: String) -> Unit,
+    onSelectFilter: (com.cadnative.firevisioniptv.presentation.model.GuideFilter) -> Unit,
+    onVisibleRangeChanged: (first: Int, last: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var focused by remember { mutableStateOf<GuideFocusedProgram?>(null) }
@@ -59,6 +61,13 @@ internal fun GuideContent(
     Column(modifier = modifier.fillMaxSize()) {
         GuideDetailPanel(focused = focused)
 
+        GuideFilterBar(
+            categories = state.categories,
+            selectedFilter = state.selectedFilter,
+            hasFavorites = state.hasFavorites,
+            onSelectFilter = onSelectFilter
+        )
+
         if (state.timelineUnavailable) {
             GuideTimelineNotice()
         }
@@ -71,6 +80,7 @@ internal fun GuideContent(
             onProgramFocused = { focused = it },
             onProgramSelected = onProgramSelected,
             onChannelSelected = onChannelSelected,
+            onVisibleRangeChanged = onVisibleRangeChanged,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -91,22 +101,22 @@ private fun GuideDetailPanel(
             .padding(
                 horizontal = if (isCompact) Dimens.ScreenPaddingHorizontalMobile
                 else Dimens.ScreenPaddingHorizontalTv,
-                vertical = if (isCompact) Dimens.Space3 else Dimens.Space4
+                vertical = Dimens.Space2
             ),
         contentAlignment = Alignment.CenterStart
     ) {
         if (focused == null) {
             Text(
                 text = "Program Guide",
-                style = if (isCompact) MaterialTheme.typography.titleLarge
-                else MaterialTheme.typography.headlineMedium,
+                style = if (isCompact) MaterialTheme.typography.titleMedium
+                else MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
             return@Box
         }
 
         val program = focused.program
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space2)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.Space1)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.Space2)
@@ -121,8 +131,7 @@ private fun GuideDetailPanel(
                 }
                 Text(
                     text = program.title,
-                    style = if (isCompact) MaterialTheme.typography.titleMedium
-                    else MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -130,17 +139,19 @@ private fun GuideDetailPanel(
             }
             Text(
                 text = buildTimeRange(program.startTime, program.endTime) + " · " + focused.channelName,
-                style = if (isCompact) MaterialTheme.typography.labelMedium
-                else MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                style = if (isCompact) MaterialTheme.typography.labelSmall
+                else MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             program.description?.takeIf { it.isNotBlank() }?.let { desc ->
                 Text(
                     text = desc,
                     style = if (isCompact) MaterialTheme.typography.bodySmall
-                    else MaterialTheme.typography.bodyMedium,
+                    else MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -155,7 +166,7 @@ private fun GuideTimelineNotice(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimens.ScreenPaddingHorizontalTv, vertical = Dimens.Space2)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(ShapeMedium)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = Dimens.Space4, vertical = Dimens.Space2)
     ) {

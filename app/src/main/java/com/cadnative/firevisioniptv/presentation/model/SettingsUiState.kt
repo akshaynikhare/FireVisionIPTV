@@ -23,6 +23,7 @@ data class SettingsUiState(
     val longOkAction: String = PlayerKeyAction.FAVORITE,
     val sleepTimerDefaultMinutes: Int = 0,
     val alwaysShowProgramBar: Boolean = false,
+    val infoBarTimeoutSeconds: Int = 4,
     val isLoading: Boolean = false,
     val error: String? = null,
     // Server configuration

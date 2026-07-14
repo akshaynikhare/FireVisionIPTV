@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,7 +44,13 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
 
 // Rotating set of sleep-timer presets (minutes). null = off.
-private val SLEEP_TIMER_STEPS = listOf<Int?>(null, 30, 60, 90, 120)
+internal val SLEEP_TIMER_STEPS = listOf<Int?>(null, 30, 60, 90, 120)
+
+/** Off → 30 → 60 → 90 → 120 → Off. Shared by the TV bar and mobile chrome. */
+internal fun nextSleepTimerStep(current: Int?): Int? {
+    val nextIndex = (SLEEP_TIMER_STEPS.indexOf(current) + 1).mod(SLEEP_TIMER_STEPS.size)
+    return SLEEP_TIMER_STEPS[nextIndex]
+}
 
 /**
  * Live-player quick-actions bar: favorite toggle, sleep-timer cycler, and
@@ -66,6 +73,7 @@ internal fun PlayerQuickActions(
     onCycleAspect: () -> Unit,
     onShowTracks: () -> Unit,
     onShowChannelList: () -> Unit,
+    onShowGuide: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -92,11 +100,7 @@ internal fun PlayerQuickActions(
             icon = Icons.Filled.Bedtime,
             label = sleepLabel,
             tint = if (sleepTimerMinutes != null) Amber else OnVideo,
-            onClick = {
-                val nextIndex = (SLEEP_TIMER_STEPS.indexOf(sleepTimerMinutes) + 1)
-                    .mod(SLEEP_TIMER_STEPS.size)
-                onCycleSleepTimer(SLEEP_TIMER_STEPS[nextIndex])
-            }
+            onClick = { onCycleSleepTimer(nextSleepTimerStep(sleepTimerMinutes)) }
         )
 
         QuickActionButton(
@@ -119,6 +123,15 @@ internal fun PlayerQuickActions(
             tint = OnVideo,
             onClick = onShowChannelList
         )
+
+        if (onShowGuide != null) {
+            QuickActionButton(
+                icon = Icons.Filled.GridView,
+                label = "Guide",
+                tint = OnVideo,
+                onClick = onShowGuide
+            )
+        }
     }
 }
 

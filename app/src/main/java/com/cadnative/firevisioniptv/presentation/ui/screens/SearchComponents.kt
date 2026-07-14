@@ -25,13 +25,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -227,28 +222,27 @@ internal fun NoResultsState(
     }
 }
 
+/**
+ * Read-only query bar for the TV search screen. Input is driven by the on-screen
+ * [com.cadnative.firevisioniptv.presentation.ui.components.TvSearchKeyboard], so
+ * this bar is intentionally non-focusable — it only mirrors the current query
+ * with a caret. Keeping it out of the focus order means the D-pad flows straight
+ * between the keyboard and the results grid.
+ */
 @Composable
-internal fun TvSearchFieldPlaceholder(
+internal fun TvSearchQueryDisplay(
     query: String,
-    onActivate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isFocused by remember { mutableStateOf(false) }
     Surface(
-        onClick = onActivate,
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            width = if (isFocused) 2.dp else 1.dp,
-            color = if (isFocused) MaterialTheme.colorScheme.secondary else subtleBorder
-        ),
-        modifier = modifier
-            .height(56.dp)
-            .onFocusChanged { isFocused = it.isFocused }
+        border = BorderStroke(1.dp, subtleBorder),
+        modifier = modifier.height(Dimens.SearchBarHeightTv)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 12.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -257,13 +251,33 @@ internal fun TvSearchFieldPlaceholder(
                 modifier = Modifier.size(Dimens.IconMedium)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = query.ifEmpty { "Search channels, categories..." },
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
+            if (query.isNotEmpty()) {
+                Text(
+                    text = query,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+            }
+            // Static caret marks the input position; the keyboard does the typing.
+            // Sits after the query — or ahead of the placeholder when empty, so
+            // the hint never reads as typed text.
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(22.dp)
+                    .background(MaterialTheme.colorScheme.secondary)
             )
+            if (query.isEmpty()) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Search channels, categories...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

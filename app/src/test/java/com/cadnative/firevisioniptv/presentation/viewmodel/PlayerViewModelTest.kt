@@ -4,6 +4,7 @@ import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.Channel
+import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.domain.model.PlaybackState
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
@@ -13,6 +14,7 @@ import com.cadnative.firevisioniptv.domain.service.ChannelThumbnailExtractor
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelByIdUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsByCategoryUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetChannelsUseCase
+import com.cadnative.firevisioniptv.domain.usecase.GetGuideProgramsUseCase
 import com.cadnative.firevisioniptv.domain.usecase.GetPlaybackPositionUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ReportStreamPlayUseCase
 import com.cadnative.firevisioniptv.domain.usecase.ReportStreamStatusUseCase
@@ -36,6 +38,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModelTest {
@@ -55,6 +58,7 @@ class PlayerViewModelTest {
     private val channelHealthDao: ChannelHealthDao = mockk(relaxed = true)
     private val thumbnailExtractor: ChannelThumbnailExtractor = mockk(relaxed = true)
     private val epgRepository: EpgRepository = mockk(relaxed = true)
+    private val getGuideProgramsUseCase: GetGuideProgramsUseCase = mockk()
     private val playerFactory: com.cadnative.firevisioniptv.presentation.ui.player.PlayerFactory = mockk(relaxed = true)
     private val analyticsHelper: AnalyticsHelper = mockk(relaxed = true)
     private val userPreferencesRepository: UserPreferencesRepository = mockk {
@@ -64,6 +68,7 @@ class PlayerViewModelTest {
         every { getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
         every { getSleepTimerDefaultMinutes() } returns flowOf(0)
         every { getAlwaysShowProgramBar() } returns flowOf(false)
+        every { getInfoBarTimeoutSeconds() } returns flowOf(4)
     }
 
     private lateinit var viewModel: PlayerViewModel
@@ -88,13 +93,15 @@ class PlayerViewModelTest {
         every { getPlaybackPositionUseCase(any()) } returns flowOf(Result.Success(null))
         every { channelHealthDao.getAllHealth() } returns flowOf(emptyList())
         coEvery { epgRepository.getNowNext(any()) } returns Pair(null, null)
+        every { epgRepository.getNowNextIfCached(any()) } returns null
+        coEvery { getGuideProgramsUseCase(any()) } returns emptyMap()
 
         viewModel = PlayerViewModel(
             getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
             savePlaybackPositionUseCase, getPlaybackPositionUseCase, toggleFavoriteUseCase,
             reportStreamStatusUseCase, reportStreamPlayUseCase, channelUiMapper,
-            channelHealthDao, thumbnailExtractor, epgRepository, analyticsHelper,
-            userPreferencesRepository, playerFactory
+            channelHealthDao, thumbnailExtractor, epgRepository, getGuideProgramsUseCase,
+            analyticsHelper, userPreferencesRepository, playerFactory
         )
     }
 
@@ -514,6 +521,118 @@ class PlayerViewModelTest {
     fun `onSleepTimerNavigatedBack clears flag`() = runTest {
         viewModel.onSleepTimerNavigatedBack()
         assertFalse(viewModel.uiState.value.sleepTimerNavigateBack)
+    }
+
+    // ── Recent Channels (recall stack) ───────────────────────────
+
+    private fun stubChannels(vararg ids: String) {
+        val channels = ids.map { createChannel(it, name = "Channel $it") }
+        channels.forEach { ch ->
+            every { getChannelByIdUseCase(ch.id) } returns flowOf(Result.Success(ch))
+        }
+        every { getChannelsUseCase(Unit) } returns flowOf(Result.Success(channels))
+    }
+
+    @Test
+    fun `recents stack keeps most recent first capped at three`() = runTest {
+        stubChannels("ch1", "ch2", "ch3", "ch4", "ch5")
+        viewModel.loadChannel("ch1")
+        advanceUntilIdle()
+
+        listOf("ch2", "ch3", "ch4", "ch5").forEach {
+            viewModel.switchChannel(it)
+            advanceUntilIdle()
+        }
+
+        // Watched 1→2→3→4→5: recents = [4, 3, 2], capped at 3, current excluded
+        assertEquals(listOf("ch4", "ch3", "ch2"), viewModel.uiState.value.recentChannels.map { it.id })
+        assertEquals("ch4", viewModel.uiState.value.lastChannel?.id)
+    }
+
+    @Test
+    fun `recents never contain the switch target and dedupe revisits`() = runTest {
+        stubChannels("ch1", "ch2", "ch3")
+        viewModel.loadChannel("ch1")
+        advanceUntilIdle()
+
+        viewModel.switchChannel("ch2")
+        advanceUntilIdle()
+        viewModel.switchChannel("ch1") // back to a channel already in recents
+        advanceUntilIdle()
+
+        assertEquals(listOf("ch2"), viewModel.uiState.value.recentChannels.map { it.id })
+    }
+
+    @Test
+    fun `recallLastChannel flips back to previous channel`() = runTest {
+        stubChannels("ch1", "ch2")
+        viewModel.loadChannel("ch1")
+        advanceUntilIdle()
+        viewModel.switchChannel("ch2")
+        advanceUntilIdle()
+
+        viewModel.recallLastChannel()
+        advanceUntilIdle()
+
+        assertEquals("ch1", viewModel.uiState.value.channel?.id)
+        assertEquals("ch2", viewModel.uiState.value.lastChannel?.id)
+    }
+
+    // ── Program Boundary Watcher ─────────────────────────────────
+
+    private fun program(title: String, startsInSec: Long, endsInSec: Long) = EpgProgram(
+        channelEpgId = "epg1",
+        title = title,
+        description = null,
+        startTime = Instant.now().plusSeconds(startsInSec),
+        endTime = Instant.now().plusSeconds(endsInSec),
+        icon = null
+    )
+
+    @Test
+    fun `program boundary refetches now-next and bumps token`() = runTest {
+        val progA = program("Program A", -600, 600)
+        val progB = program("Program B", 600, 1200)
+        val channel = createChannel(tvgId = "epg1")
+        every { getChannelByIdUseCase("ch1") } returns flowOf(Result.Success(channel))
+        every { getChannelsUseCase(Unit) } returns flowOf(Result.Success(listOf(channel)))
+        coEvery { epgRepository.getNowNext("epg1") } returnsMany listOf(
+            Pair(progA, progB), // initial fetch
+            Pair(progB, null)   // refetch at the boundary
+        )
+
+        viewModel.loadChannel("ch1")
+        runCurrent()
+        assertEquals("Program A", viewModel.uiState.value.nowPlaying?.title)
+        assertEquals(0, viewModel.uiState.value.programChangedToken)
+
+        // Cross progA's end (+2s grace)
+        advanceTimeBy(603_000)
+        runCurrent()
+
+        assertEquals("Program B", viewModel.uiState.value.nowPlaying?.title)
+        assertEquals(1, viewModel.uiState.value.programChangedToken)
+    }
+
+    @Test
+    fun `boundary does not fire after switching channels`() = runTest {
+        val progA = program("Program A", -600, 600)
+        val ch1 = createChannel("ch1", tvgId = "epg1")
+        val ch2 = createChannel("ch2")
+        every { getChannelByIdUseCase("ch1") } returns flowOf(Result.Success(ch1))
+        every { getChannelByIdUseCase("ch2") } returns flowOf(Result.Success(ch2))
+        every { getChannelsUseCase(Unit) } returns flowOf(Result.Success(listOf(ch1, ch2)))
+        coEvery { epgRepository.getNowNext("epg1") } returns Pair(progA, null)
+
+        viewModel.loadChannel("ch1")
+        runCurrent()
+        viewModel.switchChannel("ch2")
+        runCurrent()
+
+        advanceTimeBy(700_000)
+        runCurrent()
+
+        assertEquals(0, viewModel.uiState.value.programChangedToken)
     }
 
     // ── Dead Stream Countdown ────────────────────────────────────

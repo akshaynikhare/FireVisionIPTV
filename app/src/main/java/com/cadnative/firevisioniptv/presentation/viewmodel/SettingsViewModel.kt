@@ -121,7 +121,8 @@ class SettingsViewModel @Inject constructor(
                         keyLeftRightAction = current.keyLeftRightAction,
                         longOkAction = current.longOkAction,
                         sleepTimerDefaultMinutes = current.sleepTimerDefaultMinutes,
-                        alwaysShowProgramBar = current.alwaysShowProgramBar
+                        alwaysShowProgramBar = current.alwaysShowProgramBar,
+                        infoBarTimeoutSeconds = current.infoBarTimeoutSeconds
                     )
                 }
             }
@@ -148,6 +149,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.getAlwaysShowProgramBar().collect { enabled ->
                 _uiState.update { it.copy(alwaysShowProgramBar = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            userPreferencesRepository.getInfoBarTimeoutSeconds().collect { seconds ->
+                _uiState.update { it.copy(infoBarTimeoutSeconds = seconds) }
             }
         }
     }
@@ -340,6 +346,12 @@ class SettingsViewModel @Inject constructor(
     fun setAlwaysShowProgramBar(enabled: Boolean) {
         viewModelScope.launch {
             handleResult(userPreferencesRepository.setAlwaysShowProgramBar(enabled), "Failed to update program bar")
+        }
+    }
+
+    fun setInfoBarTimeoutSeconds(seconds: Int) {
+        viewModelScope.launch {
+            handleResult(userPreferencesRepository.setInfoBarTimeoutSeconds(seconds), "Failed to update banner timeout")
         }
     }
 

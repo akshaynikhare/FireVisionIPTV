@@ -54,12 +54,18 @@ private val BadgeShape = RoundedCornerShape(bottomEnd = 8.dp, topStart = 8.dp)
 internal fun OverlayChannelItem(
     channel: ChannelUiModel,
     isCurrentChannel: Boolean,
-    isLastChannel: Boolean = false,
+    recentIndex: Int? = null,
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
+    onFocused: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.width(OverlayChannelCardWidth).height(OverlayChannelCardHeight)) {
+    Box(
+        modifier = modifier
+            .width(OverlayChannelCardWidth)
+            .height(OverlayChannelCardHeight)
+            .onFocusChanged { if (it.hasFocus) onFocused() }
+    ) {
         ChannelCard(
             channel = channel,
             onClick = onClick,
@@ -67,21 +73,38 @@ internal fun OverlayChannelItem(
             modifier = Modifier.fillMaxSize()
         )
 
-        // "NOW" badge for the currently playing channel, "LAST" for the pinned recall card
-        if (isCurrentChannel || isLastChannel) {
+        // "NOW" badge for the currently playing channel, "LAST"/"RECENT" for pinned recall cards
+        if (isCurrentChannel || recentIndex != null) {
             Surface(
                 shape = BadgeShape,
                 color = if (isCurrentChannel) Amber else TextSecondary,
                 modifier = Modifier.align(Alignment.TopStart)
             ) {
                 Text(
-                    text = if (isCurrentChannel) "NOW" else "LAST",
+                    text = when {
+                        isCurrentChannel -> "NOW"
+                        recentIndex == 0 -> "LAST"
+                        else -> "RECENT"
+                    },
                     style = LabelBadge,
                     fontWeight = FontWeight.Bold,
                     color = BackgroundDark,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
+        }
+
+        // Live-program progress along the card's bottom edge (needs EPG times)
+        val startMs = channel.nowProgramStartMs
+        val endMs = channel.nowProgramEndMs
+        if (startMs != null && endMs != null) {
+            EpgProgressBar(
+                startMs = startMs,
+                endMs = endMs,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 1.dp)
+            )
         }
     }
 }

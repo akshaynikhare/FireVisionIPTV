@@ -46,6 +46,7 @@ fun SettingsScreen(
             onLongOkChange = viewModel::setLongOkAction,
             onSleepTimerDefaultChange = viewModel::setSleepTimerDefaultMinutes,
             onAlwaysShowProgramBarChange = viewModel::setAlwaysShowProgramBar,
+            onInfoBarTimeoutChange = viewModel::setInfoBarTimeoutSeconds,
             onThemeChange = viewModel::setTheme,
             onCheckForUpdate = viewModel::checkForUpdate,
             onUpdateNow = viewModel::downloadAndInstallUpdate

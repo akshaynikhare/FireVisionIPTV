@@ -31,6 +31,13 @@ private val sleepTimerOptions = listOf(
     "3 h" to "180"
 )
 
+private val infoBarTimeoutOptions = listOf(
+    "4 s" to "4",
+    "6 s" to "6",
+    "8 s" to "8",
+    "10 s" to "10"
+)
+
 @Composable
 internal fun ControlsSection(
     backExitProtection: Boolean,
@@ -39,12 +46,14 @@ internal fun ControlsSection(
     longOkAction: String,
     sleepTimerDefaultMinutes: Int,
     alwaysShowProgramBar: Boolean,
+    infoBarTimeoutSeconds: Int,
     onBackExitProtectionChange: (Boolean) -> Unit,
     onKeyUpDownChange: (String) -> Unit,
     onKeyLeftRightChange: (String) -> Unit,
     onLongOkChange: (String) -> Unit,
     onSleepTimerDefaultChange: (Int) -> Unit,
     onAlwaysShowProgramBarChange: (Boolean) -> Unit,
+    onInfoBarTimeoutChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
@@ -61,6 +70,12 @@ internal fun ControlsSection(
                 options = listOf("On" to "on", "Off" to "off"),
                 current = if (alwaysShowProgramBar) "on" else "off",
                 onSelect = { onAlwaysShowProgramBarChange(it == "on") }
+            )
+            PlayerKeyRow(
+                label = "Info banner timeout",
+                options = infoBarTimeoutOptions,
+                current = infoBarTimeoutSeconds.toString(),
+                onSelect = { onInfoBarTimeoutChange(it.toIntOrNull() ?: 4) }
             )
             // D-pad / remote key mappings only make sense on TV (no D-pad on a touch phone)
             if (!isCompact) {

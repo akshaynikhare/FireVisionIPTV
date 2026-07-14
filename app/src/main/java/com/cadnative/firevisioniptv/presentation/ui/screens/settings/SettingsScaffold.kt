@@ -67,6 +67,7 @@ internal class SettingsActions(
     val onLongOkChange: (String) -> Unit,
     val onSleepTimerDefaultChange: (Int) -> Unit,
     val onAlwaysShowProgramBarChange: (Boolean) -> Unit,
+    val onInfoBarTimeoutChange: (Int) -> Unit,
     val onThemeChange: (String) -> Unit,
     val onCheckForUpdate: () -> Unit,
     val onUpdateNow: () -> Unit
@@ -315,12 +316,14 @@ private fun SectionContent(
             longOkAction = uiState.longOkAction,
             sleepTimerDefaultMinutes = uiState.sleepTimerDefaultMinutes,
             alwaysShowProgramBar = uiState.alwaysShowProgramBar,
+            infoBarTimeoutSeconds = uiState.infoBarTimeoutSeconds,
             onBackExitProtectionChange = actions.onBackExitProtectionChange,
             onKeyUpDownChange = actions.onKeyUpDownChange,
             onKeyLeftRightChange = actions.onKeyLeftRightChange,
             onLongOkChange = actions.onLongOkChange,
             onSleepTimerDefaultChange = actions.onSleepTimerDefaultChange,
             onAlwaysShowProgramBarChange = actions.onAlwaysShowProgramBarChange,
+            onInfoBarTimeoutChange = actions.onInfoBarTimeoutChange,
             modifier = modifier
         )
         SettingsSection.Appearance -> AppearanceSection(

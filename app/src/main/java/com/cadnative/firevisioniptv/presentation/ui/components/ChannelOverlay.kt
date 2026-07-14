@@ -37,7 +37,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
 fun ChannelOverlay(
     isVisible: Boolean,
     currentChannel: ChannelUiModel?,
-    lastChannel: ChannelUiModel? = null,
+    recentChannels: List<ChannelUiModel> = emptyList(),
+    overlayEpg: Map<String, Pair<EpgProgram?, EpgProgram?>> = emptyMap(),
     channels: List<ChannelUiModel>,
     categories: List<String>,
     selectedCategory: String?,
@@ -119,7 +120,8 @@ fun ChannelOverlay(
                 )
                 BottomChannelPanel(
                     currentChannel = currentChannel,
-                    lastChannel = lastChannel,
+                    recentChannels = recentChannels,
+                    overlayEpg = overlayEpg,
                     channels = channels,
                     categories = categories,
                     selectedCategory = selectedCategory,

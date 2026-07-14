@@ -230,50 +230,6 @@ private fun CategoryChips(
     }
 }
 
-@Composable
-private fun CategoryChip(
-    label: String,
-    isSelected: Boolean,
-    selectedContainerColor: Color,
-    selectedLabelColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val borderStroke: BorderStroke? = when {
-        isFocused -> BorderStroke(2.5.dp, FocusBorder)
-        !isSelected -> BorderStroke(1.dp, subtleBorder)
-        else -> null
-    }
-    FilterChip(
-        selected = isSelected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isFocused && !isSelected) Amber else Color.Unspecified
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = selectedContainerColor,
-            selectedLabelColor = selectedLabelColor,
-            containerColor = if (isFocused) Amber.copy(alpha = 0.15f) else Color.Transparent
-        ),
-        border = borderStroke,
-        shape = MaterialTheme.shapes.small,
-        modifier = modifier
-            .onFocusChanged { isFocused = it.isFocused }
-            .tvFocusVisuals(
-                focused = isFocused,
-                shape = MaterialTheme.shapes.small,
-                focusedScale = FOCUS_SCALE_TILE,
-                // Chips are flat controls — no resting drop shadow (only the focus glow on TV)
-                restingElevation = 0.dp
-            )
-    )
-}
-
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ChannelsGrid(
