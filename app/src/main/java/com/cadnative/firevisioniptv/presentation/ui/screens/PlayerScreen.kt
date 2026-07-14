@@ -176,8 +176,9 @@ fun PlayerScreen(
                 viewModel.onStreamDead("Invalid stream URL")
                 return@let
             }
-            // Reveal transient chrome on every zap / channel entry
-            overlayState.revealControls()
+            // Zap / channel entry reveals the info bar; control chrome only on
+            // mobile — the TV quick-actions bar shows only when summoned
+            if (isMobile) overlayState.revealControls()
             overlayState.revealInfoBar()
         }
     }
@@ -203,7 +204,6 @@ fun PlayerScreen(
     // Auto-hide timers for the transient overlays
     PlayerOverlayTimers(
         state = overlayState,
-        isMobile = isMobile,
         infoBarTimeoutMs = uiState.infoBarTimeoutSeconds * 1000L,
         onCommitChannelNumber = { viewModel.switchToChannelNumber(it) }
     )

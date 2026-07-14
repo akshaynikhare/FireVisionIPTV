@@ -8,14 +8,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.cadnative.firevisioniptv.data.AppPreferences
 import kotlinx.coroutines.delay
 
 private const val CONTROLS_AUTO_HIDE_MS = 5000L
 private const val FAV_INDICATOR_DURATION_MS = 2000L
 private const val NUMBER_COMMIT_MS = 2000L
-private const val KEY_HINT_DURATION_MS = 4000L
 private const val PLAY_PAUSE_FLASH_MS = 800L
 private const val GESTURE_INDICATOR_HIDE_MS = 700L
 private const val ZAP_OVERLAY_HIDE_MS = 1500L
@@ -32,13 +29,14 @@ internal data class GestureIndicator(val type: GestureIndicatorType, val level: 
  */
 @Stable
 internal class PlayerOverlayState {
-    var controlsReveal by mutableIntStateOf(1)
+    // Starts hidden: on TV the quick-actions bar appears only when summoned
+    // (MENU / ◀▶); mobile reveals its chrome on channel load.
+    var controlsReveal by mutableIntStateOf(0)
     var favIndicatorToken by mutableIntStateOf(0)
     var infoBarReveal by mutableIntStateOf(0)
     var playPauseFlashToken by mutableIntStateOf(0)
     var playPauseFlashPlaying by mutableStateOf(true)
     var numberBuffer by mutableStateOf("")
-    var showKeyHints by mutableStateOf(false)
     var controlsFocused by mutableStateOf(false)          // derived from bar onFocusChanged
     var controlsFocusRequest by mutableIntStateOf(0)      // >0 → bar claims D-pad focus
 
@@ -107,12 +105,9 @@ internal fun rememberPlayerOverlayState(): PlayerOverlayState = remember { Playe
 @Composable
 internal fun PlayerOverlayTimers(
     state: PlayerOverlayState,
-    isMobile: Boolean,
     infoBarTimeoutMs: Long,
     onCommitChannelNumber: (Int) -> Unit
 ) {
-    val context = LocalContext.current
-
     // Suspended while the quick-actions bar has focus; focus loss restarts a full timeout
     LaunchedEffect(state.controlsReveal, state.controlsFocused) {
         if (state.controlsReveal > 0 && !state.controlsFocused) {
@@ -164,15 +159,6 @@ internal fun PlayerOverlayTimers(
             delay(NUMBER_COMMIT_MS)
             state.numberBuffer.toIntOrNull()?.let(onCommitChannelNumber)
             state.numberBuffer = ""
-        }
-    }
-    // One-line key hints on the first few launches (TV only)
-    LaunchedEffect(Unit) {
-        if (!isMobile && AppPreferences.getPlayerHintCount(context) < AppPreferences.PLAYER_HINT_MAX_SHOWS) {
-            AppPreferences.incrementPlayerHintCount(context)
-            state.showKeyHints = true
-            delay(KEY_HINT_DURATION_MS)
-            state.showKeyHints = false
         }
     }
 }

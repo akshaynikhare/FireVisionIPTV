@@ -40,6 +40,9 @@ internal fun performKeyAction(
             state.revealControls()
         }
         PlayerKeyAction.PLAY_PAUSE -> togglePlayPause(exoPlayer, state)
+        // Same as the MENU key — many Android TV remotes have no MENU button,
+        // so this must be reachable via a remappable D-pad key.
+        PlayerKeyAction.MENU -> state.focusQuickActions()
     }
 }
 

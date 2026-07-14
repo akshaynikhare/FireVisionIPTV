@@ -33,7 +33,9 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     private val _layoutDensity = MutableStateFlow(prefs.getString(KEY_LAYOUT_DENSITY, "comfortable") ?: "comfortable")
     private val _backExitProtection = MutableStateFlow(prefs.getBoolean(KEY_BACK_EXIT_PROTECTION, true))
     private val _keyUpDownAction = MutableStateFlow(prefs.getString(KEY_PLAYER_KEY_UP_DOWN, PlayerKeyAction.ZAP) ?: PlayerKeyAction.ZAP)
-    private val _keyLeftRightAction = MutableStateFlow(prefs.getString(KEY_PLAYER_KEY_LEFT_RIGHT, PlayerKeyAction.ZAP) ?: PlayerKeyAction.ZAP)
+    // ◀▶ defaults to the player menu: it otherwise duplicates ▲▼ zap, and remotes
+    // without a MENU button (Google TV) would have no way to reach audio/subtitles.
+    private val _keyLeftRightAction = MutableStateFlow(prefs.getString(KEY_PLAYER_KEY_LEFT_RIGHT, PlayerKeyAction.MENU) ?: PlayerKeyAction.MENU)
     private val _longOkAction = MutableStateFlow(prefs.getString(KEY_PLAYER_LONG_OK, PlayerKeyAction.FAVORITE) ?: PlayerKeyAction.FAVORITE)
     private val _sleepTimerDefaultMinutes = MutableStateFlow(prefs.getInt(KEY_SLEEP_TIMER_DEFAULT, 0))
     private val _alwaysShowProgramBar = MutableStateFlow(prefs.getBoolean(KEY_ALWAYS_SHOW_PROGRAM_BAR, false))

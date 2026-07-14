@@ -20,7 +20,8 @@ private val keyActionOptions = listOf(
     "Zap" to PlayerKeyAction.ZAP,
     "Last Ch" to PlayerKeyAction.LAST_CHANNEL,
     "Favorite" to PlayerKeyAction.FAVORITE,
-    "Play/Pause" to PlayerKeyAction.PLAY_PAUSE
+    "Play/Pause" to PlayerKeyAction.PLAY_PAUSE,
+    "Menu" to PlayerKeyAction.MENU
 )
 
 private val sleepTimerOptions = listOf(

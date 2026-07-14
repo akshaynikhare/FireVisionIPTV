@@ -147,4 +147,5 @@ object PlayerKeyAction {
     const val LAST_CHANNEL = "last_channel"
     const val FAVORITE = "favorite"
     const val PLAY_PAUSE = "play_pause"
+    const val MENU = "menu"
 }
