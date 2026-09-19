@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.data.repository
 
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.model.dto.ChannelDto
 import com.cadnative.firevisioniptv.data.source.local.ChannelLocalDataSource
@@ -12,6 +13,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -20,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 
 /**
@@ -68,6 +72,9 @@ class ChannelRepositoryImplTest {
     
     @Before
     fun setup() {
+        mockkObject(AppPreferences)
+        every { AppPreferences.getPlaylistSourceType(any()) } returns AppPreferences.SOURCE_PAIRED
+        every { AppPreferences.setPlaylistEpgUrl(any(), any()) } returns Unit
         remoteDataSource = mockk()
         localDataSource = mockk()
         favoriteDao = mockk()
@@ -83,6 +90,11 @@ class ChannelRepositoryImplTest {
             context = mockk(relaxed = true),
             dispatcher = testDispatcher
         )
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(AppPreferences)
     }
     
     @Test

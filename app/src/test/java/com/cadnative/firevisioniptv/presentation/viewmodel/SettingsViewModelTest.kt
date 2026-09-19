@@ -10,9 +10,11 @@ import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 import com.cadnative.firevisioniptv.domain.repository.UserPreferencesRepository
+import com.cadnative.firevisioniptv.domain.repository.EpgRepository
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.domain.usecase.RefreshChannelsUseCase
+import com.cadnative.firevisioniptv.update.AppUpdater
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import io.mockk.coEvery
@@ -49,6 +51,8 @@ class SettingsViewModelTest {
     private val application: Application = mockk(relaxed = true)
     private val channelHealthScanner: ChannelHealthScanner = mockk(relaxed = true)
     private val refreshChannelsUseCase: RefreshChannelsUseCase = mockk()
+    private val epgRepository: EpgRepository = mockk(relaxed = true)
+    private val appUpdater: AppUpdater = mockk(relaxed = true)
 
     private val mockContext: Context = mockk(relaxed = true)
     private val mockPrefs: SharedPreferences = mockk(relaxed = true)
@@ -112,7 +116,9 @@ class SettingsViewModelTest {
         userPreferencesRepository = userPreferencesRepository,
         application = application,
         channelHealthScanner = channelHealthScanner,
-        refreshChannelsUseCase = refreshChannelsUseCase
+        refreshChannelsUseCase = refreshChannelsUseCase,
+        epgRepository = epgRepository,
+        appUpdater = appUpdater
     )
 
     @Test
