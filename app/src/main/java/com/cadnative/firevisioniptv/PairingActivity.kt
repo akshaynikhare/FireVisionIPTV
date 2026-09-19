@@ -154,7 +154,7 @@ class PairingActivity : ComponentActivity() {
                     put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
                 }
 
-                val response = PinnedHttpClient.post(
+                val response = PinnedHttpClient.postCancellable(
                     "$baseUrl/api/v1/tv/pairing/request",
                     requestData.toString()
                 )
@@ -219,7 +219,7 @@ class PairingActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
-                val response = PinnedHttpClient.get(
+                val response = PinnedHttpClient.getCancellable(
                     "$baseUrl/api/v1/tv/pairing/status/$currentPin",
                     mapOf("Accept" to "application/json")
                 )
@@ -320,7 +320,7 @@ class PairingActivity : ComponentActivity() {
 
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining)
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
-                countdownText = String.format("Expires in: %d:%02d", minutes, seconds)
+                countdownText = String.format(Locale.ROOT, "Expires in: %d:%02d", minutes, seconds)
                 countdownHandler?.postDelayed(this, 1000)
             }
         }
@@ -337,7 +337,7 @@ class PairingActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val baseUrl = AppPreferences.getServerUrl(this@PairingActivity)
-                val response = PinnedHttpClient.get(
+                val response = PinnedHttpClient.getCancellable(
                     "$baseUrl/api/v1/app/demo-code",
                     mapOf("Accept" to "application/json")
                 )

@@ -97,7 +97,7 @@ class PairingViewModel @Inject constructor(
                     put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
                 }
 
-                val response = PinnedHttpClient.post(
+                val response = PinnedHttpClient.postCancellable(
                     "$baseUrl/api/v1/tv/pairing/request",
                     requestData.toString()
                 )
@@ -152,7 +152,7 @@ class PairingViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val baseUrl = AppPreferences.getServerUrl(context)
-                val response = PinnedHttpClient.get(
+                val response = PinnedHttpClient.getCancellable(
                     "$baseUrl/api/v1/app/demo-code",
                     mapOf("Accept" to "application/json")
                 )
@@ -192,7 +192,7 @@ class PairingViewModel @Inject constructor(
 
                 try {
                     val baseUrl = AppPreferences.getServerUrl(context)
-                    val response = PinnedHttpClient.get(
+                    val response = PinnedHttpClient.getCancellable(
                         "$baseUrl/api/v1/tv/pairing/status/$pin",
                         mapOf("Accept" to "application/json")
                     )
@@ -237,7 +237,7 @@ class PairingViewModel @Inject constructor(
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining)
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
                 _uiState.update {
-                    it.copy(countdownText = String.format("Expires in: %d:%02d", minutes, seconds))
+                    it.copy(countdownText = String.format(Locale.ROOT, "Expires in: %d:%02d", minutes, seconds))
                 }
 
                 delay(1000)
