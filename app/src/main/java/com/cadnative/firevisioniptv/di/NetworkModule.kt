@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -70,11 +71,32 @@ object NetworkModule {
             .addInterceptor { chain ->
                 val tvCode = AppPreferences.getTvCode(context)
                 val original = chain.request()
-                val builder = original.newBuilder()
-                    .addHeader("Accept", "application/json")
-                    .addHeader("X-TV-Code", tvCode)
-                if (original.body != null) {
-                    builder.addHeader("Content-Type", "application/json")
+                val defaultBase = BuildConfig.API_BASE_URL.toHttpUrlOrNull()
+                val isFireVisionApi = defaultBase != null &&
+                    original.url.host == defaultBase.host &&
+                    original.url.port == defaultBase.port &&
+                    original.url.encodedPath.startsWith("/api/v1/")
+                val configuredBase = if (isFireVisionApi) {
+                    AppPreferences.getServerUrl(context).toHttpUrlOrNull()
+                } else {
+                    null
+                }
+                val rewrittenUrl = configuredBase?.let { base ->
+                    val basePath = base.encodedPath.trimEnd('/')
+                    original.url.newBuilder()
+                        .scheme(base.scheme)
+                        .host(base.host)
+                        .port(base.port)
+                        .encodedPath(basePath + original.url.encodedPath)
+                        .build()
+                } ?: original.url
+                val builder = original.newBuilder().url(rewrittenUrl)
+                if (isFireVisionApi) {
+                    builder.addHeader("Accept", "application/json")
+                    builder.addHeader("X-TV-Code", tvCode)
+                    if (original.body != null) {
+                        builder.addHeader("Content-Type", "application/json")
+                    }
                 }
                 chain.proceed(builder.build())
             }
