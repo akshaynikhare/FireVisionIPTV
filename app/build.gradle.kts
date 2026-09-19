@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.ksp)
     id("kotlin-parcelize")
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
@@ -13,12 +13,12 @@ plugins {
 
 android {
     namespace = "com.cadnative.firevisioniptv"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cadnative.firevisioniptv"
         minSdk = 28
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 5
         versionName = if (project.hasProperty("versionName")) {
             project.property("versionName") as String
@@ -55,14 +55,17 @@ android {
     lint {
         abortOnError = false
         checkReleaseBuilds = false
-    }
-
-    // Room schema export configuration
-    kapt {
-        correctErrorTypes = true
-        arguments {
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
+        // Release resource shrinking handles legacy XML assets; dependency upgrades and
+        // icon/vector redesigns are tracked separately from correctness lint.
+        disable += setOf(
+            "AndroidGradlePluginVersion",
+            "GradleDependency",
+            "UnusedResources",
+            "PrivateResource",
+            "VectorPath",
+            "IconLauncherShape",
+            "IconDipSize"
+        )
     }
 
     buildTypes {
@@ -111,15 +114,15 @@ dependencies {
     implementation(libs.coil.compose)
 
     // Firebase - using BoM for version management
-    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-crashlytics")
-    implementation("com.google.firebase:firebase-perf")
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-firestore")
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.firestore)
 
     // TV Provider support
-    implementation("androidx.tvprovider:tvprovider:1.1.0")
+    implementation(libs.androidx.tvprovider)
 
     // Media3 ExoPlayer (updated)
     implementation(libs.androidx.media3.exoplayer)
@@ -139,9 +142,9 @@ dependencies {
 
     // Hilt Dependency Injection
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.work)
-    kapt(libs.hilt.work.compiler)
+    ksp(libs.hilt.work.compiler)
     implementation(libs.hilt.navigation.compose)
 
     // Security
@@ -153,7 +156,7 @@ dependencies {
     // Room Database
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
 
     // Retrofit & OkHttp
     implementation(libs.retrofit)
@@ -180,19 +183,23 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Amazon Appstore SDK (DRM license verification)
-    implementation("com.amazon.device:amazon-appstore-sdk:3.0.5")
+    implementation(libs.amazon.appstore)
 
     // QR Code generation
-    implementation("com.google.zxing:core:3.5.3")
+    implementation(libs.zxing.core)
 
     // Lottie animation (splash screen)
-    implementation("com.airbnb.android:lottie-compose:6.4.0")
+    implementation(libs.lottie.compose)
 
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 sentry {
