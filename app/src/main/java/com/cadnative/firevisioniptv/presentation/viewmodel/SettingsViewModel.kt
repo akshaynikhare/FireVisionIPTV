@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
@@ -266,12 +265,7 @@ class SettingsViewModel @Inject constructor(
         return try {
             val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
             val versionName = packageInfo.versionName
-            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode.toInt()
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.versionCode
-            }
+            val versionCode = packageInfo.longVersionCode.toInt()
             "$versionName (Build $versionCode)"
         } catch (e: PackageManager.NameNotFoundException) {
             "Unknown"
@@ -518,7 +512,6 @@ class SettingsViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        appUpdater.cleanup()
         _uiState.value.qrCodeBitmap?.recycle()
     }
 

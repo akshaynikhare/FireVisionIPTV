@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -117,14 +116,17 @@ class AppUpdater @Inject constructor(
      * Downloads the APK and, once complete + signature-verified, launches the
      * system installer. [onState] is invoked on the main thread with the outcome.
      */
+    @Synchronized
     fun downloadAndInstall(updateInfo: UpdateInfo, onState: (DownloadState) -> Unit) {
         if (updateInfo.downloadUrl.isEmpty()) {
             onState(DownloadState.Failed("No download URL"))
             return
         }
+        if (downloadReceiver != null) {
+            onState(DownloadState.Failed("An update download is already in progress"))
+            return
+        }
         try {
-            downloadReceiver?.let { runCatching { context.unregisterReceiver(it) } }
-
             val oldFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), APK_FILENAME)
             if (oldFile.exists()) oldFile.delete()
 
@@ -141,25 +143,31 @@ class AppUpdater @Inject constructor(
             downloadId = downloadManager.enqueue(request)
             onState(DownloadState.Started)
 
-            downloadReceiver = object : BroadcastReceiver() {
+            val receiver = object : BroadcastReceiver() {
                 override fun onReceive(ctx: Context, intent: Intent) {
                     val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
                     if (id != downloadId) return
                     val cursor = downloadManager.query(DownloadManager.Query().apply { setFilterById(downloadId) })
                     try {
                         if (cursor.moveToFirst()) {
-                            val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                            val status = cursor.getInt(
+                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
+                            )
                             if (status == DownloadManager.STATUS_SUCCESSFUL) {
                                 onState(installUpdate())
                             } else {
                                 onState(DownloadState.Failed("Download failed"))
                             }
+                        } else {
+                            onState(DownloadState.Failed("Download result was unavailable"))
                         }
                     } finally {
                         cursor.close()
+                        clearDownloadReceiver(this)
                     }
                 }
             }
+            downloadReceiver = receiver
 
             // Must be exported: ACTION_DOWNLOAD_COMPLETE is sent by the Download
             // Provider app, not the system UID, so a NOT_EXPORTED receiver is never
@@ -168,11 +176,12 @@ class AppUpdater @Inject constructor(
             // real status, and the APK signature is verified pre-install.
             ContextCompat.registerReceiver(
                 context,
-                downloadReceiver,
+                receiver,
                 IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
                 ContextCompat.RECEIVER_EXPORTED
             )
         } catch (e: Exception) {
+            clearDownloadReceiver()
             Log.e(TAG, "Error downloading update", e)
             onState(DownloadState.Failed("Failed to start download"))
         }
@@ -202,27 +211,14 @@ class AppUpdater @Inject constructor(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun verifyApkSignature(apkFile: File): Boolean {
         return try {
-            val currentSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
-                ).signingInfo?.apkContentsSigners
-            } else {
-                context.packageManager.getPackageInfo(
-                    context.packageName, PackageManager.GET_SIGNATURES
-                ).signatures
-            }
-            val apkSigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
-                )?.signingInfo?.apkContentsSigners
-            } else {
-                context.packageManager.getPackageArchiveInfo(
-                    apkFile.absolutePath, PackageManager.GET_SIGNATURES
-                )?.signatures
-            }
+            val currentSigs = context.packageManager.getPackageInfo(
+                context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
+            ).signingInfo?.apkContentsSigners
+            val apkSigs = context.packageManager.getPackageArchiveInfo(
+                apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
+            )?.signingInfo?.apkContentsSigners
             if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
                 Log.e(TAG, "Could not retrieve signatures for verification")
                 return false
@@ -235,9 +231,16 @@ class AppUpdater @Inject constructor(
     }
 
     /** Unregister the download receiver — call from the owner's onCleared. */
-    fun cleanup() {
-        downloadReceiver?.let { runCatching { context.unregisterReceiver(it) } }
+    @Synchronized
+    fun cleanup() = clearDownloadReceiver()
+
+    @Synchronized
+    private fun clearDownloadReceiver(expected: BroadcastReceiver? = downloadReceiver) {
+        val current = downloadReceiver ?: return
+        if (expected !== current) return
+        runCatching { context.unregisterReceiver(current) }
         downloadReceiver = null
+        downloadId = -1
     }
 
     private fun getAppVersionName(): String = try {
@@ -246,10 +249,9 @@ class AppUpdater @Inject constructor(
         ""
     }
 
-    @Suppress("DEPRECATION")
     private fun getVersionCode(): Int = try {
         val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pkg.longVersionCode.toInt() else pkg.versionCode
+        pkg.longVersionCode.toInt()
     } catch (_: Exception) {
         1
     }

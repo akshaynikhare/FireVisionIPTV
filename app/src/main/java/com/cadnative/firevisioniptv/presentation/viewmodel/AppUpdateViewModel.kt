@@ -73,8 +73,4 @@ class AppUpdateViewModel @Inject constructor(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        appUpdater.cleanup()
-    }
 }
