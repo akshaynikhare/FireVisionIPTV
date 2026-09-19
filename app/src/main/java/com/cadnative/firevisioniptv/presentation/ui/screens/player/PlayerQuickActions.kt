@@ -14,21 +14,26 @@ import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -64,24 +69,36 @@ internal fun nextSleepTimerStep(current: Int?): Int? {
  * preset durations (Off → 30 → 60 → 90 → 120 → Off); every action is a single
  * OK press so it stays D-pad friendly.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun PlayerQuickActions(
     isFavorite: Boolean,
+    isPlaying: Boolean,
     sleepTimerMinutes: Int?,
     aspectLabel: String,
     firstActionFocusRequester: FocusRequester,
     onFocusStateChanged: (Boolean) -> Unit,
+    onPlayPause: () -> Unit,
     onToggleFavorite: () -> Unit,
     onCycleSleepTimer: (Int?) -> Unit,
     onCycleAspect: () -> Unit,
     onShowTracks: () -> Unit,
     onShowChannelList: () -> Unit,
-    onShowGuide: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onShowGuide: (() -> Unit)? = null
 ) {
+    // The bar can be disposed while a button still holds focus (e.g. OK on
+    // "Channels" opens the overlay) — Compose then never delivers the final
+    // hasFocus=false, leaving the flag stuck and the key handler misrouting
+    // all D-pad input. Clear it explicitly on dispose.
+    DisposableEffect(Unit) {
+        onDispose { onFocusStateChanged(false) }
+    }
     Row(
         modifier = modifier
             .onFocusChanged { onFocusStateChanged(it.hasFocus) }
+            // Re-entering the bar restores the last-focused button
+            .focusRestorer()
             .focusGroup()
             .softShadow(Elevation.Level3, ShapeLarge)
             .clip(ShapeLarge)
@@ -91,11 +108,18 @@ internal fun PlayerQuickActions(
         verticalAlignment = Alignment.CenterVertically
     ) {
         QuickActionButton(
+            icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            label = if (isPlaying) "Pause" else "Play",
+            tint = OnVideo,
+            onClick = onPlayPause,
+            focusRequester = firstActionFocusRequester
+        )
+
+        QuickActionButton(
             icon = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
             label = if (isFavorite) "Favorited" else "Favorite",
             tint = if (isFavorite) MaterialTheme.colorScheme.error else OnVideo,
-            onClick = onToggleFavorite,
-            focusRequester = firstActionFocusRequester
+            onClick = onToggleFavorite
         )
 
         val sleepLabel = sleepTimerMinutes?.let { "Sleep ${it}m" } ?: "Sleep off"

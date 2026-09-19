@@ -54,11 +54,12 @@ private val BadgeShape = RoundedCornerShape(bottomEnd = 8.dp, topStart = 8.dp)
 internal fun OverlayChannelItem(
     channel: ChannelUiModel,
     isCurrentChannel: Boolean,
+    nowMillis: Long,
+    modifier: Modifier = Modifier,
     recentIndex: Int? = null,
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    onFocused: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onFocused: () -> Unit = {}
 ) {
     Box(
         modifier = modifier
@@ -101,6 +102,7 @@ internal fun OverlayChannelItem(
             EpgProgressBar(
                 startMs = startMs,
                 endMs = endMs,
+                nowMillis = nowMillis,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 1.dp)
@@ -118,10 +120,13 @@ internal fun OverlayCategoryChips(
 ) {
     val listState = rememberLazyListState()
 
-    // Auto-scroll to the selected chip; index 0 = "All", categories start at 1
+    // Scroll to the selected chip once per overlay open (this composable is
+    // freshly composed each open). Re-scrolling on every selection change
+    // slides the rail out from under the chip the user just clicked; while
+    // browsing, focus-driven bring-into-view keeps chips visible instead.
     val selectedIndex = if (selectedCategory == null) 0
     else categories.indexOf(selectedCategory).let { if (it >= 0) it + 1 else 0 }
-    LaunchedEffect(selectedCategory) {
+    LaunchedEffect(Unit) {
         listState.scrollToItem(maxOf(0, selectedIndex - 1))
     }
 

@@ -7,9 +7,8 @@ import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -18,10 +17,12 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayEnter
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayExit
 import com.cadnative.firevisioniptv.presentation.ui.components.DeadStreamOverlay
 import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
@@ -70,6 +71,7 @@ internal fun PlayerStateOverlays(
     onRetry: () -> Unit,
     onDismissDeadStream: () -> Unit
 ) {
+    val reduceMotion = LocalPerfProfile.current.reduceMotion
     val contentState = when {
         uiState.isLoading -> "loading"
         uiState.error != null && !uiState.isStreamDead && !uiState.isRecovering -> "error"
@@ -78,7 +80,7 @@ internal fun PlayerStateOverlays(
 
     Crossfade(
         targetState = contentState,
-        animationSpec = tween(DURATION_NORMAL, easing = EaseOutQuart),
+        animationSpec = if (reduceMotion) snap() else tween(DURATION_NORMAL, easing = EaseOutQuart),
         label = "playerState"
     ) { state ->
         when (state) {
@@ -93,16 +95,16 @@ internal fun PlayerStateOverlays(
 
     AnimatedVisibility(
         visible = uiState.isRecovering,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion, DURATION_NORMAL)
     ) {
         RecoveringOverlay(attempt = uiState.recoveryAttempt, maxAttempts = maxRecoveryAttempts)
     }
 
     AnimatedVisibility(
         visible = uiState.isStreamDead,
-        enter = fadeIn(tween(DURATION_ENTRANCE, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
+        enter = overlayEnter(reduceMotion, DURATION_ENTRANCE),
+        exit = overlayExit(reduceMotion)
     ) {
         DeadStreamOverlay(
             title = uiState.deadStreamTitle,
