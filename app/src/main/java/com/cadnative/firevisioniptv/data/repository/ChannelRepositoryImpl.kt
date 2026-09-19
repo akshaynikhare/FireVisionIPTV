@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -57,6 +59,7 @@ class ChannelRepositoryImpl @Inject constructor(
     // Swapped atomically in refreshChannels() to avoid clear+populate races.
     @Volatile
     private var alternatesCache: Map<String, List<String>> = emptyMap()
+    private val refreshMutex = Mutex()
 
     /**
      * Get all channels with offline-first strategy.
@@ -144,22 +147,24 @@ class ChannelRepositoryImpl @Inject constructor(
      * methods will automatically emit the updated data.
      */
     override suspend fun refreshChannels(): Result<Unit> = withContext(dispatcher) {
-        try {
-            when (AppPreferences.getPlaylistSourceType(context)) {
-                AppPreferences.SOURCE_M3U -> refreshFromPlaylist {
-                    m3uDataSource.fetch(AppPreferences.getM3uUrl(context))
+        refreshMutex.withLock {
+            try {
+                when (AppPreferences.getPlaylistSourceType(context)) {
+                    AppPreferences.SOURCE_M3U -> refreshFromPlaylist {
+                        m3uDataSource.fetch(AppPreferences.getM3uUrl(context))
+                    }
+                    AppPreferences.SOURCE_XTREAM -> refreshFromPlaylist {
+                        xtreamDataSource.fetch(
+                            AppPreferences.getXtreamHost(context),
+                            AppPreferences.getXtreamUser(context),
+                            AppPreferences.getXtreamPass(context)
+                        )
+                    }
+                    else -> refreshFromServer()
                 }
-                AppPreferences.SOURCE_XTREAM -> refreshFromPlaylist {
-                    xtreamDataSource.fetch(
-                        AppPreferences.getXtreamHost(context),
-                        AppPreferences.getXtreamUser(context),
-                        AppPreferences.getXtreamPass(context)
-                    )
-                }
-                else -> refreshFromServer()
+            } catch (e: Exception) {
+                Result.Error(e)
             }
-        } catch (e: Exception) {
-            Result.Error(e)
         }
     }
 
