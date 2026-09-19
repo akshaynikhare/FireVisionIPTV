@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv.data
 
 import android.content.Context
 import com.cadnative.firevisioniptv.security.SecurePreferences
+import java.util.UUID
 
 /**
  * Centralized access to the app's SharedPreferences (FireVisionSettings).
@@ -19,6 +20,7 @@ object AppPreferences {
     private const val XTREAM_HOST_KEY = "xtream_host"
     private const val XTREAM_USER_KEY = "xtream_user"
     private const val XTREAM_PASS_KEY = "xtream_pass"
+    private const val INSTALLATION_ID_KEY = "installation_id"
     const val DEFAULT_SERVER_URL = "https://tv.cadnative.com"
 
     /** Playlist source types. PAIRED = managed server (default); M3U/XTREAM = bring-your-own. */
@@ -44,6 +46,14 @@ object AppPreferences {
     fun isDemoMode(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getBoolean(DEMO_MODE_KEY, false)
+    }
+
+    fun getInstallationId(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.getString(INSTALLATION_ID_KEY, null)?.let { return it }
+        val id = UUID.randomUUID().toString()
+        prefs.edit().putString(INSTALLATION_ID_KEY, id).apply()
+        return id
     }
 
     fun setServerUrl(context: Context, url: String) {
@@ -99,12 +109,23 @@ object AppPreferences {
      */
     fun getPlaylistEpgUrl(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(PLAYLIST_EPG_URL_KEY, "") ?: ""
+        val secure = SecurePreferences(context)
+        val encrypted = secure.getString(PLAYLIST_EPG_URL_KEY, "") ?: ""
+        if (encrypted.isNotBlank()) return encrypted
+
+        // One-time migration for older installs which stored credential-bearing URLs in plaintext.
+        val legacy = prefs.getString(PLAYLIST_EPG_URL_KEY, "") ?: ""
+        if (legacy.isNotBlank()) {
+            secure.putString(PLAYLIST_EPG_URL_KEY, legacy)
+            prefs.edit().remove(PLAYLIST_EPG_URL_KEY).apply()
+        }
+        return legacy
     }
 
     fun setPlaylistEpgUrl(context: Context, url: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(PLAYLIST_EPG_URL_KEY, url.trim()).apply()
+        SecurePreferences(context).putString(PLAYLIST_EPG_URL_KEY, url.trim())
+        prefs.edit().remove(PLAYLIST_EPG_URL_KEY).apply()
     }
 
     /** Effective guide URL: the user's manual override wins, else the playlist-derived one. */
