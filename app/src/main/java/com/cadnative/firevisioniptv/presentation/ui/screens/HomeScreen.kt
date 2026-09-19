@@ -28,13 +28,10 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 @Composable
 fun HomeScreen(
     onNavigateToChannels: (String) -> Unit,
-    onNavigateToSearch: () -> Unit,
-    onNavigateToFavorites: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onPairDevice: () -> Unit = {},
     onMultiviewClick: (String) -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

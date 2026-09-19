@@ -33,16 +33,16 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.FavoritesViewModel
 fun FavoritesScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onCategoryClick: (String) -> Unit = {},
     onMultiviewClick: (String) -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Hoisted so scroll position survives navigation to the player and back
     val gridState = rememberLazyGridState()
 
-    ScreenScaffold(title = "Favorites", modifier = modifier) {
+    ScreenScaffold(title = "Favorites", modifier = modifier, onBack = onNavigateBack) {
         val hasAnyContent = uiState.favorites.isNotEmpty() || uiState.favoriteCategories.isNotEmpty()
         val contentState = when {
             uiState.isLoading && !hasAnyContent -> "loading"

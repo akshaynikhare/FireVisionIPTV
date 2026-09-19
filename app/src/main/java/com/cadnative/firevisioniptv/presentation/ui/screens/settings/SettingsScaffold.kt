@@ -83,11 +83,12 @@ internal fun SettingsScaffold(
     uiState: SettingsUiState,
     scanProgress: ScanProgress,
     actions: SettingsActions,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    ScreenScaffold(title = "Settings", modifier = modifier) {
+    ScreenScaffold(title = "Settings", modifier = modifier, onBack = onBack) {
         if (isPortrait) {
             StackedSettings(
                 uiState = uiState,

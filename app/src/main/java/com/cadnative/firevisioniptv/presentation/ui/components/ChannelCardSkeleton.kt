@@ -73,8 +73,8 @@ fun rememberShimmerBrush(): Brush {
 fun ChannelCardSkeleton(
     width: Dp,
     height: Dp,
-    shimmerBrush: Brush? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shimmerBrush: Brush? = null
 ) {
     Card(
         modifier = modifier
@@ -101,10 +101,10 @@ fun ChannelCardSkeleton(
 fun ChannelRowSkeleton(
     cardWidth: Dp,
     cardHeight: Dp,
+    modifier: Modifier = Modifier,
     count: Int = 4,
     showTitle: Boolean = true,
-    showShimmer: Boolean = true,
-    modifier: Modifier = Modifier
+    showShimmer: Boolean = true
 ) {
     // Low-end boxes drop the shimmer sweep and rest on static placeholder cards.
     val animate = showShimmer && !LocalPerfProfile.current.reduceMotion
@@ -141,8 +141,8 @@ fun ChannelGridSkeleton(
     rows: Int,
     cardWidth: Dp,
     cardHeight: Dp,
-    showShimmer: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showShimmer: Boolean = true
 ) {
     val animate = showShimmer && !LocalPerfProfile.current.reduceMotion
     val brush = if (animate) rememberShimmerBrush() else null

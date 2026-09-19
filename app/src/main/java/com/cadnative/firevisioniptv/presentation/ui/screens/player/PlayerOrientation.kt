@@ -1,6 +1,7 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens.player
 
 import android.app.Activity
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ private const val ORIENTATION_RELEASE_DELAY_MS = 2000L
 
 /** Actuator for the mobile player's fullscreen toggle. Layout reads LocalConfiguration. */
 @Stable
+@SuppressLint("SourceLockedOrientationActivity")
 internal class PlayerOrientationController(private val activity: Activity?) {
     fun enterFullscreen() {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE

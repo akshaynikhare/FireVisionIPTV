@@ -114,7 +114,7 @@ fun MultiviewScreen(
         }
     }
     var focusedIndex by remember { mutableIntStateOf(0) }
-    var pickerForPane by remember { mutableStateOf(-1) }
+    var pickerForPane by remember { mutableIntStateOf(-1) }
 
     fun setCount(newCount: Int) {
         val ids = assignments.toMutableList()
@@ -263,7 +263,7 @@ private fun MultiviewPane(
     // this pane's player; the old one is released on dispose.
     val player = remember(channel.id) { viewModel.createPlayer() }
     DisposableEffect(channel.id) {
-        channel.streamUrl?.let { url ->
+        channel.streamUrl.let { url ->
             player.setMediaItem(
                 MediaItem.Builder().setUri(StreamUrlTemplate.resolve(context, url)).build()
             )

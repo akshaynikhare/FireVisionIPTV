@@ -3,6 +3,7 @@ package com.cadnative.firevisioniptv.data.source.remote.playlist
 import com.cadnative.firevisioniptv.data.model.dto.ChannelDto
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,7 +38,6 @@ class M3uDataSource @Inject constructor(
 
         val channels = ArrayList<ChannelDto>()
         var pending: ExtInf? = null
-        var index = 0
         for (line in lines) {
             when {
                 line.startsWith("#EXTINF", ignoreCase = true) -> pending = parseExtInf(line)
@@ -48,7 +48,7 @@ class M3uDataSource @Inject constructor(
                         val tvgId = info.tvgId?.takeIf { it.isNotBlank() }
                         channels.add(
                             ChannelDto(
-                                id = "m3u-$index-${tvgId ?: info.name}".take(200),
+                                id = stableChannelId(listOfNotNull(tvgId, line).joinToString("|")),
                                 name = info.name,
                                 url = line,
                                 channelImg = null,
@@ -58,13 +58,20 @@ class M3uDataSource @Inject constructor(
                                 tvgName = info.name
                             )
                         )
-                        index++
                         pending = null
                     }
                 }
             }
         }
         return PlaylistFetch(channels, epgUrl)
+    }
+
+    private fun stableChannelId(sourceId: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(sourceId.trim().toByteArray(Charsets.UTF_8))
+            .take(16)
+            .joinToString("") { "%02x".format(it) }
+        return "m3u-$digest"
     }
 
     private data class ExtInf(

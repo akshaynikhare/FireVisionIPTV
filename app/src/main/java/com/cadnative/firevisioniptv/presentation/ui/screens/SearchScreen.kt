@@ -53,8 +53,8 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.SearchViewModel
 fun SearchScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
-    onMultiviewClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onMultiviewClick: (String) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,7 +81,7 @@ fun SearchScreen(
     }
 
     if (isMobile) {
-        ScreenScaffold(title = "Search", modifier = modifier) {
+        ScreenScaffold(title = "Search", modifier = modifier, onBack = onNavigateBack) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()

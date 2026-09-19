@@ -38,10 +38,10 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
 fun ChannelsScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onPairDevice: () -> Unit = {},
     onMultiviewClick: (String) -> Unit = {},
     initialCategory: String? = null,
-    modifier: Modifier = Modifier,
     viewModel: ChannelsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -50,6 +50,7 @@ fun ChannelsScreen(
     // Back clears the category and removes the back button; hand focus to the
     // "All" chip so D-pad focus isn't lost with it.
     val allChipFocusRequester = remember { FocusRequester() }
+    val showAllChip = initialCategory == null
 
     LaunchedEffect(initialCategory) {
         viewModel.loadChannels(initialCategory)
@@ -81,7 +82,7 @@ fun ChannelsScreen(
                         viewModel.loadChannels(null)
                     },
                     allChipFocusRequester = allChipFocusRequester,
-                    showAllChip = initialCategory == null
+                    showAllChip = showAllChip
                 )
             }
         }
@@ -157,8 +158,8 @@ private fun CategoryChips(
     onCategorySelected: (String) -> Unit,
     onAllSelected: () -> Unit,
     allChipFocusRequester: FocusRequester,
-    showAllChip: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showAllChip: Boolean = true
 ) {
     val listState = rememberLazyListState()
     val isCompact = LocalConfiguration.current.screenWidthDp < 600

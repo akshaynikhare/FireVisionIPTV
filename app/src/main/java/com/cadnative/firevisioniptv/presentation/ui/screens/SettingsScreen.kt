@@ -20,9 +20,9 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onPairDevice: () -> Unit,
+    modifier: Modifier = Modifier,
     onResetPairing: () -> Unit = {},
     onNavigateToSelfHost: () -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -61,6 +61,7 @@ fun SettingsScreen(
         uiState = uiState,
         scanProgress = scanProgress,
         actions = actions,
+        onBack = onNavigateBack,
         modifier = modifier
     )
 }

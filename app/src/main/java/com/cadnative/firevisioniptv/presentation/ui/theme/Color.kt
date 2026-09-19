@@ -2,7 +2,7 @@ package com.cadnative.firevisioniptv.presentation.ui.theme
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Newspaper
@@ -225,7 +225,7 @@ fun categoryIcon(category: String): ImageVector = when (category.lowercase(Local
     "entertainment" -> Icons.Filled.Tv
     "music" -> Icons.Filled.MusicNote
     "kids" -> Icons.Filled.ChildCare
-    "documentary" -> Icons.Filled.Article
+    "documentary" -> Icons.AutoMirrored.Filled.Article
     "general" -> Icons.Filled.LiveTv
     "animation" -> Icons.Filled.Movie
     "business" -> Icons.Filled.AccountBalance
@@ -241,7 +241,7 @@ fun categoryIcon(category: String): ImageVector = when (category.lowercase(Local
     "outdoor" -> Icons.Filled.Park
     "public" -> Icons.Filled.Public
     "relax" -> Icons.Filled.Spa
-    "religious" -> Icons.Filled.MenuBook
+    "religious" -> Icons.AutoMirrored.Filled.MenuBook
     "series" -> Icons.Filled.VideoLibrary
     "science" -> Icons.Filled.Science
     "shop" -> Icons.Filled.ShoppingCart
