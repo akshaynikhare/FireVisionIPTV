@@ -14,8 +14,7 @@ Input is handled in `presentation/ui/screens/player/PlayerKeyHandler.kt` (pure f
 
 | Key | Action |
 |-----|--------|
-| OK (short press) | Open channel overlay |
-| OK (hold 600ms) | `longOkAction` — default: toggle Favorite (visible twin: bar button) |
+| OK | Open channel overlay (fires on release; holding does nothing extra) |
 | ▲ ▼ | `keyUpDownAction` — default: open Controls bar |
 | ◀ ▶ | `keyLeftRightAction` — default: open Controls bar |
 | CH+ / CH− (MEDIA_NEXT/PREV) | Zap next / previous (one press = one channel) |
@@ -81,7 +80,7 @@ One press pops exactly one level (`repeatCount == 0` guard — holding BACK does
 
 - All discrete actions gate on `repeatCount == 0` — holding a key fires the action once. No hold-to-surf: one press = one channel.
 - 250ms cross-key debounce on channel switches (`CHANNEL_SWITCH_DEBOUNCE_MS`).
-- Long-press OK fires its action during the hold at 600ms; the release is then suppressed.
+- OK on the bare player has no hold action — the overlay opens on release regardless of how long the key was held.
 - Card long-press (in the overlay) and the sleep prompt fire on **release** so held keys can't leak into newly opened surfaces.
 - ◀▶ traversal while the Controls bar is focused stays repeat-driven (native focus movement).
 
@@ -95,7 +94,7 @@ Nothing is reachable *only* through a hidden gesture:
 
 | Hidden input | Visible equivalent |
 |--------------|--------------------|
-| Long-press OK → favorite | Favorite button on the Controls bar |
+| Hold OK on an overlay card → favorite | Favorite button on the Controls bar |
 | 0–9 number entry | Channel overlay list |
 | ⏪ / LAST_CH recall | "LAST" pinned card in the overlay |
 | CH± zap | Overlay channel cards |

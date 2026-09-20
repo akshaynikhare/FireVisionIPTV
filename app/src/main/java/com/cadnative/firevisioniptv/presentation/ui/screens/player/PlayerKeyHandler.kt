@@ -7,7 +7,6 @@ import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 
 internal const val CHANNEL_SWITCH_DEBOUNCE_MS = 250L
-private const val LONG_PRESS_THRESHOLD_MS = 600L
 private const val NUMBER_BUFFER_MAX_DIGITS = 4
 
 /** Executes a remappable key action (see [PlayerKeyAction]). */
@@ -69,14 +68,12 @@ internal fun handlePlayerKeyEvent(
     val keyCode = keyEvent.nativeKeyEvent.keyCode
 
     // ── Sleep timer "Still watching?" window: any key press keeps watching ──
-    // Fires on RELEASE so the cancelling press's UP can't leak into the
-    // long-press OK branch below (which would misread the next short press),
-    // and a wedged longPressConsumed can't survive the prompt.
+    // Fires on RELEASE so the cancelling press's UP can't leak into the OK
+    // branch below and open the overlay.
     if (uiState.sleepTimerExpired) {
         if (action == KeyEvent.ACTION_UP) {
             viewModel.cancelSleepTimerExpiry()
             exoPlayer.play()
-            state.longPressConsumed = false
         }
         return true
     }
@@ -96,32 +93,12 @@ internal fun handlePlayerKeyEvent(
         }
     }
 
-    // ── Long-press detection for DPAD_CENTER / ENTER (remappable action) ──
+    // ── OK opens the channel switcher. Fires on release so the press can't
+    // leak into the overlay's first card; no hold behavior — one key, one job.
     if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
         if (uiState.showChannelOverlay) return false
-        when (action) {
-            KeyEvent.ACTION_DOWN -> {
-                val native = keyEvent.nativeKeyEvent
-                if (native.repeatCount == 0) {
-                    state.longPressConsumed = false
-                } else if (!state.longPressConsumed &&
-                    (native.isLongPress ||
-                        native.eventTime - native.downTime >= LONG_PRESS_THRESHOLD_MS)
-                ) {
-                    state.longPressConsumed = true
-                    performKeyAction(uiState.longOkAction, true, exoPlayer, viewModel, state)
-                }
-                return true
-            }
-            KeyEvent.ACTION_UP -> {
-                if (!state.longPressConsumed) {
-                    // Short press → open channel switcher
-                    viewModel.showOverlay()
-                }
-                state.longPressConsumed = false
-                return true
-            }
-        }
+        if (action == KeyEvent.ACTION_UP) viewModel.showOverlay()
+        return true
     }
 
     if (action != KeyEvent.ACTION_DOWN) return false

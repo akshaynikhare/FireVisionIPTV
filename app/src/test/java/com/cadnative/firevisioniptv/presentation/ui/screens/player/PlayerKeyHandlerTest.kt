@@ -175,15 +175,14 @@ class PlayerKeyHandlerTest {
     }
 
     @Test
-    fun `long OK fires the remapped action once and suppresses release`() {
+    fun `holding OK has no side effect and still opens the overlay once on release`() {
         handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER))
-        // Held past the 600ms threshold — default longOkAction is FAVORITE
         handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER, repeat = 1, heldMs = 700L))
-        verify(exactly = 1) { viewModel.toggleFavorite() }
-        handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER, repeat = 2, heldMs = 750L))
-        verify(exactly = 1) { viewModel.toggleFavorite() }
-        handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER, action = KeyEvent.ACTION_UP, heldMs = 800L))
+        handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER, repeat = 2, heldMs = 1500L))
+        verify(exactly = 0) { viewModel.toggleFavorite() }
         verify(exactly = 0) { viewModel.showOverlay() }
+        handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER, action = KeyEvent.ACTION_UP, heldMs = 1600L))
+        verify(exactly = 1) { viewModel.showOverlay() }
     }
 
     // ── Sleep-timer "Still watching?" prompt ─────────────────────────
@@ -191,7 +190,6 @@ class PlayerKeyHandlerTest {
     @Test
     fun `sleep prompt consumes press and resumes on release`() {
         val uiState = PlayerUiState(sleepTimerExpired = true)
-        state.longPressConsumed = true // wedged from an interrupted hold
         assertTrue(handle(composeKey(KeyEvent.KEYCODE_DPAD_CENTER), uiState))
         verify(exactly = 0) { viewModel.cancelSleepTimerExpiry() }
         assertTrue(
@@ -199,7 +197,6 @@ class PlayerKeyHandlerTest {
         )
         verify(exactly = 1) { viewModel.cancelSleepTimerExpiry() }
         verify(exactly = 1) { exoPlayer.play() }
-        assertFalse(state.longPressConsumed)
         verify(exactly = 0) { viewModel.showOverlay() }
     }
 
