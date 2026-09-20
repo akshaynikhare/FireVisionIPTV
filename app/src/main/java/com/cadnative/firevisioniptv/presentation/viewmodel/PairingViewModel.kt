@@ -7,12 +7,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.data.model.dto.PairingRequestBody
+import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.cadnative.firevisioniptv.presentation.ui.player.isTvDevice
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,8 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -52,7 +53,8 @@ data class PairingUiState(
  */
 @HiltViewModel
 class PairingViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val apiService: FireVisionApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PairingUiState())
@@ -92,51 +94,44 @@ class PairingViewModel @Inject constructor(
         requestJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 val baseUrl = AppPreferences.getServerUrl(context)
-                val requestData = JSONObject().apply {
-                    put("deviceName", Build.MODEL)
-                    put("deviceModel", "${Build.MANUFACTURER} ${Build.MODEL}")
-                }
-
-                val response = PinnedHttpClient.postCancellable(
-                    "$baseUrl/api/v1/tv/pairing/request",
-                    requestData.toString()
+                val response = apiService.requestPairing(
+                    PairingRequestBody(
+                        deviceName = Build.MODEL,
+                        deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+                    )
                 )
+                val body = response.body()
 
-                response.use { resp ->
-                    if (resp.isSuccessful) {
-                        val json = JSONObject(resp.body?.string() ?: "{}")
+                when {
+                    !response.isSuccessful -> showError("Server error: ${response.code()}")
+                    body?.success == true && !body.pin.isNullOrBlank() -> {
+                        val pin = body.pin
+                        val expiry = parseISO8601(body.expiresAt)
+                        expiresAt = expiry
 
-                        if (json.optBoolean("success", false)) {
-                            val pin = json.getString("pin")
-                            val expiresAtStr = json.getString("expiresAt")
-                            val expiry = parseISO8601(expiresAtStr)
-                            expiresAt = expiry
-
-                            _uiState.update {
-                                it.copy(
-                                    pin = pin,
-                                    statusMessage = "Waiting for confirmation...",
-                                    statusColor = Color.White,
-                                    isLoading = false,
-                                    showCountdown = true,
-                                    pairingUrl = "$baseUrl/pair?pin=$pin"
-                                )
-                            }
-
-                            if (isTv) {
-                                generateQrCode(baseUrl, pin)
-                            }
-                            startPolling(pin)
-                            startCountdown(expiry)
-                        } else {
-                            showError(
-                                "Failed to generate PIN: ${json.optString("error", "Unknown error")}"
+                        _uiState.update {
+                            it.copy(
+                                pin = pin,
+                                statusMessage = "Waiting for confirmation...",
+                                statusColor = Color.White,
+                                isLoading = false,
+                                showCountdown = true,
+                                pairingUrl = "$baseUrl/pair?pin=$pin"
                             )
                         }
-                    } else {
-                        showError("Server error: ${resp.code}")
+
+                        if (isTv) {
+                            generateQrCode(baseUrl, pin)
+                        }
+                        startPolling(pin)
+                        startCountdown(expiry)
                     }
+                    else -> showError(
+                        "Failed to generate PIN: ${body?.error ?: "Unknown error"}"
+                    )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showError("Connection error: ${e.message}")
             }
@@ -151,31 +146,20 @@ class PairingViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val baseUrl = AppPreferences.getServerUrl(context)
-                val response = PinnedHttpClient.getCancellable(
-                    "$baseUrl/api/v1/app/demo-code",
-                    mapOf("Accept" to "application/json")
-                )
-                response.use { resp ->
-                    if (resp.isSuccessful) {
-                        val json = JSONObject(resp.body?.string() ?: "{}")
-                        val demoCode = json.optString("code", "")
-                        if (demoCode.isNotEmpty()) {
-                            AppPreferences.setDemoMode(context, demoCode)
-                            _uiState.update {
-                                it.copy(isPaired = true, isLoading = false, statusMessage = "Using demo channel list")
-                            }
-                        } else {
-                            _uiState.update {
-                                it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
-                            }
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
-                        }
+                val response = apiService.getDemoCode()
+                val demoCode = response.body()?.get("code").orEmpty()
+                if (response.isSuccessful && demoCode.isNotEmpty()) {
+                    AppPreferences.setDemoMode(context, demoCode)
+                    _uiState.update {
+                        it.copy(isPaired = true, isLoading = false, statusMessage = "Using demo channel list")
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(isLoading = false, statusMessage = "Network error — try again", showRetryButton = true)
@@ -191,28 +175,20 @@ class PairingViewModel @Inject constructor(
                 delay(POLL_INTERVAL_MS)
 
                 try {
-                    val baseUrl = AppPreferences.getServerUrl(context)
-                    val response = PinnedHttpClient.getCancellable(
-                        "$baseUrl/api/v1/tv/pairing/status/$pin",
-                        mapOf("Accept" to "application/json")
-                    )
-                    response.use { resp ->
-                        if (resp.isSuccessful) {
-                            val json = JSONObject(resp.body?.string() ?: "{}")
-                            val paired = json.optBoolean("paired", false)
-                            val status = json.optString("status", "unknown")
-
-                            if (paired && status == "completed") {
-                                val channelListCode = json.getString("channelListCode")
-                                val username = json.optString("username", "User")
-                                onPairingSuccess(channelListCode, username)
-                                return@launch
-                            } else if (status == "expired") {
-                                showError("PIN expired. Please generate a new one.")
-                                return@launch
-                            }
+                    val response = apiService.getPairingStatus(pin)
+                    val body = response.body()
+                    if (response.isSuccessful && body != null) {
+                        val channelListCode = body.channelListCode
+                        if (body.paired && body.status == "completed" && !channelListCode.isNullOrBlank()) {
+                            onPairingSuccess(channelListCode, body.username?.takeIf { it.isNotBlank() } ?: "User")
+                            return@launch
+                        } else if (body.status == "expired") {
+                            showError("PIN expired. Please generate a new one.")
+                            return@launch
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     android.util.Log.w("PairingViewModel", "Poll attempt failed: ${e.message}")
                 }
@@ -306,7 +282,8 @@ class PairingViewModel @Inject constructor(
     }
 
     @Suppress("SimpleDateFormat")
-    private fun parseISO8601(dateStr: String): Long {
+    private fun parseISO8601(dateStr: String?): Long {
+        if (dateStr.isNullOrBlank()) return fallbackExpiry()
         return try {
             val cleaned = dateStr.replace("Z", "+00:00")
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)

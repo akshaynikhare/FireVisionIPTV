@@ -7,6 +7,9 @@ import com.cadnative.firevisioniptv.data.model.dto.EpgGuideResponse
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesRequest
 import com.cadnative.firevisioniptv.data.model.dto.FavoritesResponse
 import com.cadnative.firevisioniptv.data.model.dto.HealthSyncRequest
+import com.cadnative.firevisioniptv.data.model.dto.PairingRequestBody
+import com.cadnative.firevisioniptv.data.model.dto.PairingRequestResponse
+import com.cadnative.firevisioniptv.data.model.dto.PairingStatusResponse
 import com.cadnative.firevisioniptv.data.model.dto.StreamPlayReport
 import com.cadnative.firevisioniptv.data.model.dto.StreamStatusReport
 import okhttp3.ResponseBody
@@ -103,4 +106,17 @@ interface FireVisionApiService {
 
     @GET("api/v1/app/demo-code")
     suspend fun getDemoCode(): Response<Map<String, String>>
+
+    /**
+     * Starts a pairing attempt: the server mints a short-lived PIN for this device.
+     */
+    @POST("api/v1/tv/pairing/request")
+    suspend fun requestPairing(@Body request: PairingRequestBody): Response<PairingRequestResponse>
+
+    /**
+     * Polls whether the user has confirmed [pin] on the web dashboard. Suspending, so
+     * the in-flight poll is cancelled with the coroutine when the screen goes away.
+     */
+    @GET("api/v1/tv/pairing/status/{pin}")
+    suspend fun getPairingStatus(@Path("pin") pin: String): Response<PairingStatusResponse>
 }
