@@ -86,13 +86,8 @@ class ChannelLocalDataSource @Inject constructor(
      * and inserts the new ones atomically.
      * 
      * @param channels List of channels to replace with
-     * @param legacyIdAliases Retired channel id to the id that now supersedes it, so
-     *   favorites, health, metrics and resume points survive an id-scheme change
      */
-    suspend fun replaceAllChannels(
-        channels: List<ChannelEntity>,
-        legacyIdAliases: Map<String, String> = emptyMap()
-    ) = withContext(dispatcher) {
-        channelDao.replaceAllChannels(channels, legacyIdAliases)
+    suspend fun replaceAllChannels(channels: List<ChannelEntity>) = withContext(dispatcher) {
+        channelDao.replaceAllChannels(channels)
     }
 }

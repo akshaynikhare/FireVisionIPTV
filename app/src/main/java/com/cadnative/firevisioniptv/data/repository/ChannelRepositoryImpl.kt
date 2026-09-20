@@ -200,12 +200,7 @@ class ChannelRepositoryImpl @Inject constructor(
         // Always refresh the playlist-derived EPG URL (empty when the new playlist has none),
         // stored separately so it never overwrites the user's manual EPG setting.
         AppPreferences.setPlaylistEpgUrl(context, fetched.epgUrl?.takeIf { it.isNotBlank() } ?: "")
-        localDataSource.replaceAllChannels(
-            channels = fetched.channels.map { channelMapper.toEntity(it) },
-            // Carry favorites/health/metrics/resume points across any id-scheme change
-            // the source has made since the last refresh.
-            legacyIdAliases = fetched.legacyIdAliases
-        )
+        localDataSource.replaceAllChannels(fetched.channels.map { channelMapper.toEntity(it) })
         return Result.Success(Unit)
     }
     
