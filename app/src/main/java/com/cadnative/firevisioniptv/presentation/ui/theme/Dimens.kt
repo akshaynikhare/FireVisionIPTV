@@ -109,6 +109,8 @@ object Dimens {
     val BadgePaddingV = 2.dp                // tight vertical padding inside small pills (LIVE)
 
     // ── Player chrome (mobile + overlay upgrades) ────────────────────
+    val PlayerEdgeInset = 24.dp             // quick-actions bar inset from screen edges
+    val PlayerBarLift = 150.dp              // bar lift clearing the info bar + key-hint strip
     val EpgProgressHeight = 3.dp            // thin live-program progress line
     val OverlayDetailStripHeight = 84.dp    // fixed focused-channel strip in the channel overlay
     val PlayerControlButton = 52.dp         // circular scrim buttons in mobile chrome

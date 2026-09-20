@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -29,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
@@ -69,7 +69,6 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
-import com.cadnative.firevisioniptv.presentation.ui.theme.categoryIcon
 
 private const val LONG_PRESS_THRESHOLD_MS = 600L
 
@@ -113,7 +112,6 @@ fun ChannelCard(
     }
 
     val catColor = categoryColor(channel.category)
-    val catIcon = categoryIcon(channel.category)
 
     // On mobile: non-clickable Card + combinedClickable in modifier (sole touch handler).
     // On TV: clickable Card + D-pad key handler for long-press favorite.
@@ -125,7 +123,8 @@ fun ChannelCard(
     // Tonal elevation: container steps up one Void level when focused.
     val containerColor by animateColorAsState(
         targetValue = if (isFocused) Void700 else Void800,
-        animationSpec = tween(DURATION_FAST, easing = EaseOutQuart),
+        animationSpec = if (LocalPerfProfile.current.reduceMotion) snap()
+        else tween(DURATION_FAST, easing = EaseOutQuart),
         label = "cardContainer"
     )
     val cardColors = CardDefaults.cardColors(containerColor = containerColor)
@@ -153,7 +152,6 @@ fun ChannelCard(
             ChannelCardContent(
                 channel = channel,
                 catColor = catColor,
-                catIcon = catIcon,
                 focused = isFocused
             )
         }
@@ -217,7 +215,6 @@ fun ChannelCard(
             ChannelCardContent(
                 channel = channel,
                 catColor = catColor,
-                catIcon = catIcon,
                 focused = isFocused
             )
         }
@@ -240,7 +237,6 @@ fun ChannelCard(
 private fun ChannelCardContent(
     channel: ChannelUiModel,
     catColor: Color,
-    catIcon: ImageVector,
     focused: Boolean
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface

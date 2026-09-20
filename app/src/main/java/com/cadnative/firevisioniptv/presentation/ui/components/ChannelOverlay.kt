@@ -1,6 +1,9 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
+import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,10 +26,13 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayEnter
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayExit
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.Elevation
@@ -37,6 +43,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
 fun ChannelOverlay(
     isVisible: Boolean,
     currentChannel: ChannelUiModel?,
+    modifier: Modifier = Modifier,
     recentChannels: List<ChannelUiModel> = emptyList(),
     overlayEpg: Map<String, Pair<EpgProgram?, EpgProgram?>> = emptyMap(),
     channels: List<ChannelUiModel>,
@@ -50,22 +57,24 @@ fun ChannelOverlay(
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
     onInteraction: () -> Unit,
-    onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit = {}
 ) {
+    val reduceMotion = LocalPerfProfile.current.reduceMotion
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onKeyEvent {
-                onInteraction()
+            .onKeyEvent { keyEvent ->
+                // Down only: the auto-hide reset cancels+relaunches a coroutine,
+                // no need to pay that twice per keypress (down + up)
+                if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) onInteraction()
                 false // don't consume — let focus system handle navigation
             }
     ) {
         // Scrim
         AnimatedVisibility(
             visible = isVisible,
-            enter = fadeIn(tween(DURATION_ENTRANCE, easing = EaseOutQuart)),
-            exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
+            enter = overlayEnter(reduceMotion, DURATION_ENTRANCE),
+            exit = overlayExit(reduceMotion)
         ) {
             Box(
                 modifier = Modifier
@@ -77,8 +86,8 @@ fun ChannelOverlay(
         // Channel switching indicator
         AnimatedVisibility(
             visible = isSwitchingChannel,
-            enter = fadeIn(tween(DURATION_NORMAL)),
-            exit = fadeOut(tween(DURATION_NORMAL)),
+            enter = overlayEnter(reduceMotion),
+            exit = overlayExit(reduceMotion, DURATION_NORMAL),
             modifier = Modifier.align(Alignment.Center)
         ) {
             // Lift the spinner onto an elevated chip so it reads above the video
@@ -102,11 +111,11 @@ fun ChannelOverlay(
         // Info bar + channel panel — slide up together
         AnimatedVisibility(
             visible = isVisible,
-            enter = slideInVertically(
+            enter = if (reduceMotion) EnterTransition.None else slideInVertically(
                 initialOffsetY = { it },
                 animationSpec = tween(DURATION_ENTRANCE, easing = EaseOutQuart)
             ) + fadeIn(tween(DURATION_ENTRANCE, easing = EaseOutQuart)),
-            exit = slideOutVertically(
+            exit = if (reduceMotion) ExitTransition.None else slideOutVertically(
                 targetOffsetY = { it },
                 animationSpec = tween(DURATION_EXIT, easing = EaseOutQuart)
             ) + fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),

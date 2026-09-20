@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.delay
 import com.cadnative.firevisioniptv.ComposeMainActivity
 import com.cadnative.firevisioniptv.presentation.ui.components.ChannelOverlay
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
@@ -55,6 +57,10 @@ import com.cadnative.firevisioniptv.presentation.ui.screens.player.prepareChanne
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOrientationController
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOverlayState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
+
+// How long to wait before re-asking for quick-actions focus when the first
+// request landed while the bar's entrance animation was still placing it.
+private const val QUICK_ACTIONS_FOCUS_RETRY_MS = 100L
 
 /**
  * Full-screen video player. Stateful root: owns the ExoPlayer lifecycle,
@@ -226,11 +232,30 @@ fun PlayerScreen(
     val quickActionsFocusRequester = remember { FocusRequester() }
     LaunchedEffect(uiState.showChannelOverlay, showTracksPanel, overlayState.controlsFocusRequest) {
         when {
-            uiState.showChannelOverlay || showTracksPanel ->
+            uiState.showChannelOverlay || showTracksPanel -> {
                 overlayState.controlsFocusRequest = 0
-            overlayState.controlsFocusRequest > 0 ->
+                // A modal taking over means the bar is gone; drop any stale
+                // focus claim so the key handler can't misroute D-pad input.
+                overlayState.controlsFocused = false
+            }
+            overlayState.controlsFocusRequest > 0 -> {
+                // The bar's AnimatedVisibility flips visible this same frame, so the
+                // first request can land before the node is placed. requestFocus()
+                // returns Unit and only throws when the requester owns no node at all:
+                // a node that exists but cannot take focus yet makes it a silent no-op,
+                // so a call that didn't throw is no proof the bar is focused. Confirm
+                // against the bar's own onFocusChanged and retry once after a frame,
+                // otherwise the bar sits visible with focus still on the player and
+                // D-pad input keeps going to the player behind it.
                 runCatching { quickActionsFocusRequester.requestFocus() }
-                    .onFailure { overlayState.controlsFocusRequest = 0 }
+                withFrameNanos { }
+                if (!overlayState.controlsFocused) {
+                    delay(QUICK_ACTIONS_FOCUS_RETRY_MS)
+                    runCatching { quickActionsFocusRequester.requestFocus() }
+                    withFrameNanos { }
+                }
+                if (!overlayState.controlsFocused) overlayState.controlsFocusRequest = 0
+            }
             else -> runCatching { rootFocusRequester.requestFocus() }
         }
     }
@@ -297,9 +322,19 @@ fun PlayerScreen(
             .onKeyEvent { keyEvent ->
                 // BACK must be consumed here: if it bubbles unhandled, Compose
                 // clears focus and eats ACTION_DOWN, so BackHandler never runs.
+                // repeatCount gate: Android auto-repeats a held BACK — without
+                // it a hold pops more than one level (or exits the player).
                 if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
-                    if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-                        if (showTracksPanel) showTracksPanel = false else onBackAction()
+                    if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                        keyEvent.nativeKeyEvent.repeatCount == 0
+                    ) {
+                        if (showTracksPanel) {
+                            showTracksPanel = false
+                            // Return focus to the bar that launched the panel
+                            if (!isMobile) overlayState.focusQuickActions()
+                        } else {
+                            onBackAction()
+                        }
                     }
                     return@onKeyEvent true
                 }
@@ -365,6 +400,7 @@ fun PlayerScreen(
                         aspectLabel = ASPECT_MODES[aspectModeIndex].second,
                         quickActionsFocusRequester = quickActionsFocusRequester,
                         onToggleFavorite = onToggleFavorite,
+                        onPlayPause = onPlayPause,
                         onCycleSleepTimer = onCycleSleepTimer,
                         onCycleAspect = onCycleAspect,
                         onShowTracks = onShowTracks,
@@ -397,7 +433,10 @@ fun PlayerScreen(
             if (showTracksPanel) {
                 PlayerTracksPanel(
                     exoPlayer = exoPlayer,
-                    onDismiss = { showTracksPanel = false }
+                    onDismiss = {
+                        showTracksPanel = false
+                        if (!isMobile) overlayState.focusQuickActions()
+                    }
                 )
             }
 

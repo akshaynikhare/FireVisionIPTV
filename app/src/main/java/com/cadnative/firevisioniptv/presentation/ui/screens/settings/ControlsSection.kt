@@ -44,14 +44,12 @@ internal fun ControlsSection(
     backExitProtection: Boolean,
     keyUpDownAction: String,
     keyLeftRightAction: String,
-    longOkAction: String,
     sleepTimerDefaultMinutes: Int,
     alwaysShowProgramBar: Boolean,
     infoBarTimeoutSeconds: Int,
     onBackExitProtectionChange: (Boolean) -> Unit,
     onKeyUpDownChange: (String) -> Unit,
     onKeyLeftRightChange: (String) -> Unit,
-    onLongOkChange: (String) -> Unit,
     onSleepTimerDefaultChange: (Int) -> Unit,
     onAlwaysShowProgramBarChange: (Boolean) -> Unit,
     onInfoBarTimeoutChange: (Int) -> Unit,
@@ -94,13 +92,6 @@ internal fun ControlsSection(
                     options = keyActionOptions,
                     current = keyLeftRightAction,
                     onSelect = onKeyLeftRightChange,
-                    stacked = true
-                )
-                PlayerKeyRow(
-                    label = "Hold OK",
-                    options = keyActionOptions,
-                    current = longOkAction,
-                    onSelect = onLongOkChange,
                     stacked = true
                 )
             }

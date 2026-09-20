@@ -18,8 +18,8 @@ data class SettingsUiState(
     val autoPlay: Boolean = true,
     // Player controls
     val backExitProtection: Boolean = true,
-    val keyUpDownAction: String = PlayerKeyAction.ZAP,
-    val keyLeftRightAction: String = PlayerKeyAction.ZAP,
+    val keyUpDownAction: String = PlayerKeyAction.MENU,
+    val keyLeftRightAction: String = PlayerKeyAction.MENU,
     val longOkAction: String = PlayerKeyAction.FAVORITE,
     val sleepTimerDefaultMinutes: Int = 0,
     val alwaysShowProgramBar: Boolean = false,

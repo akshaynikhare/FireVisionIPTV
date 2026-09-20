@@ -1,12 +1,13 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,20 +22,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
-import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
+import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayEnter
+import com.cadnative.firevisioniptv.presentation.ui.animation.overlayExit
 import com.cadnative.firevisioniptv.presentation.ui.components.OverlayToast
 import com.cadnative.firevisioniptv.presentation.ui.components.PlayerInfoBar
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.BodyOverlay
+import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.DisplayNumberChip
 import com.cadnative.firevisioniptv.presentation.ui.theme.LabelToast
 import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
@@ -58,6 +63,7 @@ internal fun BoxScope.PlayerOverlays(
     aspectLabel: String,
     quickActionsFocusRequester: FocusRequester,
     onToggleFavorite: () -> Unit,
+    onPlayPause: () -> Unit,
     onCycleSleepTimer: (Int?) -> Unit,
     onCycleAspect: () -> Unit,
     onShowTracks: () -> Unit,
@@ -65,6 +71,7 @@ internal fun BoxScope.PlayerOverlays(
     onShowGuide: (() -> Unit)? = null,
     mobileChromeActions: MobileChromeActions? = null
 ) {
+    val reduceMotion = LocalPerfProfile.current.reduceMotion
     val playbackHealthy = !uiState.isStreamDead && !uiState.isRecovering
     val controlsVisible = uiState.channel != null &&
             !uiState.showChannelOverlay &&
@@ -83,26 +90,36 @@ internal fun BoxScope.PlayerOverlays(
     val pinnedInfoBarVisible = alwaysShowInfoBar && !state.showInfoBar && canShowInfoBar
     val infoBarVisible = fullInfoBarVisible || pinnedInfoBarVisible
 
-    // Now/next info bar — revealed on zap or INFO key, auto-hides
+    // Now/next info bar — revealed on zap or INFO key, auto-hides. On TV the
+    // key-hint strip rides above it and fades in/out with the same reveal.
     AnimatedVisibility(
         visible = fullInfoBarVisible,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.BottomCenter)
     ) {
-        PlayerInfoBar(
-            channel = uiState.channel,
-            nowPlaying = uiState.nowPlaying,
-            nextProgram = uiState.nextProgram,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!isMobile) {
+                PlayerKeyHintStrip(
+                    keyUpDownAction = uiState.keyUpDownAction,
+                    keyLeftRightAction = uiState.keyLeftRightAction,
+                    modifier = Modifier.padding(bottom = Dimens.Space2)
+                )
+            }
+            PlayerInfoBar(
+                channel = uiState.channel,
+                nowPlaying = uiState.nowPlaying,
+                nextProgram = uiState.nextProgram,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 
     // Pinned compact live-EPG strip — always on when enabled in Settings
     AnimatedVisibility(
         visible = pinnedInfoBarVisible,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.BottomCenter)
     ) {
         PlayerInfoBar(
@@ -117,8 +134,8 @@ internal fun BoxScope.PlayerOverlays(
     // Play/pause flash — brief centered icon after a play/pause action
     AnimatedVisibility(
         visible = state.showPlayPauseFlash && uiState.channel != null,
-        enter = fadeIn(tween(DURATION_FAST, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion, DURATION_FAST),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.Center)
     ) {
         Icon(
@@ -136,8 +153,8 @@ internal fun BoxScope.PlayerOverlays(
     // Favorite indicator — centered brief toast after toggle
     AnimatedVisibility(
         visible = state.showFavIndicator && uiState.channel != null,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.Center)
     ) {
         val isFav = uiState.channel?.isFavorite == true
@@ -167,8 +184,8 @@ internal fun BoxScope.PlayerOverlays(
     val sleepRemaining = uiState.sleepTimerRemainingSeconds
     AnimatedVisibility(
         visible = sleepRemaining != null && sleepRemaining in 1..60 && !uiState.sleepTimerExpired,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier
             .align(Alignment.TopStart)
             .padding(32.dp)
@@ -179,8 +196,8 @@ internal fun BoxScope.PlayerOverlays(
     // Sleep timer expired — "Still watching?" prompt with a cancel window
     AnimatedVisibility(
         visible = uiState.sleepTimerExpired,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.Center)
     ) {
         OverlayToast("Still watching? Press any button to continue")
@@ -203,22 +220,31 @@ internal fun BoxScope.PlayerOverlays(
 
     // Live quick-actions bar (TV) — bottom-left, auto-hides with the other
     // transient controls. Lifts above the info bar so it never overlaps the
-    // channel logo. On mobile the dedicated MobilePlayerControls own the chrome.
+    // channel logo; the lift is animated so the bar glides instead of
+    // teleporting when the info bar hides under it.
+    // On mobile the dedicated MobilePlayerControls own the chrome.
+    val barLift by animateDpAsState(
+        targetValue = if (infoBarVisible) Dimens.PlayerBarLift else Dimens.PlayerEdgeInset,
+        animationSpec = if (reduceMotion) snap() else tween(DURATION_NORMAL, easing = EaseOutQuart),
+        label = "quickActionsBarLift"
+    )
     AnimatedVisibility(
         visible = (controlsVisible || (state.controlsFocused && uiState.channel != null &&
                 !uiState.showChannelOverlay && playbackHealthy)) && !isMobile,
-        enter = fadeIn(tween(DURATION_NORMAL, easing = EaseOutQuart)),
-        exit = fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart)),
+        enter = overlayEnter(reduceMotion),
+        exit = overlayExit(reduceMotion),
         modifier = Modifier
             .align(Alignment.BottomStart)
-            .padding(start = 24.dp, bottom = if (infoBarVisible) 120.dp else 24.dp)
+            .padding(start = Dimens.PlayerEdgeInset, bottom = barLift)
     ) {
         PlayerQuickActions(
             isFavorite = uiState.channel?.isFavorite == true,
+            isPlaying = uiState.isPlaying,
             sleepTimerMinutes = uiState.sleepTimerMinutes,
             aspectLabel = aspectLabel,
             firstActionFocusRequester = quickActionsFocusRequester,
             onFocusStateChanged = { state.controlsFocused = it },
+            onPlayPause = onPlayPause,
             onToggleFavorite = onToggleFavorite,
             onCycleSleepTimer = onCycleSleepTimer,
             onCycleAspect = onCycleAspect,

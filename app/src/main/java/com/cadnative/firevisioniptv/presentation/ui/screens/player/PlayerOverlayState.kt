@@ -50,7 +50,6 @@ internal class PlayerOverlayState {
 
     // Non-observable input bookkeeping (key handler only)
     var lastChannelSwitchTime = 0L
-    var longPressConsumed = false
 
     val showControls get() = controlsReveal > 0
     val showFavIndicator get() = favIndicatorToken > 0

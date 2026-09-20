@@ -62,6 +62,16 @@ fun screenPopEnterTransition(): EnterTransition =
 fun screenPopExitTransition(): ExitTransition =
     fadeOut(tween(DURATION_EXIT, easing = EaseOutQuart))
 
+// ── Overlay transitions (reduceMotion-aware) ────────────────────────
+
+/** Standard overlay fade-in; appears instantly when [reduceMotion]. */
+fun overlayEnter(reduceMotion: Boolean, duration: Int = DURATION_NORMAL): EnterTransition =
+    if (reduceMotion) EnterTransition.None else fadeIn(tween(duration, easing = EaseOutQuart))
+
+/** Standard overlay fade-out; disappears instantly when [reduceMotion]. */
+fun overlayExit(reduceMotion: Boolean, duration: Int = DURATION_EXIT): ExitTransition =
+    if (reduceMotion) ExitTransition.None else fadeOut(tween(duration, easing = EaseOutQuart))
+
 // ── Item Entrance Modifier ──────────────────────────────────────────
 
 /**

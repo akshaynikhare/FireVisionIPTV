@@ -1,8 +1,8 @@
 package com.cadnative.firevisioniptv.presentation.ui.components
 
-import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,26 +26,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
-import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceDark
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 // Flush, square-topped sheet — edge-to-edge, no rounded corner or drag handle.
 private val PanelShape = RoundedCornerShape(0.dp)
 
+// Let the overlay's entrance animation begin before claiming focus, so the request
+// lands on a node that has been placed.
+private const val FOCUS_ATTACH_DELAY_MS = 100L
+
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun BottomChannelPanel(
     currentChannel: ChannelUiModel?,
@@ -59,52 +67,72 @@ internal fun BottomChannelPanel(
     onChannelClick: (String) -> Unit,
     onCategorySelected: (String?) -> Unit,
     onFavoriteClick: (String) -> Unit,
-    onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit = {}
 ) {
     val isMobile = isMobileDevice(LocalContext.current)
     val channelListState = rememberLazyListState()
     val categoryFocusRequester = remember { FocusRequester() }
     val channelFocusRequester = remember { FocusRequester() }
+    // One shared ticker for every progress bar in the panel — per-card tickers
+    // are N un-batched wakeups/minute on a low-end box
+    val nowMillis = rememberMinuteTicker()
 
     // Pin the recently watched channels first for quick recall (most recent first)
-    val pinnedRecents = recentChannels.filter { it.id != currentChannel?.id }
-    val pinnedIds = pinnedRecents.mapTo(HashSet()) { it.id }
-    val displayChannels = if (pinnedRecents.isNotEmpty()) {
-        pinnedRecents + channels.filter { it.id !in pinnedIds }
-    } else {
-        channels
+    val pinnedRecents = remember(recentChannels, currentChannel?.id) {
+        recentChannels.filter { it.id != currentChannel?.id }
+    }
+    val displayChannels = remember(pinnedRecents, channels) {
+        if (pinnedRecents.isNotEmpty()) {
+            val pinnedIds = pinnedRecents.mapTo(HashSet()) { it.id }
+            pinnedRecents + channels.filter { it.id !in pinnedIds }
+        } else {
+            channels
+        }
     }
 
     // What the detail strip describes: the focused card, else the playing channel
     var focusedChannel by remember { mutableStateOf<ChannelUiModel?>(null) }
     val stripChannel = focusedChannel ?: currentChannel
 
-    // Auto-scroll to the current channel when overlay appears or channels change
-    val currentIndex = displayChannels.indexOfFirst { it.id == currentChannel?.id }
-    LaunchedEffect(displayChannels, currentChannel?.id, isVisible) {
-        if (isVisible && currentIndex >= 0) {
+    val latestChannels by rememberUpdatedState(displayChannels)
+    val latestCategories by rememberUpdatedState(categories)
+
+    // One-shot scroll to the current channel per overlay open / category switch.
+    // Deliberately NOT keyed on list content: EPG ticks, Room re-emissions, and
+    // favorite toggles must never yank the scroll position mid-browse.
+    LaunchedEffect(isVisible, selectedCategory) {
+        if (!isVisible) return@LaunchedEffect
+        // Waits for content with no deadline: a slow playlist or a cold EPG fetch can
+        // take longer than any figure worth hardcoding, and giving up would leave the
+        // list parked at the top. Cancelled when the overlay closes or the category
+        // changes, so it never outlives the open it belongs to.
+        snapshotFlow { latestChannels.isNotEmpty() }.first { it }
+        val index = latestChannels.indexOfFirst { it.id == currentChannel?.id }
+        if (index >= 0) {
             channelListState.scrollToItem(
-                index = maxOf(0, currentIndex - 1), // show one before for context
+                index = maxOf(0, index - 1), // show one before for context
                 scrollOffset = 0
             )
         }
     }
 
-    // Focus the channel row (scrolled to the current channel) so switching is one press away;
-    // fall back to category chips when there are no channels yet
-    LaunchedEffect(categories, displayChannels, isVisible) {
-        if (!isVisible) return@LaunchedEffect
+    // One-shot initial focus per overlay open — after this, focus moves only
+    // when the user moves it (a category click keeps focus on the chip).
+    LaunchedEffect(isVisible) {
+        if (!isVisible) {
+            focusedChannel = null // stale strip target from the last session
+            return@LaunchedEffect
+        }
+        // No deadline on the wait: content that arrives late must still get the focus,
+        // otherwise the overlay shows a full list with nothing focused and no D-pad
+        // target, and the only way out is to close and reopen it.
+        snapshotFlow { latestChannels.isNotEmpty() || latestCategories.isNotEmpty() }.first { it }
         // Small delay to let the overlay animation begin and attach focus nodes
-        kotlinx.coroutines.delay(100)
-        try {
-            if (displayChannels.isNotEmpty()) {
-                channelFocusRequester.requestFocus()
-            } else if (categories.isNotEmpty()) {
-                categoryFocusRequester.requestFocus()
-            }
-        } catch (_: Exception) {
-            // Focus request can fail if not yet attached
+        delay(FOCUS_ATTACH_DELAY_MS)
+        runCatching {
+            if (latestChannels.isNotEmpty()) channelFocusRequester.requestFocus()
+            else categoryFocusRequester.requestFocus()
         }
     }
 
@@ -116,6 +144,11 @@ internal fun BottomChannelPanel(
             .fillMaxWidth()
             .graphicsLayer { translationY = dragOffsetY.coerceAtLeast(0f) }
             .background(color = SurfaceDark.copy(alpha = 0.95f), shape = PanelShape)
+            // Hard focus trap: while the overlay is open, D-pad can never dump
+            // focus onto the invisible root or a hidden bar behind it. BACK
+            // still bubbles to the root handler for dismissal.
+            .focusProperties { exit = { FocusRequester.Cancel } }
+            .focusGroup()
             .padding(top = 12.dp, bottom = 18.dp)
     ) {
         // Mobile-only swipe/tap-to-dismiss strip — no visual handle and kept thin
@@ -145,7 +178,8 @@ internal fun BottomChannelPanel(
 
         OverlayDetailStrip(
             channel = stripChannel,
-            epg = overlayEpgKey(stripChannel?.tvgId)?.let { overlayEpg[it] }
+            epg = overlayEpgKey(stripChannel?.tvgId)?.let { overlayEpg[it] },
+            nowMillis = nowMillis
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -158,14 +192,8 @@ internal fun BottomChannelPanel(
                 onCategorySelected = onCategorySelected,
                 modifier = Modifier
                     .focusRequester(categoryFocusRequester)
+                    .focusRestorer()
                     .focusProperties { down = channelFocusRequester }
-                    .onKeyEvent { keyEvent ->
-                        if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
-                        if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                            try { channelFocusRequester.requestFocus() } catch (_: Exception) {}
-                            true
-                        } else false
-                    }
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -190,24 +218,23 @@ internal fun BottomChannelPanel(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier
                     .focusRequester(channelFocusRequester)
-                    .focusProperties { up = categoryFocusRequester }
-                    .onKeyEvent { keyEvent ->
-                        if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
-                        if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                            try { categoryFocusRequester.requestFocus() } catch (_: Exception) {}
-                            true
-                        } else false
+                    .focusRestorer()
+                    // ▲ goes to the chips only when they exist — with no
+                    // categories it stays a harmless wall instead of a dead key
+                    .focusProperties {
+                        up = if (categories.isNotEmpty()) categoryFocusRequester
+                        else FocusRequester.Default
                     }
             ) {
                 itemsIndexed(displayChannels, key = { _, ch -> ch.id }) { index, channel ->
                     OverlayChannelItem(
                         channel = channel,
                         isCurrentChannel = channel.id == currentChannel?.id,
+                        nowMillis = nowMillis,
                         recentIndex = index.takeIf { it < pinnedRecents.size },
                         onClick = { onChannelClick(channel.id) },
                         onFavoriteClick = { onFavoriteClick(channel.id) },
-                        onFocused = { focusedChannel = channel },
-                        modifier = Modifier.animateItemEntrance(index)
+                        onFocused = { focusedChannel = channel }
                     )
                 }
             }
