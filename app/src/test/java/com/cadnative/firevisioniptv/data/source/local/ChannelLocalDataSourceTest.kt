@@ -217,12 +217,12 @@ class ChannelLocalDataSourceTest {
                 isActive = true
             )
         )
-        coEvery { channelDao.replaceAllChannels(channels) } returns Unit
-        
+        coEvery { channelDao.replaceAllChannels(channels, emptyMap()) } returns Unit
+
         // When
         channelLocalDataSource.replaceAllChannels(channels)
-        
-        // Then
-        coVerify { channelDao.replaceAllChannels(channels) }
+
+        // Then — no aliases by default; the source only supplies them after an id change
+        coVerify { channelDao.replaceAllChannels(channels, emptyMap()) }
     }
 }

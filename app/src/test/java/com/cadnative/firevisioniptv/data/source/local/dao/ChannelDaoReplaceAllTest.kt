@@ -47,6 +47,12 @@ class ChannelDaoReplaceAllTest {
             deletedBatches.add(firstArg())
         }
         coEvery { dao.replaceAllChannels(any()) } answers { callOriginal() }
+        coEvery { dao.replaceAllChannels(any(), any()) } answers { callOriginal() }
+        coEvery { dao.remapChannelReferences(any(), any()) } answers { callOriginal() }
+        coEvery { dao.remapFavoriteChannelId(any(), any()) } just Runs
+        coEvery { dao.remapChannelHealthChannelId(any(), any()) } just Runs
+        coEvery { dao.remapStreamMetricsChannelId(any(), any()) } just Runs
+        coEvery { dao.remapPlaybackPositionChannelId(any(), any()) } just Runs
     }
 
     @Test
@@ -115,6 +121,39 @@ class ChannelDaoReplaceAllTest {
             deletedBatches.size == 3
         )
         coVerify { dao.insertChannels(newChannels) }
+    }
+
+    @Test
+    fun `replaceAllChannels re-points user state from a retired id before deleting it`() = runTest {
+        // Given — the source renamed "old-1" to "new-1"; "2" is unchanged
+        coEvery { dao.getAllChannelIds() } returns listOf("old-1", "2")
+        val newChannels = listOf(makeChannel("new-1"), makeChannel("2"))
+
+        // When
+        dao.replaceAllChannels(newChannels, mapOf("old-1" to "new-1"))
+
+        // Then — favorites, health, metrics and resume points follow the channel
+        coVerify { dao.remapFavoriteChannelId("old-1", "new-1") }
+        coVerify { dao.remapChannelHealthChannelId("old-1", "new-1") }
+        coVerify { dao.remapStreamMetricsChannelId("old-1", "new-1") }
+        coVerify { dao.remapPlaybackPositionChannelId("old-1", "new-1") }
+        assertTrue("Retired id is still deleted", deletedBatches.flatten() == listOf("old-1"))
+    }
+
+    @Test
+    fun `replaceAllChannels ignores aliases this install cannot resolve`() = runTest {
+        // Given — no legacy row present, and an alias whose target the playlist dropped
+        coEvery { dao.getAllChannelIds() } returns listOf("2")
+        val newChannels = listOf(makeChannel("2"))
+
+        // When
+        dao.replaceAllChannels(
+            newChannels,
+            mapOf("absent-legacy" to "2", "2" to "no-longer-listed")
+        )
+
+        // Then — nothing is re-pointed at an id the incoming list does not define
+        coVerify(exactly = 0) { dao.remapChannelReferences(any(), any()) }
     }
 
     @Test

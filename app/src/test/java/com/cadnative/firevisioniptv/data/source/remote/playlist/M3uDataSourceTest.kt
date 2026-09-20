@@ -62,6 +62,25 @@ class M3uDataSourceTest {
     }
 
     @Test
+    fun `emits a legacy id alias per channel so stored state can be migrated`() {
+        val m3u = """
+            #EXTM3U
+            #EXTINF:-1 tvg-id="CNN.us",CNN International
+            http://stream.example.com/cnn.m3u8
+            #EXTINF:-1,Local Channel
+            http://stream.example.com/local.m3u8
+        """.trimIndent()
+
+        val result = dataSource.parse(m3u)
+
+        // Legacy ids were "m3u-<index>-<tvg-id or name>"; the alias points each one at
+        // the content-derived id the same channel gets now.
+        assertEquals(result.channels[0].id, result.legacyIdAliases["m3u-0-CNN.us"])
+        assertEquals(result.channels[1].id, result.legacyIdAliases["m3u-1-Local Channel"])
+        assertEquals(2, result.legacyIdAliases.size)
+    }
+
+    @Test
     fun `channel ids are unique across duplicate tvg-ids`() {
         val m3u = """
             #EXTM3U

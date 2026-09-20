@@ -37,7 +37,9 @@ class M3uDataSource @Inject constructor(
             }?.takeIf { it.isNotBlank() }
 
         val channels = ArrayList<ChannelDto>()
+        val legacyIdAliases = LinkedHashMap<String, String>()
         var pending: ExtInf? = null
+        var index = 0
         for (line in lines) {
             when {
                 line.startsWith("#EXTINF", ignoreCase = true) -> pending = parseExtInf(line)
@@ -46,9 +48,12 @@ class M3uDataSource @Inject constructor(
                     val info = pending
                     if (info != null) {
                         val tvgId = info.tvgId?.takeIf { it.isNotBlank() }
+                        val id = stableChannelId(listOfNotNull(tvgId, line).joinToString("|"))
+                        val legacyId = legacyChannelId(index, tvgId, info.name)
+                        if (legacyId != id) legacyIdAliases[legacyId] = id
                         channels.add(
                             ChannelDto(
-                                id = stableChannelId(listOfNotNull(tvgId, line).joinToString("|")),
+                                id = id,
                                 name = info.name,
                                 url = line,
                                 channelImg = null,
@@ -58,12 +63,13 @@ class M3uDataSource @Inject constructor(
                                 tvgName = info.name
                             )
                         )
+                        index++
                         pending = null
                     }
                 }
             }
         }
-        return PlaylistFetch(channels, epgUrl)
+        return PlaylistFetch(channels, epgUrl, legacyIdAliases)
     }
 
     private fun stableChannelId(sourceId: String): String {
@@ -73,6 +79,16 @@ class M3uDataSource @Inject constructor(
             .joinToString("") { "%02x".format(it) }
         return "m3u-$digest"
     }
+
+    /**
+     * The id this parser emitted before ids became content-derived: position in the
+     * playlist plus tvg-id or display name. Emitted alongside the current id so a
+     * refresh can re-point favorites, health, metrics and resume points that were
+     * stored under it. Position-based, so it only resolves for channels the playlist
+     * still lists in the same order — a reordered playlist migrates what it can.
+     */
+    private fun legacyChannelId(index: Int, tvgId: String?, name: String): String =
+        "m3u-$index-${tvgId ?: name}".take(200)
 
     private data class ExtInf(
         val name: String,
