@@ -48,12 +48,23 @@ object AppPreferences {
         return prefs.getBoolean(DEMO_MODE_KEY, false)
     }
 
+    private val installationIdLock = Any()
+
+    /**
+     * Random per-install identifier, generated once. The generate-and-store path is
+     * locked and re-reads the preference inside the lock: two threads racing the first
+     * call would otherwise each mint a UUID and return different ones, so a request from
+     * the losing thread would identify this install differently from every later request.
+     */
     fun getInstallationId(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.getString(INSTALLATION_ID_KEY, null)?.let { return it }
-        val id = UUID.randomUUID().toString()
-        prefs.edit().putString(INSTALLATION_ID_KEY, id).apply()
-        return id
+        synchronized(installationIdLock) {
+            prefs.getString(INSTALLATION_ID_KEY, null)?.let { return it }
+            val id = UUID.randomUUID().toString()
+            prefs.edit().putString(INSTALLATION_ID_KEY, id).apply()
+            return id
+        }
     }
 
     fun setServerUrl(context: Context, url: String) {
