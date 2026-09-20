@@ -45,13 +45,13 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
 
 // Flush, square-topped sheet — edge-to-edge, no rounded corner or drag handle.
 private val PanelShape = RoundedCornerShape(0.dp)
 
-// How long the one-shot scroll/focus effects wait for the channel list to load
-private const val CONTENT_WAIT_TIMEOUT_MS = 2_000L
+// Let the overlay's entrance animation begin before claiming focus, so the request
+// lands on a node that has been placed.
+private const val FOCUS_ATTACH_DELAY_MS = 100L
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -103,9 +103,11 @@ internal fun BottomChannelPanel(
     // favorite toggles must never yank the scroll position mid-browse.
     LaunchedEffect(isVisible, selectedCategory) {
         if (!isVisible) return@LaunchedEffect
-        withTimeoutOrNull(CONTENT_WAIT_TIMEOUT_MS) {
-            snapshotFlow { latestChannels.isNotEmpty() }.first { it }
-        } ?: return@LaunchedEffect
+        // Waits for content with no deadline: a slow playlist or a cold EPG fetch can
+        // take longer than any figure worth hardcoding, and giving up would leave the
+        // list parked at the top. Cancelled when the overlay closes or the category
+        // changes, so it never outlives the open it belongs to.
+        snapshotFlow { latestChannels.isNotEmpty() }.first { it }
         val index = latestChannels.indexOfFirst { it.id == currentChannel?.id }
         if (index >= 0) {
             channelListState.scrollToItem(
@@ -122,11 +124,12 @@ internal fun BottomChannelPanel(
             focusedChannel = null // stale strip target from the last session
             return@LaunchedEffect
         }
-        withTimeoutOrNull(CONTENT_WAIT_TIMEOUT_MS) {
-            snapshotFlow { latestChannels.isNotEmpty() || latestCategories.isNotEmpty() }.first { it }
-        } ?: return@LaunchedEffect
+        // No deadline on the wait: content that arrives late must still get the focus,
+        // otherwise the overlay shows a full list with nothing focused and no D-pad
+        // target, and the only way out is to close and reopen it.
+        snapshotFlow { latestChannels.isNotEmpty() || latestCategories.isNotEmpty() }.first { it }
         // Small delay to let the overlay animation begin and attach focus nodes
-        delay(100)
+        delay(FOCUS_ATTACH_DELAY_MS)
         runCatching {
             if (latestChannels.isNotEmpty()) channelFocusRequester.requestFocus()
             else categoryFocusRequester.requestFocus()

@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -56,6 +57,10 @@ import com.cadnative.firevisioniptv.presentation.ui.screens.player.prepareChanne
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOrientationController
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOverlayState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
+
+// How long to wait before re-asking for quick-actions focus when the first
+// request landed while the bar's entrance animation was still placing it.
+private const val QUICK_ACTIONS_FOCUS_RETRY_MS = 100L
 
 /**
  * Full-screen video player. Stateful root: owns the ExoPlayer lifecycle,
@@ -234,15 +239,22 @@ fun PlayerScreen(
                 overlayState.controlsFocused = false
             }
             overlayState.controlsFocusRequest > 0 -> {
-                // The bar's AnimatedVisibility flips visible this same frame —
-                // the first request can race node attachment, so retry once
-                // after the entrance has had a frame to attach focus nodes.
-                val focused = runCatching { quickActionsFocusRequester.requestFocus() }.isSuccess ||
-                    run {
-                        delay(100)
-                        runCatching { quickActionsFocusRequester.requestFocus() }.isSuccess
-                    }
-                if (!focused) overlayState.controlsFocusRequest = 0
+                // The bar's AnimatedVisibility flips visible this same frame, so the
+                // first request can land before the node is placed. requestFocus()
+                // returns Unit and only throws when the requester owns no node at all:
+                // a node that exists but cannot take focus yet makes it a silent no-op,
+                // so a call that didn't throw is no proof the bar is focused. Confirm
+                // against the bar's own onFocusChanged and retry once after a frame,
+                // otherwise the bar sits visible with focus still on the player and
+                // D-pad input keeps going to the player behind it.
+                runCatching { quickActionsFocusRequester.requestFocus() }
+                withFrameNanos { }
+                if (!overlayState.controlsFocused) {
+                    delay(QUICK_ACTIONS_FOCUS_RETRY_MS)
+                    runCatching { quickActionsFocusRequester.requestFocus() }
+                    withFrameNanos { }
+                }
+                if (!overlayState.controlsFocused) overlayState.controlsFocusRequest = 0
             }
             else -> runCatching { rootFocusRequester.requestFocus() }
         }
