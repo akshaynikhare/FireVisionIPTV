@@ -35,10 +35,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import com.cadnative.firevisioniptv.presentation.ui.components.EpgProgressBar
@@ -157,7 +159,7 @@ private fun PortraitDetailSection(
             IconButton(onClick = actions.onToggleFavorite) {
                 Icon(
                     imageVector = if (channel?.isFavorite == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Favorite",
+                    contentDescription = stringResource(R.string.a11y_favorite),
                     tint = if (channel?.isFavorite == true) MaterialTheme.colorScheme.error else OnVideo
                 )
             }
@@ -165,7 +167,7 @@ private fun PortraitDetailSection(
 
         uiState.nowPlaying?.let { now ->
             Text(
-                text = "Now: ${now.title}  ${formatEpgTimeRange(now)}",
+                text = stringResource(R.string.epg_now_with_time, now.title, formatEpgTimeRange(now)),
                 style = BodyOverlay,
                 color = OnVideo,
                 maxLines = 1,
@@ -175,7 +177,7 @@ private fun PortraitDetailSection(
         }
         uiState.nextProgram?.let { next ->
             Text(
-                text = "Next: ${next.title}  ${formatEpgTimeRange(next)}",
+                text = stringResource(R.string.epg_next_with_time, next.title, formatEpgTimeRange(next)),
                 style = LabelToast,
                 color = OnVideo.copy(alpha = EmphasisMedium),
                 maxLines = 1,
@@ -186,10 +188,12 @@ private fun PortraitDetailSection(
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.Space4)) {
             PortraitActionButton(
                 icon = Icons.Filled.ClosedCaption,
-                label = "Audio/Subs",
+                label = stringResource(R.string.player_action_audio_subs),
                 onClick = actions.onShowTracks
             )
-            val sleepLabel = uiState.sleepTimerMinutes?.let { "Sleep ${it}m" } ?: "Sleep off"
+            val sleepLabel = uiState.sleepTimerMinutes
+                ?.let { stringResource(R.string.player_sleep_minutes, it) }
+                ?: stringResource(R.string.player_sleep_off)
             PortraitActionButton(
                 icon = Icons.Filled.Bedtime,
                 label = sleepLabel,
@@ -203,7 +207,7 @@ private fun PortraitDetailSection(
             )
             PortraitActionButton(
                 icon = Icons.Filled.PictureInPictureAlt,
-                label = "PiP",
+                label = stringResource(R.string.player_action_pip),
                 onClick = actions.onEnterPip
             )
         }

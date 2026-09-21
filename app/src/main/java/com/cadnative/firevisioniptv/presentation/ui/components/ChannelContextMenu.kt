@@ -42,6 +42,8 @@ import androidx.compose.ui.window.Dialog
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Long-press context menu for a channel card. Rendered in its own Dialog
@@ -52,7 +54,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 fun ChannelContextMenu(
     channel: ChannelUiModel,
     onToggleFavorite: () -> Unit,
-    onOpenMultiview: () -> Unit,
+    onOpenMultiview: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     val firstFocus = remember { FocusRequester() }
@@ -76,7 +78,7 @@ fun ChannelContextMenu(
                 modifier = Modifier.padding(bottom = Dimens.Space2)
             )
             ContextMenuRow(
-                label = if (channel.isFavorite) "Remove from Favorites" else "Add to Favorites",
+                label = stringResource(if (channel.isFavorite) R.string.context_menu_remove_favorite else R.string.context_menu_add_favorite),
                 icon = if (channel.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 focusRequester = firstFocus,
                 onClick = {
@@ -84,11 +86,15 @@ fun ChannelContextMenu(
                     onDismiss()
                 }
             )
-            ContextMenuRow(
-                label = "Open in Multiview",
-                icon = Icons.Filled.Dashboard,
-                onClick = onOpenMultiview
-            )
+            // Omitted where multiview makes no sense — the player's own channel
+            // overlay, which shows this menu purely to favourite a channel.
+            onOpenMultiview?.let { openMultiview ->
+                ContextMenuRow(
+                    label = stringResource(R.string.context_menu_multiview),
+                    icon = Icons.Filled.Dashboard,
+                    onClick = openMultiview
+                )
+            }
         }
     }
 }

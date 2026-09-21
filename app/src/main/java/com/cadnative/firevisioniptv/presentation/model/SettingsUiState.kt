@@ -20,7 +20,6 @@ data class SettingsUiState(
     val backExitProtection: Boolean = true,
     val keyUpDownAction: String = PlayerKeyAction.MENU,
     val keyLeftRightAction: String = PlayerKeyAction.MENU,
-    val longOkAction: String = PlayerKeyAction.FAVORITE,
     val sleepTimerDefaultMinutes: Int = 0,
     val alwaysShowProgramBar: Boolean = false,
     val infoBarTimeoutSeconds: Int = 4,
@@ -53,9 +52,14 @@ data class SettingsUiState(
     // Connection test
     val isTestingConnection: Boolean = false,
     val connectionTestResult: String? = null,
+    // Outcome flags, separate from the messages above: the messages are
+    // localized, so comparing them against English text breaks in every other
+    // locale.
+    val connectionTestOk: Boolean = false,
     // Bring-your-own playlist (M3U / Xtream)
     val isLoadingPlaylist: Boolean = false,
-    val playlistResult: String? = null
+    val playlistResult: String? = null,
+    val playlistLoaded: Boolean = false
 )
 
 data class UpdateInfo(

@@ -35,7 +35,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -112,7 +114,7 @@ fun TvSearchKeyboard(
                     .weight(1f)
                     .height(Dimens.KeyboardKeySize)
             ) {
-                Icon(imageVector = Icons.Default.SpaceBar, contentDescription = "Space")
+                Icon(imageVector = Icons.Default.SpaceBar, contentDescription = stringResource(R.string.a11y_keyboard_space))
             }
             KeyButton(
                 onClick = onBackspace,
@@ -122,7 +124,7 @@ fun TvSearchKeyboard(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Backspace,
-                    contentDescription = "Backspace"
+                    contentDescription = stringResource(R.string.a11y_keyboard_backspace)
                 )
             }
             KeyButton(
@@ -131,7 +133,7 @@ fun TvSearchKeyboard(
                     .widthIn(min = Dimens.KeyboardActionKeyMinWidth)
                     .height(Dimens.KeyboardKeySize)
             ) {
-                Text(text = "Clear", style = MaterialTheme.typography.labelLarge)
+                Text(text = stringResource(R.string.action_clear), style = MaterialTheme.typography.labelLarge)
             }
         }
     }

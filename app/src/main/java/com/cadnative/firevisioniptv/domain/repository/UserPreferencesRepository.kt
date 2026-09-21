@@ -112,10 +112,6 @@ interface UserPreferencesRepository {
 
     suspend fun setPlayerKeyLeftRightAction(action: String): Result<Unit>
 
-    fun getPlayerLongOkAction(): Flow<String>
-
-    suspend fun setPlayerLongOkAction(action: String): Result<Unit>
-
     /**
      * Default sleep timer applied when playback starts, in minutes (0 = off).
      */

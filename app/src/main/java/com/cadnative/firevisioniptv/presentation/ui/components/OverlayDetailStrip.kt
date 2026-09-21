@@ -13,8 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
@@ -106,7 +108,7 @@ internal fun OverlayDetailStrip(
             }
             if (next != null) {
                 Text(
-                    text = "Next: ${next.title}  ${formatEpgTimeRange(next)}",
+                    text = stringResource(R.string.epg_next_with_time, next.title, formatEpgTimeRange(next)),
                     style = LabelToast,
                     color = OnVideo.copy(alpha = EmphasisMedium),
                     maxLines = 1,
@@ -115,7 +117,7 @@ internal fun OverlayDetailStrip(
             }
         } else {
             Text(
-                text = "No program info",
+                text = stringResource(R.string.epg_no_info),
                 style = LabelToast,
                 color = TextSecondary,
                 maxLines = 1

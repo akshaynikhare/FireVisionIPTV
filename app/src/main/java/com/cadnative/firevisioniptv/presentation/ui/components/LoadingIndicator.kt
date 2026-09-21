@@ -9,14 +9,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 
 @Composable
 fun LoadingIndicator(
     modifier: Modifier = Modifier,
-    message: String = "Loading..."
+    message: String = stringResource(R.string.loading)
 ) {
     Box(
         modifier = modifier

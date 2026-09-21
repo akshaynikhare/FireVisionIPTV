@@ -230,6 +230,14 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.test.ext.junit.ktx)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.navigation.testing)
+    // Robolectric reads the debug variant's merged manifest, which is where
+    // createComposeRule's host activity has to be declared.
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 // Without a keystore the release signingConfig is left empty and assembleRelease

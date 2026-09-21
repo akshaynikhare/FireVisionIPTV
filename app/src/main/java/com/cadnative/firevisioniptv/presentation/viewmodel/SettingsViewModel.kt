@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.cadnative.firevisioniptv.R
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -108,7 +109,6 @@ class SettingsViewModel @Inject constructor(
                         backExitProtection = current.backExitProtection,
                         keyUpDownAction = current.keyUpDownAction,
                         keyLeftRightAction = current.keyLeftRightAction,
-                        longOkAction = current.longOkAction,
                         sleepTimerDefaultMinutes = current.sleepTimerDefaultMinutes,
                         alwaysShowProgramBar = current.alwaysShowProgramBar,
                         infoBarTimeoutSeconds = current.infoBarTimeoutSeconds
@@ -121,15 +121,13 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.getBackExitProtection(),
                 userPreferencesRepository.getPlayerKeyUpDownAction(),
                 userPreferencesRepository.getPlayerKeyLeftRightAction(),
-                userPreferencesRepository.getPlayerLongOkAction(),
                 userPreferencesRepository.getSleepTimerDefaultMinutes()
-            ) { backProtection, upDown, leftRight, longOk, sleepTimer ->
+            ) { backProtection, upDown, leftRight, sleepTimer ->
                 _uiState.update {
                     it.copy(
                         backExitProtection = backProtection,
                         keyUpDownAction = upDown,
                         keyLeftRightAction = leftRight,
-                        longOkAction = longOk,
                         sleepTimerDefaultMinutes = sleepTimer
                     )
                 }
@@ -269,48 +267,48 @@ class SettingsViewModel @Inject constructor(
             val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo).toInt()
             "$versionName (Build $versionCode)"
         } catch (e: PackageManager.NameNotFoundException) {
-            "Unknown"
+            application.getString(R.string.settings_version_unknown)
         }
     }
 
     fun setTheme(theme: String) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setTheme(theme)
-            handleResult(result, "Failed to update theme")
+            handleResult(result, application.getString(R.string.settings_err_theme))
         }
     }
 
     fun setGridSize(size: Int) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setGridSize(size)
-            handleResult(result, "Failed to update grid size")
+            handleResult(result, application.getString(R.string.settings_err_grid))
         }
     }
 
     fun setFontSize(scale: Float) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setFontSize(scale)
-            handleResult(result, "Failed to update font size")
+            handleResult(result, application.getString(R.string.settings_err_font))
         }
     }
 
     fun setAnimationSpeed(speed: Float) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setAnimationSpeed(speed)
-            handleResult(result, "Failed to update animation speed")
+            handleResult(result, application.getString(R.string.settings_err_animation))
         }
     }
 
     fun setLayoutDensity(density: String) {
         viewModelScope.launch {
             val result = userPreferencesRepository.setLayoutDensity(density)
-            handleResult(result, "Failed to update layout density")
+            handleResult(result, application.getString(R.string.settings_err_density))
         }
     }
 
     fun setBackExitProtection(enabled: Boolean) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setBackExitProtection(enabled), "Failed to update back protection")
+            handleResult(userPreferencesRepository.setBackExitProtection(enabled), application.getString(R.string.settings_err_back_protection))
         }
     }
 
@@ -331,20 +329,26 @@ class SettingsViewModel @Inject constructor(
     /** Switch back to the managed (paired) source. */
     fun useManagedSource() {
         AppPreferences.useManagedSource(application)
-        _uiState.update { it.copy(playlistResult = "Using managed source") }
+        _uiState.update {
+            it.copy(
+                playlistResult = application.getString(R.string.settings_playlist_managed),
+                playlistLoaded = false
+            )
+        }
     }
 
     private fun loadPlaylist() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingPlaylist = true, playlistResult = null) }
+            _uiState.update { it.copy(isLoadingPlaylist = true, playlistResult = null, playlistLoaded = false) }
             val result = refreshChannelsUseCase(Unit)
             _uiState.update {
                 it.copy(
                     isLoadingPlaylist = false,
                     playlistResult = when (result) {
-                        is Result.Success -> "Playlist loaded"
-                        is Result.Error -> "Failed to load playlist"
-                    }
+                        is Result.Success -> application.getString(R.string.settings_playlist_loaded)
+                        is Result.Error -> application.getString(R.string.settings_playlist_failed)
+                    },
+                    playlistLoaded = result is Result.Success
                 )
             }
         }
@@ -352,37 +356,31 @@ class SettingsViewModel @Inject constructor(
 
     fun setAlwaysShowProgramBar(enabled: Boolean) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setAlwaysShowProgramBar(enabled), "Failed to update program bar")
+            handleResult(userPreferencesRepository.setAlwaysShowProgramBar(enabled), application.getString(R.string.settings_err_program_bar))
         }
     }
 
     fun setInfoBarTimeoutSeconds(seconds: Int) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setInfoBarTimeoutSeconds(seconds), "Failed to update banner timeout")
+            handleResult(userPreferencesRepository.setInfoBarTimeoutSeconds(seconds), application.getString(R.string.settings_err_banner_timeout))
         }
     }
 
     fun setKeyUpDownAction(action: String) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setPlayerKeyUpDownAction(action), "Failed to update key action")
+            handleResult(userPreferencesRepository.setPlayerKeyUpDownAction(action), application.getString(R.string.settings_err_key_action))
         }
     }
 
     fun setKeyLeftRightAction(action: String) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setPlayerKeyLeftRightAction(action), "Failed to update key action")
-        }
-    }
-
-    fun setLongOkAction(action: String) {
-        viewModelScope.launch {
-            handleResult(userPreferencesRepository.setPlayerLongOkAction(action), "Failed to update key action")
+            handleResult(userPreferencesRepository.setPlayerKeyLeftRightAction(action), application.getString(R.string.settings_err_key_action))
         }
     }
 
     fun setSleepTimerDefaultMinutes(minutes: Int) {
         viewModelScope.launch {
-            handleResult(userPreferencesRepository.setSleepTimerDefaultMinutes(minutes), "Failed to update sleep timer")
+            handleResult(userPreferencesRepository.setSleepTimerDefaultMinutes(minutes), application.getString(R.string.settings_err_sleep_timer))
         }
     }
 
@@ -405,7 +403,7 @@ class SettingsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isClearingCache = false,
-                            error = result.exception.message ?: "Failed to clear cache"
+                            error = result.exception.message ?: application.getString(R.string.settings_err_clear_cache)
                         )
                     }
                 }
@@ -436,7 +434,7 @@ class SettingsViewModel @Inject constructor(
         val requested = activityManager.clearApplicationUserData()
         if (!requested) {
             // On success the process dies before this line; only failure lands here.
-            _uiState.update { it.copy(error = "Failed to reset app data") }
+            _uiState.update { it.copy(error = application.getString(R.string.settings_err_reset)) }
         }
     }
 
@@ -487,7 +485,7 @@ class SettingsViewModel @Inject constructor(
                     it.copy(
                         isCheckingForUpdate = false,
                         updateChecked = true,
-                        error = "Failed to check for updates"
+                        error = application.getString(R.string.settings_err_update_check)
                     )
                 }
             }
@@ -518,26 +516,45 @@ class SettingsViewModel @Inject constructor(
 
     fun testConnection() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isTestingConnection = true, connectionTestResult = null) }
-            val result = withContext(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(isTestingConnection = true, connectionTestResult = null, connectionTestOk = false)
+            }
+            val (message, ok) = withContext(Dispatchers.IO) {
                 try {
                     val serverUrl = _uiState.value.serverUrl.trim().trimEnd('/')
                     val response = PinnedHttpClient.get("$serverUrl/health")
                     response.use { resp ->
-                        if (resp.code in 200..299) "Connected" else "Server returned ${resp.code}"
+                        if (resp.code in 200..299) application.getString(R.string.settings_conn_ok) to true
+                        else application.getString(R.string.settings_conn_status, resp.code) to false
                     }
                 } catch (e: java.net.ConnectException) {
-                    "Connection refused — check server URL"
+                    application.getString(R.string.settings_conn_refused) to false
                 } catch (e: java.net.UnknownHostException) {
-                    "Server not found — check URL"
+                    application.getString(R.string.settings_conn_not_found) to false
                 } catch (e: java.net.SocketTimeoutException) {
-                    "Connection timed out"
+                    application.getString(R.string.settings_conn_timeout) to false
                 } catch (e: Exception) {
-                    "Failed: ${e.message}"
+                    application.getString(R.string.settings_conn_failed, e.message ?: "") to false
                 }
             }
-            _uiState.update { it.copy(isTestingConnection = false, connectionTestResult = result) }
+            _uiState.update {
+                it.copy(isTestingConnection = false, connectionTestResult = message, connectionTestOk = ok)
+            }
         }
+    }
+
+    /**
+     * Acknowledge a successful playlist load.
+     *
+     * `playlistLoaded` is a one-shot signal, not durable state. Left set, the
+     * AddSource screen's navigate-to-Home effect re-fires every time that
+     * destination recomposes — and it does recompose on Back, because arriving
+     * from Settings leaves AddSource on the stack (the navigation pops
+     * Screen.Pairing, which is not there on that route). The user is bounced
+     * straight back to Home and can never reach the form again.
+     */
+    fun consumePlaylistLoaded() {
+        _uiState.update { it.copy(playlistLoaded = false) }
     }
 
     fun clearError() {

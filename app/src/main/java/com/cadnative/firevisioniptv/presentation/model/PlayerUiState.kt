@@ -2,6 +2,7 @@ package com.cadnative.firevisioniptv.presentation.model
 
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
+import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorMessage
 
 /**
  * UI state for the player screen.
@@ -22,8 +23,7 @@ data class PlayerUiState(
     val recoveryAttempt: Int = 0,
     val isStreamDead: Boolean = false,
     val deadStreamCountdown: Int = 0,
-    val deadStreamTitle: String = "",
-    val deadStreamExplanation: String = "",
+    val deadStreamMessage: StreamErrorMessage? = null,
     val shouldNavigateBack: Boolean = false,
     // Channel overlay state
     val showChannelOverlay: Boolean = false,
@@ -52,7 +52,6 @@ data class PlayerUiState(
     // D-pad reveals visible UI by default; zapping is CH± / overlay / recall only.
     val keyUpDownAction: String = PlayerKeyAction.MENU,
     val keyLeftRightAction: String = PlayerKeyAction.MENU,
-    val longOkAction: String = PlayerKeyAction.FAVORITE,
     val alwaysShowProgramBar: Boolean = false,
     // Sleep timer / auto-off
     val sleepTimerMinutes: Int? = null,

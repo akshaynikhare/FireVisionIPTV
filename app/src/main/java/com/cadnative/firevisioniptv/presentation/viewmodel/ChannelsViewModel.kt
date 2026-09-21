@@ -16,6 +16,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
+import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -46,6 +48,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
+import com.cadnative.firevisioniptv.R
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 
 private const val RECENTLY_WATCHED_LIMIT = 20
 private const val FEATURED_CHANNELS_LIMIT = 5
@@ -68,7 +74,9 @@ class ChannelsViewModel @Inject constructor(
     private val channelDao: ChannelDao,
     private val favoriteDao: FavoriteDao,
     private val playbackPositionDao: PlaybackPositionDao,
-    private val favoriteCategoryDao: FavoriteCategoryDao
+    private val favoriteCategoryDao: FavoriteCategoryDao,
+    private val streamMetricsDao: StreamMetricsDao,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChannelsUiState())
@@ -210,9 +218,13 @@ class ChannelsViewModel @Inject constructor(
         // Recently watched — auto-updates when user watches a new channel
         recentlyWatchedJob = viewModelScope.launch {
             try {
-                playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT)
-                    .flatMapLatest { recentIds ->
-                        if (recentIds.isEmpty()) {
+                combine(
+                    playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT),
+                    streamMetricsDao.observeMostPlayedIds(FEATURED_CHANNELS_LIMIT)
+                ) { recentIds, mostPlayedIds -> recentIds to mostPlayedIds }
+                    .distinctUntilChanged()
+                    .flatMapLatest { (recentIds, mostPlayedIds) ->
+                        if (recentIds.isEmpty() && mostPlayedIds.isEmpty()) {
                             val empty = emptyList<ChannelUiModel>()
                             flowOf(empty to empty)
                         } else {
@@ -220,17 +232,28 @@ class ChannelsViewModel @Inject constructor(
                                 .debounce(HEALTH_SCAN_DEBOUNCE_MS)
                                 .onStart { emit(emptyList()) }
                                 .map { health ->
-                                    val recentEntities = channelDao.getChannelsByIds(recentIds)
+                                    // One query for the union — these lists overlap heavily
+                                    val wantedIds = (recentIds + mostPlayedIds).distinct()
+                                    val entities = channelDao.getChannelsByIds(wantedIds)
                                     val favIds = favoriteDao.getFavoriteChannelIds().toSet()
-                                    val recentUi = channelUiMapper.toUiModelsWithHealth(
-                                        recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
+                                    val ui = channelUiMapper.toUiModelsWithHealth(
+                                        entities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
-                                    ).map { enrichWithEpgIfReady(it) }
+                                    ).map { enrichWithEpgIfReady(it) }.associateBy { it.id }
 
-                                    // Preserve the order from recentIds
-                                    val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
-                                    val sortedRecent = recentUi.sortedBy { idOrder[it.id] ?: Int.MAX_VALUE }
-                                    sortedRecent to sortedRecent.take(FEATURED_CHANNELS_LIMIT)
+                                    // Featured is genuinely "most watched". It used to be
+                                    // the first five of recents, so the hero, Featured and
+                                    // Recently Watched all showed the same channels.
+                                    val featured = mostPlayedIds.mapNotNull { ui[it] }
+                                        .ifEmpty {
+                                            // Fresh install, or metrics predating the counter
+                                            recentIds.mapNotNull { ui[it] }.take(FEATURED_CHANNELS_LIMIT)
+                                        }
+                                    val featuredIds = featured.map { it.id }.toSet()
+                                    val recent = recentIds.mapNotNull { ui[it] }
+                                        .filterNot { it.id in featuredIds }
+
+                                    recent to featured
                                 }
                         }
                     }
@@ -239,7 +262,8 @@ class ChannelsViewModel @Inject constructor(
                             it.copy(
                                 recentlyWatched = recent,
                                 featuredChannels = featured,
-                                forYou = deriveForYou(it.channels, recent)
+                                // Both rows, so For You is a third distinct set
+                                forYou = deriveForYou(it.channels, featured + recent)
                             )
                         }
                     }
@@ -333,7 +357,7 @@ class ChannelsViewModel @Inject constructor(
                                 channel
                             }
                         },
-                        error = result.exception.message ?: "Failed to update favorite"
+                        error = result.exception.message ?: appContext.getString(R.string.error_update_favorite)
                     )
                 }
             }
@@ -408,7 +432,7 @@ class ChannelsViewModel @Inject constructor(
         // (most recent) score higher.
         val categoryWeight = mutableMapOf<String, Int>()
         recentlyWatched.forEachIndexed { index, channel ->
-            val cat = channel.category.ifBlank { "Other" }
+            val cat = channel.category.ifBlank { CategorySentinels.OTHER }
             categoryWeight[cat] = (categoryWeight[cat] ?: 0) + (recentlyWatched.size - index)
         }
 
@@ -416,8 +440,8 @@ class ChannelsViewModel @Inject constructor(
         return allChannels
             .asSequence()
             .filter { it.id !in recentIds }
-            .filter { (categoryWeight[it.category.ifBlank { "Other" }] ?: 0) > 0 }
-            .sortedByDescending { categoryWeight[it.category.ifBlank { "Other" }] ?: 0 }
+            .filter { (categoryWeight[it.category.ifBlank { CategorySentinels.OTHER }] ?: 0) > 0 }
+            .sortedByDescending { categoryWeight[it.category.ifBlank { CategorySentinels.OTHER }] ?: 0 }
             .take(FOR_YOU_LIMIT)
             .toList()
     }
@@ -461,16 +485,16 @@ class ChannelsViewModel @Inject constructor(
     private fun classifyError(exception: Exception): Pair<String, ErrorType> {
         return when (exception) {
             is UnauthorizedException, is ForbiddenException ->
-                "Device not paired — please pair your device" to ErrorType.AUTH_REQUIRED
+                appContext.getString(R.string.error_not_paired) to ErrorType.AUTH_REQUIRED
             is NetworkException, is java.net.ConnectException,
             is java.net.UnknownHostException, is java.net.SocketTimeoutException ->
-                "Cannot connect to server — check server URL in Settings" to ErrorType.NETWORK_ERROR
+                appContext.getString(R.string.error_cannot_connect) to ErrorType.NETWORK_ERROR
             is ServerException ->
-                "Server error — please try again later" to ErrorType.SERVER_ERROR
+                appContext.getString(R.string.error_server) to ErrorType.SERVER_ERROR
             is ServiceUnavailableException ->
-                "Server is offline — please try again later" to ErrorType.SERVER_ERROR
+                appContext.getString(R.string.error_server_offline) to ErrorType.SERVER_ERROR
             else ->
-                (exception.message ?: "Something went wrong") to ErrorType.UNKNOWN
+                (exception.message ?: appContext.getString(R.string.error_generic)) to ErrorType.UNKNOWN
         }
     }
 }

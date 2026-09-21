@@ -8,6 +8,8 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
+import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
+import com.cadnative.firevisioniptv.data.source.local.entity.ChannelEntity
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.data.source.remote.NetworkException
 import com.cadnative.firevisioniptv.data.source.remote.UnauthorizedException
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -42,6 +45,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import com.cadnative.firevisioniptv.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChannelsViewModelTest {
@@ -61,6 +65,8 @@ class ChannelsViewModelTest {
     private val favoriteDao: FavoriteDao = mockk()
     private val playbackPositionDao: PlaybackPositionDao = mockk()
     private val favoriteCategoryDao: FavoriteCategoryDao = mockk()
+    private val streamMetricsDao: StreamMetricsDao = mockk()
+    private val appContext: android.content.Context = mockk(relaxed = true)
 
     private val healthFlow = MutableStateFlow(emptyList<com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity>())
 
@@ -90,8 +96,21 @@ class ChannelsViewModelTest {
         // HomeData mocks
         every { playbackPositionDao.observeRecentlyWatchedIds(any()) } returns flowOf(emptyList())
         every { playbackPositionDao.observePopularCategoryIds(any()) } returns flowOf(emptyList())
+        every { streamMetricsDao.observeMostPlayedIds(any()) } returns flowOf(emptyList())
         every { favoriteCategoryDao.getAllFavoriteCategoryNames() } returns flowOf(emptyList())
         every { channelDao.getAllChannels() } returns flowOf(emptyList())
+
+        // Real copy rather than a relaxed mock's empty string, so assertions can
+        // still be made against what the user actually sees.
+        every { appContext.getString(R.string.error_not_paired) } returns
+            "Device not paired — please pair your device"
+        every { appContext.getString(R.string.error_cannot_connect) } returns
+            "Cannot connect to server — check server URL in Settings"
+        every { appContext.getString(R.string.error_server) } returns
+            "Server error — please try again later"
+        every { appContext.getString(R.string.error_server_offline) } returns
+            "Server is offline — please try again later"
+        every { appContext.getString(R.string.error_generic) } returns "Something went wrong"
     }
 
     @After
@@ -111,8 +130,68 @@ class ChannelsViewModelTest {
         channelDao = channelDao,
         favoriteDao = favoriteDao,
         playbackPositionDao = playbackPositionDao,
-        favoriteCategoryDao = favoriteCategoryDao
+        favoriteCategoryDao = favoriteCategoryDao,
+        streamMetricsDao = streamMetricsDao,
+        appContext = appContext
     )
+
+    // ── Home rows ────────────────────────────────────────────────
+
+    private fun channel(id: String) = testChannel.copy(id = id, name = "Channel $id")
+
+    /**
+     * Keyed on the entity id rather than a fixed sequence: the health flow emits
+     * more than once, so an ordered stub would run out and reuse its last value.
+     */
+    private fun stubChannelLookup() {
+        coEvery { channelDao.getChannelsByIds(any()) } answers {
+            firstArg<List<String>>().map { id ->
+                mockk<ChannelEntity>(relaxed = true) { every { this@mockk.id } returns id }
+            }
+        }
+        coEvery { favoriteDao.getFavoriteChannelIds() } returns emptyList()
+        every { channelMapper.toDomain(any(), any()) } answers {
+            channel(firstArg<ChannelEntity>().id)
+        }
+    }
+
+    /**
+     * Featured used to be the first five of Recently Watched, so the hero, the
+     * Featured row and the Recently Watched row all showed the same channels.
+     */
+    @Test
+    fun `featured comes from play count and is excluded from recently watched`() = runTest {
+        every { playbackPositionDao.observeRecentlyWatchedIds(any()) } returns
+            flowOf(listOf("ch1", "ch2", "ch3"))
+        every { streamMetricsDao.observeMostPlayedIds(any()) } returns flowOf(listOf("ch3", "ch1"))
+        stubChannelLookup()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        val featuredIds = vm.uiState.value.featuredChannels.map { it.id }
+        val recentIds = vm.uiState.value.recentlyWatched.map { it.id }
+
+        assertEquals("Ordered by play count, not recency", listOf("ch3", "ch1"), featuredIds)
+        assertTrue(
+            "Featured and Recently Watched must not overlap",
+            featuredIds.intersect(recentIds.toSet()).isEmpty()
+        )
+        assertEquals(listOf("ch2"), recentIds)
+    }
+
+    /** Fresh installs, and metrics rows predating the play counter, have no counts. */
+    @Test
+    fun `featured falls back to recents when nothing has a play count`() = runTest {
+        every { playbackPositionDao.observeRecentlyWatchedIds(any()) } returns flowOf(listOf("ch1"))
+        every { streamMetricsDao.observeMostPlayedIds(any()) } returns flowOf(emptyList())
+        stubChannelLookup()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf("ch1"), vm.uiState.value.featuredChannels.map { it.id })
+    }
 
     @Test
     fun `init loads channels successfully`() = runTest {

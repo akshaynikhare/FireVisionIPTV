@@ -30,9 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
@@ -62,7 +64,7 @@ internal fun PairingSuccessContent(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "You're all set!",
+                text = stringResource(R.string.pairing_success_title),
                 style = MaterialTheme.typography.displaySmall,
                 color = Amber,
                 textAlign = TextAlign.Center
@@ -71,7 +73,7 @@ internal fun PairingSuccessContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Welcome, $username",
+                text = stringResource(R.string.pairing_success_welcome, username),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -81,7 +83,7 @@ internal fun PairingSuccessContent(
 
             if (isTvDevice) {
                 Text(
-                    text = "Scan the QR code or visit",
+                    text = stringResource(R.string.pairing_success_scan),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -94,7 +96,7 @@ internal fun PairingSuccessContent(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "to add channels to your playlist",
+                    text = stringResource(R.string.pairing_success_add_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -112,7 +114,7 @@ internal fun PairingSuccessContent(
                     ) {
                         Image(
                             bitmap = channelManagerQrBitmap.asImageBitmap(),
-                            contentDescription = "QR Code for Channel Manager",
+                            contentDescription = stringResource(R.string.a11y_pairing_qr_manager),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
@@ -126,7 +128,7 @@ internal fun PairingSuccessContent(
                 }
             } else {
                 Text(
-                    text = "Add channels to your playlist to start watching",
+                    text = stringResource(R.string.pairing_success_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -154,7 +156,7 @@ internal fun PairingSuccessContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Open Channel Manager",
+                        text = stringResource(R.string.pairing_success_open_manager),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -183,7 +185,7 @@ internal fun PairingSuccessContent(
                     .height(48.dp)
             ) {
                 Text(
-                    text = "Continue",
+                    text = stringResource(R.string.pairing_success_continue),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )

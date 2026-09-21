@@ -39,6 +39,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
 import com.cadnative.firevisioniptv.presentation.ui.theme.Success
 import com.cadnative.firevisioniptv.presentation.ui.theme.Warning
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 
 // Source type strings mirror AppPreferences.SOURCE_M3U / SOURCE_XTREAM.
 private const val SOURCE_M3U = "m3u"
@@ -66,9 +68,9 @@ internal fun ConnectionSection(
             // Check the active playlist source first: a lingering demo/paired flag
             // must not mask a bring-your-own M3U/Xtream source that's now in use.
             uiState.sourceType == SOURCE_M3U && uiState.m3uUrl.isNotBlank() ->
-                PlaylistSourceBanner(title = "M3U playlist", detail = uiState.m3uUrl)
+                PlaylistSourceBanner(title = stringResource(R.string.settings_connection_source_m3u), detail = uiState.m3uUrl)
             uiState.sourceType == SOURCE_XTREAM && uiState.xtreamHost.isNotBlank() ->
-                PlaylistSourceBanner(title = "Xtream Codes", detail = uiState.xtreamHost)
+                PlaylistSourceBanner(title = stringResource(R.string.settings_connection_source_xtream), detail = uiState.xtreamHost)
             uiState.isPaired -> PairedStatusBanner(
                 serverUrl = uiState.serverUrl,
                 tvCode = uiState.tvCode,
@@ -170,7 +172,7 @@ private fun PairedStatusBanner(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Paired",
+                        text = stringResource(R.string.settings_connection_paired),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -188,7 +190,7 @@ private fun PairedStatusBanner(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        "Reset",
+                        stringResource(R.string.settings_connection_reset),
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -214,13 +216,13 @@ private fun DemoModeBanner(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Demo Mode",
+                        text = stringResource(R.string.settings_connection_demo_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Browsing shared demo channels. Pair your device to access your personal channel list.",
+                        text = stringResource(R.string.settings_connection_demo_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -235,7 +237,7 @@ private fun DemoModeBanner(
             },
             action = {
                 FocusAwareOutlinedButton(onClick = onPairDevice) {
-                    Text("Pair Now", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.settings_connection_pair_now), fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -286,13 +288,13 @@ private fun NoSourceCard(
             content = {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "No channel source",
+                        text = stringResource(R.string.settings_connection_none_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Pair your TV or add a playlist to start watching.",
+                        text = stringResource(R.string.settings_connection_none_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -300,7 +302,7 @@ private fun NoSourceCard(
             },
             action = {
                 FocusAwareOutlinedButton(onClick = onSetup) {
-                    Text("Set up", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.settings_connection_set_up), fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -319,13 +321,13 @@ private fun ChangeSourceRow(
             content = {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Change source",
+                        text = stringResource(R.string.settings_connection_change_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Switch to pairing, a self-hosted server, or your own playlist.",
+                        text = stringResource(R.string.settings_connection_change_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -333,7 +335,7 @@ private fun ChangeSourceRow(
             },
             action = {
                 FocusAwareOutlinedButton(onClick = onChangeSource) {
-                    Text("Change  ▸", fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.settings_connection_change_action), fontWeight = FontWeight.Medium)
                 }
             }
         )

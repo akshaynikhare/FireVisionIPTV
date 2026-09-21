@@ -54,8 +54,8 @@ class PairingActivity : ComponentActivity() {
     }
 
     // Compose state
-    private var pin by mutableStateOf("------")
-    private var statusMessage by mutableStateOf("Generating PIN...")
+    private var pin by mutableStateOf("")
+    private var statusMessage by mutableStateOf("")
     private var statusColor by mutableStateOf(androidx.compose.ui.graphics.Color.White)
     private var countdownText by mutableStateOf("")
     private var isLoading by mutableStateOf(true)
@@ -82,6 +82,8 @@ class PairingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        pin = getString(R.string.pairing_pin_placeholder)
+        statusMessage = getString(R.string.pairing_status_generating)
         serverUrl = AppPreferences.getServerUrl(this)
         isTv = isTvDevice(this)
 
@@ -146,8 +148,8 @@ class PairingActivity : ComponentActivity() {
         countdownHandler?.removeCallbacksAndMessages(null)
 
         isLoading = true
-        pin = "------"
-        statusMessage = "Connecting to server..."
+        pin = getString(R.string.pairing_pin_placeholder)
+        statusMessage = getString(R.string.pairing_status_connecting)
         statusColor = androidx.compose.ui.graphics.Color.White
         showCountdown = false
         showRetryButton = false
@@ -164,7 +166,7 @@ class PairingActivity : ComponentActivity() {
                 val body = response.body()
 
                 when {
-                    !response.isSuccessful -> showError("Server error: ${response.code()}")
+                    !response.isSuccessful -> showError(getString(R.string.pairing_err_server, response.code()))
                     body?.success == true && !body.pin.isNullOrBlank() -> {
                         val newPin = body.pin
                         currentPin = newPin
@@ -173,7 +175,7 @@ class PairingActivity : ComponentActivity() {
                         withContext(Dispatchers.Main) {
                             isLoading = false
                             pin = newPin
-                            statusMessage = "Waiting for confirmation..."
+                            statusMessage = getString(R.string.pairing_status_waiting)
                             statusColor = androidx.compose.ui.graphics.Color.White
                             showCountdown = true
                             pairingUrl = "$baseUrl/pair?pin=$newPin"
@@ -184,11 +186,16 @@ class PairingActivity : ComponentActivity() {
                             startCountdown()
                         }
                     }
-                    else -> showError("Failed to generate PIN: ${body?.error ?: "Unknown error"}")
+                    else -> showError(
+                        getString(
+                            R.string.pairing_err_generate,
+                            body?.error ?: getString(R.string.pairing_err_unknown)
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error requesting pairing", e)
-                showError("Connection error: ${e.message}")
+                showError(getString(R.string.pairing_err_connection, e.message.orEmpty()))
             } finally {
                 isRequestingPin = false
             }
@@ -201,7 +208,7 @@ class PairingActivity : ComponentActivity() {
             override fun run() {
                 if (!isPairing || pollAttempts >= MAX_POLL_ATTEMPTS) {
                     if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-                        showError("Pairing timeout. Please try again.")
+                        showError(getString(R.string.pairing_err_timeout))
                     }
                     return
                 }
@@ -224,10 +231,10 @@ class PairingActivity : ComponentActivity() {
                     if (body.paired && body.status == "completed" && !channelListCode.isNullOrBlank()) {
                         onPairingSuccess(
                             channelListCode,
-                            body.username?.takeIf { it.isNotBlank() } ?: "User"
+                            body.username?.takeIf { it.isNotBlank() } ?: getString(R.string.pairing_default_username)
                         )
                     } else if (body.status == "expired") {
-                        showError("PIN expired. Please generate a new one.")
+                        showError(getString(R.string.pairing_err_expired))
                     }
                 }
             } catch (e: Exception) {
@@ -305,14 +312,14 @@ class PairingActivity : ComponentActivity() {
 
                 val remaining = expiresAt - System.currentTimeMillis()
                 if (remaining <= 0) {
-                    countdownText = "PIN Expired"
-                    showError("PIN expired. Please generate a new one.")
+                    countdownText = getString(R.string.pairing_countdown_expired)
+                    showError(getString(R.string.pairing_err_expired))
                     return
                 }
 
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining)
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
-                countdownText = String.format(Locale.ROOT, "Expires in: %d:%02d", minutes, seconds)
+                countdownText = getString(R.string.pairing_countdown, minutes, seconds)
                 countdownHandler?.postDelayed(this, 1000)
             }
         }
@@ -333,7 +340,7 @@ class PairingActivity : ComponentActivity() {
                 if (response.isSuccessful && demoCode.isNotEmpty()) {
                     AppPreferences.setDemoMode(this@PairingActivity, demoCode)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@PairingActivity, "Using demo channel list", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PairingActivity, R.string.pairing_status_demo_using, Toast.LENGTH_SHORT).show()
                         val intent = Intent(this@PairingActivity, ComposeMainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
@@ -343,11 +350,11 @@ class PairingActivity : ComponentActivity() {
                     return@launch
                 }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@PairingActivity, "Demo channels unavailable", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PairingActivity, R.string.pairing_status_demo_unavailable, Toast.LENGTH_SHORT).show()
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@PairingActivity, "Network error — try again", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PairingActivity, R.string.pairing_status_network_error, Toast.LENGTH_SHORT).show()
                 }
             }
         }

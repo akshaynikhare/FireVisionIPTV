@@ -21,11 +21,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
@@ -58,12 +60,12 @@ fun EmptyPlaylistState(
         ) {
             Icon(
                 imageVector = Icons.Default.LiveTv,
-                contentDescription = "Empty playlist",
+                contentDescription = stringResource(R.string.a11y_empty_playlist),
                 tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
             )
             Text(
-                text = "Your channel list is empty",
+                text = stringResource(R.string.empty_playlist_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -72,7 +74,7 @@ fun EmptyPlaylistState(
             if (isMobile && channelManagerUrl.isNotEmpty()) {
                 // Mobile: show button to open channel manager in browser
                 Text(
-                    text = "Add channels to your playlist to start watching",
+                    text = stringResource(R.string.empty_playlist_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -99,7 +101,7 @@ fun EmptyPlaylistState(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Open Channel Manager",
+                        text = stringResource(R.string.empty_playlist_open_manager),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -114,7 +116,7 @@ fun EmptyPlaylistState(
             } else {
                 // TV: show QR code
                 Text(
-                    text = "Scan the QR code to learn how to add channels",
+                    text = stringResource(R.string.empty_playlist_scan_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -124,14 +126,14 @@ fun EmptyPlaylistState(
                     Spacer(modifier = Modifier.height(8.dp))
                     ThemeAwareQrCode(
                         bitmap = qrCodeBitmap,
-                        contentDescription = "QR code — how to add channels"
+                        contentDescription = stringResource(R.string.a11y_empty_playlist_qr)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
             }
 
             Text(
-                text = "Add channels on the web, then press Refresh",
+                text = stringResource(R.string.empty_playlist_refresh_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
@@ -160,7 +162,7 @@ fun EmptyPlaylistState(
                     .onFocusChanged { isFocused = it.isFocused }
             ) {
                 Text(
-                    text = "Refresh",
+                    text = stringResource(R.string.action_refresh),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary

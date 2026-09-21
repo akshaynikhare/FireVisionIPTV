@@ -36,9 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
@@ -68,7 +70,7 @@ internal fun CategoryMatchHints(
                 border = BorderStroke(1.dp, catColor.copy(alpha = 0.4f))
             ) {
                 Text(
-                    text = "in $category",
+                    text = stringResource(R.string.search_in_category, category),
                     style = MaterialTheme.typography.labelMedium,
                     color = catColor,
                     modifier = Modifier.padding(horizontal = Dimens.Space3, vertical = Dimens.Space1)
@@ -124,14 +126,14 @@ internal fun SearchPrompt(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Find your channels",
+            text = stringResource(R.string.search_empty_title),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Search by name or category",
+            text = stringResource(R.string.search_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -152,7 +154,7 @@ internal fun RecentSearches(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Recent",
+                text = stringResource(R.string.search_recent),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -172,7 +174,7 @@ internal fun RecentSearches(
                     .onFocusChanged { clearFocused = it.isFocused }
             ) {
                 Text(
-                    text = "Clear",
+                    text = stringResource(R.string.action_clear),
                     color = if (clearFocused) MaterialTheme.colorScheme.secondary
                             else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelMedium
@@ -237,14 +239,14 @@ internal fun NoResultsState(
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "No results for \"$query\"",
+            text = stringResource(R.string.search_no_results, query),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Try a different search term",
+            text = stringResource(R.string.search_no_results_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -276,7 +278,7 @@ internal fun TvSearchQueryDisplay(
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search",
+                contentDescription = stringResource(R.string.search_title),
                 tint = if (query.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimens.IconMedium)
             )
@@ -302,7 +304,7 @@ internal fun TvSearchQueryDisplay(
             if (query.isEmpty()) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Search channels, categories...",
+                    text = stringResource(R.string.search_field_placeholder),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

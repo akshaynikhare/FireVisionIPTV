@@ -68,22 +68,24 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.FOCUS_SCALE_SUBTLE
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.Elevation
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void900
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 
 private data class NavItem(
     val screen: Screen,
     val icon: ImageVector,
-    val label: String
+    @StringRes val label: Int
 )
 
 private val topNavItems = listOf(
-    NavItem(Screen.Home, Icons.Default.Home, "Home"),
-    NavItem(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
-    NavItem(Screen.Search, Icons.Default.Search, "Search"),
-    NavItem(Screen.Categories, Icons.Default.Category, "Categories"),
-    NavItem(Screen.Guide, Icons.Default.GridView, "Guide"),
+    NavItem(Screen.Home, Icons.Default.Home, R.string.nav_home),
+    NavItem(Screen.Favorites, Icons.Default.Favorite, R.string.nav_favorites),
+    NavItem(Screen.Search, Icons.Default.Search, R.string.nav_search),
+    NavItem(Screen.Categories, Icons.Default.Category, R.string.nav_categories),
+    NavItem(Screen.Guide, Icons.Default.GridView, R.string.nav_guide),
 )
 
-private val bottomNavItem = NavItem(Screen.Settings, Icons.Default.Settings, "Settings")
+private val bottomNavItem = NavItem(Screen.Settings, Icons.Default.Settings, R.string.nav_settings)
 
 private fun NavItem.isSelectedFor(currentRoute: String?): Boolean =
     currentRoute == screen.route ||
@@ -156,12 +158,12 @@ fun SideNavRail(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "FireVision",
+                contentDescription = stringResource(R.string.a11y_brand),
                 modifier = Modifier.size(if (compact) Dimens.NavRailBrandIconMobile else Dimens.NavRailBrandIconTv)
             )
             AnimatedVisibility(visible = isExpanded, enter = labelEnter, exit = labelExit) {
                 Text(
-                    text = "FireVision",
+                    text = stringResource(R.string.a11y_brand),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -176,7 +178,7 @@ fun SideNavRail(
         topNavItems.forEachIndexed { index, item ->
             NavRailItem(
                 icon = item.icon,
-                label = item.label,
+                label = stringResource(item.label),
                 isSelected = index == selectedTopIndex,
                 isExpanded = isExpanded,
                 labelEnter = labelEnter,
@@ -197,7 +199,7 @@ fun SideNavRail(
 
         NavRailItem(
             icon = bottomNavItem.icon,
-            label = bottomNavItem.label,
+            label = stringResource(bottomNavItem.label),
             isSelected = settingsHoldsRestore,
             isExpanded = isExpanded,
             labelEnter = labelEnter,

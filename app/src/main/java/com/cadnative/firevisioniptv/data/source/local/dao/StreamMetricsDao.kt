@@ -16,6 +16,21 @@ interface StreamMetricsDao {
     @Query("SELECT * FROM stream_metrics")
     fun observeAll(): Flow<List<StreamMetricsEntity>>
 
+    /**
+     * Most-played channel ids, most-played first. Joined to channels so a channel
+     * dropped from the playlist stops appearing once its metrics row outlives it.
+     */
+    @Query(
+        """
+        SELECT m.channelId FROM stream_metrics m
+        INNER JOIN channels c ON m.channelId = c.id
+        WHERE c.isActive = 1 AND m.playCount > 0
+        ORDER BY m.playCount DESC, m.lastPlayedAt DESC
+        LIMIT :limit
+        """
+    )
+    fun observeMostPlayedIds(limit: Int): Flow<List<String>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: StreamMetricsEntity)
 

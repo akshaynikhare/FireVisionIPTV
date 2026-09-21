@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.dto.PairingRequestBody
 import com.cadnative.firevisioniptv.data.source.remote.FireVisionApiService
@@ -31,8 +32,8 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class PairingUiState(
-    val pin: String = "------",
-    val statusMessage: String = "Generating PIN...",
+    val pin: String = "",
+    val statusMessage: String = "",
     val statusColor: Color = Color.White,
     val countdownText: String = "",
     val isLoading: Boolean = true,
@@ -70,7 +71,14 @@ class PairingViewModel @Inject constructor(
 
     init {
         val serverUrl = AppPreferences.getServerUrl(context)
-        _uiState.update { it.copy(serverUrl = serverUrl, isTvDevice = isTv) }
+        _uiState.update {
+            it.copy(
+                pin = context.getString(R.string.pairing_pin_placeholder),
+                statusMessage = context.getString(R.string.pairing_status_generating),
+                serverUrl = serverUrl,
+                isTvDevice = isTv
+            )
+        }
         requestNewPairing()
     }
 
@@ -81,8 +89,8 @@ class PairingViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                pin = "------",
-                statusMessage = "Connecting to server...",
+                pin = context.getString(R.string.pairing_pin_placeholder),
+                statusMessage = context.getString(R.string.pairing_status_connecting),
                 statusColor = Color.White,
                 isLoading = true,
                 showRetryButton = false,
@@ -103,7 +111,8 @@ class PairingViewModel @Inject constructor(
                 val body = response.body()
 
                 when {
-                    !response.isSuccessful -> showError("Server error: ${response.code()}")
+                    !response.isSuccessful ->
+                        showError(context.getString(R.string.pairing_err_server, response.code()))
                     body?.success == true && !body.pin.isNullOrBlank() -> {
                         val pin = body.pin
                         val expiry = parseISO8601(body.expiresAt)
@@ -112,7 +121,7 @@ class PairingViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 pin = pin,
-                                statusMessage = "Waiting for confirmation...",
+                                statusMessage = context.getString(R.string.pairing_status_waiting),
                                 statusColor = Color.White,
                                 isLoading = false,
                                 showCountdown = true,
@@ -127,13 +136,16 @@ class PairingViewModel @Inject constructor(
                         startCountdown(expiry)
                     }
                     else -> showError(
-                        "Failed to generate PIN: ${body?.error ?: "Unknown error"}"
+                        context.getString(
+                            R.string.pairing_err_generate,
+                            body?.error ?: context.getString(R.string.pairing_err_unknown)
+                        )
                     )
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showError("Connection error: ${e.message}")
+                showError(context.getString(R.string.pairing_err_connection, e.message.orEmpty()))
             }
         }
     }
@@ -142,7 +154,12 @@ class PairingViewModel @Inject constructor(
         pollingJob?.cancel()
         countdownJob?.cancel()
 
-        _uiState.update { it.copy(isLoading = true, statusMessage = "Fetching demo channels...") }
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                statusMessage = context.getString(R.string.pairing_status_demo_fetching)
+            )
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -151,18 +168,30 @@ class PairingViewModel @Inject constructor(
                 if (response.isSuccessful && demoCode.isNotEmpty()) {
                     AppPreferences.setDemoMode(context, demoCode)
                     _uiState.update {
-                        it.copy(isPaired = true, isLoading = false, statusMessage = "Using demo channel list")
+                        it.copy(
+                            isPaired = true,
+                            isLoading = false,
+                            statusMessage = context.getString(R.string.pairing_status_demo_using)
+                        )
                     }
                 } else {
                     _uiState.update {
-                        it.copy(isLoading = false, statusMessage = "Demo channels unavailable", showRetryButton = true)
+                        it.copy(
+                            isLoading = false,
+                            statusMessage = context.getString(R.string.pairing_status_demo_unavailable),
+                            showRetryButton = true
+                        )
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, statusMessage = "Network error — try again", showRetryButton = true)
+                    it.copy(
+                        isLoading = false,
+                        statusMessage = context.getString(R.string.pairing_status_network_error),
+                        showRetryButton = true
+                    )
                 }
             }
         }
@@ -180,10 +209,14 @@ class PairingViewModel @Inject constructor(
                     if (response.isSuccessful && body != null) {
                         val channelListCode = body.channelListCode
                         if (body.paired && body.status == "completed" && !channelListCode.isNullOrBlank()) {
-                            onPairingSuccess(channelListCode, body.username?.takeIf { it.isNotBlank() } ?: "User")
+                            onPairingSuccess(
+                                channelListCode,
+                                body.username?.takeIf { it.isNotBlank() }
+                                    ?: context.getString(R.string.pairing_default_username)
+                            )
                             return@launch
                         } else if (body.status == "expired") {
-                            showError("PIN expired. Please generate a new one.")
+                            showError(context.getString(R.string.pairing_err_expired))
                             return@launch
                         }
                     }
@@ -195,7 +228,7 @@ class PairingViewModel @Inject constructor(
             }
 
             if (System.currentTimeMillis() >= expiresAt) {
-                showError("Pairing timeout. Please try again.")
+                showError(context.getString(R.string.pairing_err_timeout))
             }
         }
     }
@@ -205,15 +238,17 @@ class PairingViewModel @Inject constructor(
             while (isActive) {
                 val remaining = expiryTimeMs - System.currentTimeMillis()
                 if (remaining <= 0) {
-                    _uiState.update { it.copy(countdownText = "PIN Expired") }
-                    showError("PIN expired. Please generate a new one.")
+                    _uiState.update {
+                        it.copy(countdownText = context.getString(R.string.pairing_countdown_expired))
+                    }
+                    showError(context.getString(R.string.pairing_err_expired))
                     break
                 }
 
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(remaining)
                 val seconds = TimeUnit.MILLISECONDS.toSeconds(remaining) % 60
                 _uiState.update {
-                    it.copy(countdownText = String.format(Locale.ROOT, "Expires in: %d:%02d", minutes, seconds))
+                    it.copy(countdownText = context.getString(R.string.pairing_countdown, minutes, seconds))
                 }
 
                 delay(1000)
@@ -229,7 +264,7 @@ class PairingViewModel @Inject constructor(
 
         _uiState.update {
             it.copy(
-                statusMessage = "Paired successfully! Welcome, $username!",
+                statusMessage = context.getString(R.string.pairing_status_paired, username),
                 statusColor = Color(0xFF4CAF50),
                 showCountdown = false,
                 isPaired = true

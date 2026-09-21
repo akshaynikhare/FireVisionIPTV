@@ -1,7 +1,9 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
@@ -13,6 +15,7 @@ import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.FavoritesUiState
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val getFavoriteChannelsUseCase: GetFavoriteChannelsUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val reorderFavoritesUseCase: ReorderFavoritesUseCase,
@@ -113,7 +117,8 @@ class FavoritesViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    error = result.exception.message ?: "Failed to load favorites"
+                                    error = result.exception.message
+                                        ?: context.getString(R.string.error_load_favorites)
                                 )
                             }
                         }
@@ -135,7 +140,8 @@ class FavoritesViewModel @Inject constructor(
             if (result is Result.Error) {
                 _uiState.update {
                     it.copy(
-                        error = result.exception.message ?: "Failed to remove favorite"
+                        error = result.exception.message
+                            ?: context.getString(R.string.error_remove_favorite)
                     )
                 }
                 loadFavorites()
@@ -172,7 +178,8 @@ class FavoritesViewModel @Inject constructor(
             if (result is Result.Error) {
                 _uiState.update {
                     it.copy(
-                        error = result.exception.message ?: "Failed to reorder favorites"
+                        error = result.exception.message
+                            ?: context.getString(R.string.error_reorder_favorites)
                     )
                 }
                 loadFavorites()

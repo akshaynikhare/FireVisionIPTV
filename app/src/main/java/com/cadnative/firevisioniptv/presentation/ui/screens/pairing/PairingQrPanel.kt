@@ -24,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.components.ThemeAwareQrCode
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -46,7 +48,7 @@ internal fun QrSection(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Scan with your phone to Pair",
+            text = stringResource(R.string.pairing_qr_heading),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -65,7 +67,7 @@ internal fun QrSection(
             ) {
                 ThemeAwareQrCode(
                     bitmap = qrCodeBitmap,
-                    contentDescription = "QR Code for Pairing",
+                    contentDescription = stringResource(R.string.a11y_pairing_qr),
                     size = qrSize
                 )
             }
@@ -103,7 +105,7 @@ internal fun OpenBrowserSection(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Quick Pair",
+            text = stringResource(R.string.pairing_quick_heading),
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
@@ -113,7 +115,7 @@ internal fun OpenBrowserSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tap to open your browser and complete pairing",
+            text = stringResource(R.string.pairing_quick_body),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
@@ -144,7 +146,7 @@ internal fun OpenBrowserSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Pair in Browser",
+                text = stringResource(R.string.pairing_quick_action),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
@@ -153,7 +155,7 @@ internal fun OpenBrowserSection(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
-            text = "Or enter PIN manually at $serverUrl",
+            text = stringResource(R.string.pairing_manual_hint, serverUrl),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center

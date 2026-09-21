@@ -128,6 +128,8 @@ class ErrorRecoveryManager(
         val errorMessage = when (error.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> {
+                // Diagnostic codes, not copy: StreamErrorMessageResolver matches on
+                // these to choose the message the user actually sees.
                 "Network connection failed"
             }
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {

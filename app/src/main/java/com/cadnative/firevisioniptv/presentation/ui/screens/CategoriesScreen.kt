@@ -9,15 +9,19 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntrance
 import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
 
 @Composable
 fun CategoriesScreen(
@@ -32,7 +36,7 @@ fun CategoriesScreen(
         viewModel.loadChannels()
     }
 
-    ScreenScaffold(title = "Categories", modifier = modifier) {
+    ScreenScaffold(title = stringResource(R.string.categories_title), modifier = modifier) {
         val contentState = when {
             uiState.isLoading && uiState.categories.isEmpty() -> "loading"
             uiState.error != null && uiState.categories.isEmpty() -> "error"
@@ -46,19 +50,19 @@ fun CategoriesScreen(
             label = "categoriesState"
         ) { state ->
             when (state) {
-                "loading" -> LoadingIndicator(message = "Loading categories...")
+                "loading" -> LoadingIndicator(message = stringResource(R.string.loading_categories))
                 "error" -> ErrorState(
-                    message = uiState.error ?: "Failed to load categories",
+                    message = uiState.error ?: stringResource(R.string.error_load_categories),
                     onRetry = { viewModel.loadChannels() }
                 )
                 "empty" -> EmptyState(
-                    message = "No categories available",
+                    message = stringResource(R.string.empty_categories),
                     onRetry = { viewModel.loadChannels() }
                 )
                 else -> {
                     val categoriesData = remember(uiState.channels) {
                         uiState.channels
-                            .groupBy { it.category.ifBlank { "Other" } }
+                            .groupBy { it.category.ifBlank { CategorySentinels.OTHER } }
                             .map { (name, channels) ->
                                 Triple(
                                     name,
@@ -92,7 +96,7 @@ fun CategoriesScreen(
                     ) {
                         itemsIndexed(categoriesData) { index, (category, count, imageUrl) ->
                             CategoryCard(
-                                name = category,
+                                name = categoryLabel(category),
                                 channelCount = count,
                                 imageUrl = imageUrl,
                                 isFavorite = category in uiState.favoriteCategoryNames,

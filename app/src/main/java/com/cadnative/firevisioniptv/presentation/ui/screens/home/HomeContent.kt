@@ -22,7 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
@@ -34,8 +37,13 @@ import com.cadnative.firevisioniptv.presentation.ui.components.rememberShimmerBr
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import kotlinx.coroutines.delay
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
 
 private const val HERO_SWAP_DEBOUNCE_MS = 300L
+
+// Seeding focus has to outlast the hero's entrance animation placing its node.
+private const val FOCUS_SEED_ATTEMPTS = 5
+private const val FOCUS_SEED_RETRY_MS = 50L
 
 @Composable
 fun HomeContent(
@@ -72,31 +80,54 @@ fun HomeContent(
     }
 
     val channelsByCategory = remember(channels) {
-        channels.groupBy { it.category.ifBlank { "Other" } }
+        channels.groupBy { it.category.ifBlank { CategorySentinels.OTHER } }
     }
     val categoryEntries = remember(channelsByCategory) {
         channelsByCategory.entries.toList()
     }
-    val bannerChannels = remember(featuredChannels, channels) {
-        featuredChannels.ifEmpty { channels.take(5) }
+    // Sticky rather than derived directly: featuredChannels arrives after channels
+    // on a warm start, and re-keying the hero on every emission disposes whatever
+    // currently holds focus — which drops focus to the root and, on the next key
+    // press, back onto the rail. Only swap when the identities actually change.
+    // Only the *identity* list is sticky. The models themselves are always the
+    // newest emission, so a favourite toggle, a health result or an EPG refresh
+    // shows straight away — making the whole list sticky kept stale names, logos
+    // and favourite state on screen until membership happened to change.
+    var bannerChannels by remember { mutableStateOf(emptyList<ChannelUiModel>()) }
+    var bannerIds by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(featuredChannels, channels) {
+        val next = featuredChannels.ifEmpty { channels.take(5) }
+        // An empty emission keeps the previous models rather than tearing the
+        // hero down for a frame.
+        if (next.isEmpty()) return@LaunchedEffect
+        bannerChannels = next
+        val nextIds = next.map { it.id }
+        if (nextIds != bannerIds) bannerIds = nextIds
     }
 
     // Hero follows D-pad focus in the featured row, debounced so fast
     // scrubbing doesn't thrash image decodes. Defaults to the first
     // featured channel so the hero renders immediately.
-    var focusedFeatured by remember(bannerChannels) { mutableStateOf(bannerChannels.firstOrNull()) }
-    var heroChannel by remember(bannerChannels) { mutableStateOf(bannerChannels.firstOrNull()) }
-    LaunchedEffect(focusedFeatured) {
-        if (heroChannel != focusedFeatured) {
+    // Keyed on the first channel's id, not the list instance: a reordered list with
+    // the same head should not reset the hero out from under the user.
+    val bannerHeadId = bannerIds.firstOrNull()
+    // Ids, not models: holding a model here would pin whatever snapshot was
+    // current when the key last changed, which is how the hero went stale.
+    var focusedFeaturedId by remember(bannerHeadId) { mutableStateOf(bannerHeadId) }
+    var heroChannelId by remember(bannerHeadId) { mutableStateOf(bannerHeadId) }
+    LaunchedEffect(focusedFeaturedId) {
+        if (heroChannelId != focusedFeaturedId) {
             delay(HERO_SWAP_DEBOUNCE_MS)
-            heroChannel = focusedFeatured
+            heroChannelId = focusedFeaturedId
         }
     }
+    val heroChannel = bannerChannels.firstOrNull { it.id == heroChannelId }
+        ?: bannerChannels.firstOrNull()
 
     // Restore focus to the last played channel in exactly one section,
     // preferring the section closest to the top.
-    val featuredFocusId = remember(lastPlayedChannelId, bannerChannels) {
-        lastPlayedChannelId?.takeIf { id -> bannerChannels.any { it.id == id } }
+    val featuredFocusId = remember(lastPlayedChannelId, bannerIds) {
+        lastPlayedChannelId?.takeIf { it in bannerIds }
     }
     val recentFocusId = remember(lastPlayedChannelId, featuredFocusId, recentlyWatched) {
         if (featuredFocusId != null) null
@@ -111,8 +142,27 @@ fun HomeContent(
         featuredFocusId != null || recentFocusId != null ||
             (categoryFocusId != null && channels.any { it.id == categoryFocusId })
     }
-    LaunchedEffect(hasRestoreTarget) {
-        if (!hasRestoreTarget) runCatching { watchNowFocusRequester.requestFocus() }
+    // Keyed on the hero's id and retried, because a single attempt loses every
+    // race it can enter: the requester lives inside a LazyColumn item gated on
+    // heroChannel, behind an entrance animation, so on a cold start the node is
+    // routinely unplaced when the effect first runs. requestFocus throws then,
+    // runCatching swallows it, and focus stays wherever it was — which is the
+    // rail, since the rail is simply the first focusable in traversal order and
+    // nothing else claims focus on this screen.
+    //
+    // The latch matters as much as the retry: without it, any later recomposition
+    // that re-keys this effect would yank focus back to Watch now after the user
+    // had already moved.
+    var focusSeeded by remember { mutableStateOf(false) }
+    LaunchedEffect(bannerHeadId, hasRestoreTarget) {
+        if (focusSeeded || hasRestoreTarget || heroChannel == null) return@LaunchedEffect
+        repeat(FOCUS_SEED_ATTEMPTS) {
+            if (runCatching { watchNowFocusRequester.requestFocus() }.isSuccess) {
+                focusSeeded = true
+                return@LaunchedEffect
+            }
+            delay(FOCUS_SEED_RETRY_MS)
+        }
     }
 
     // Stable entrance offset for category rows based on how many
@@ -158,7 +208,7 @@ fun HomeContent(
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
                 onMultiviewClick = onMultiviewClick,
-                onChannelFocused = { focusedFeatured = it },
+                onChannelFocused = { focusedFeaturedId = it.id },
                 focusChannelId = featuredFocusId,
                 horizontalPadding = horizontalPadding,
                 modifier = Modifier
@@ -172,7 +222,7 @@ fun HomeContent(
                 ChannelRow(
                     // Live re-tune shortcut — quick jump back to channels the
                     // user was just watching (never a resumed file position).
-                    title = "Recently Watched",
+                    title = stringResource(R.string.home_row_recent),
                     channels = recentlyWatched,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
@@ -189,7 +239,7 @@ fun HomeContent(
         if (forYou.isNotEmpty()) {
             item(key = "for_you") {
                 ChannelRow(
-                    title = "For You",
+                    title = stringResource(R.string.home_row_for_you),
                     channels = forYou,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
@@ -221,7 +271,7 @@ fun HomeContent(
             key = { _, entry -> "category_${entry.key}" }
         ) { index, (category, categoryChannels) ->
             ChannelRow(
-                title = category,
+                title = categoryLabel(category),
                 channels = categoryChannels,
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,

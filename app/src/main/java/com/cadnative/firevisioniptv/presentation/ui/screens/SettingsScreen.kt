@@ -47,7 +47,6 @@ fun SettingsScreen(
             onBackExitProtectionChange = viewModel::setBackExitProtection,
             onKeyUpDownChange = viewModel::setKeyUpDownAction,
             onKeyLeftRightChange = viewModel::setKeyLeftRightAction,
-            onLongOkChange = viewModel::setLongOkAction,
             onSleepTimerDefaultChange = viewModel::setSleepTimerDefaultMinutes,
             onAlwaysShowProgramBarChange = viewModel::setAlwaysShowProgramBar,
             onInfoBarTimeoutChange = viewModel::setInfoBarTimeoutSeconds,

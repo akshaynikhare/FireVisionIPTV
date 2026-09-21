@@ -55,6 +55,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.HealthChecking
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.subtleBorder
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 
 @Composable
 internal fun ChannelsSection(
@@ -71,7 +73,7 @@ internal fun ChannelsSection(
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
     val dividerGap = if (isCompact) 14.dp else 10.dp
-    SettingsCard(title = "Channels", modifier = modifier) {
+    SettingsCard(title = stringResource(R.string.settings_section_channels), modifier = modifier) {
         StreamHealthRow(scanProgress = scanProgress, onCheckLiveliness = onCheckLiveliness)
 
         Spacer(modifier = Modifier.height(dividerGap))
@@ -117,7 +119,7 @@ private fun StreamHealthRow(
                 } else 0f
 
                 Text(
-                    text = "Scanning channels...",
+                    text = stringResource(R.string.settings_channels_scanning),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -145,7 +147,7 @@ private fun StreamHealthRow(
                 }
             } else {
                 Text(
-                    text = "Stream Health",
+                    text = stringResource(R.string.settings_channels_health_title),
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold
@@ -153,9 +155,9 @@ private fun StreamHealthRow(
                 Spacer(modifier = Modifier.height(2.dp))
                 StatusText(
                     text = if (scanProgress.total > 0)
-                        "Last scan: ${scanProgress.scanned}/${scanProgress.total} checked"
+                        stringResource(R.string.settings_channels_last_scan, scanProgress.scanned, scanProgress.total)
                     else
-                        "Scan channels to check if streams are online",
+                        stringResource(R.string.settings_channels_scan_hint),
                     status = if (scanProgress.total > 0) Status.SUCCESS else Status.NEUTRAL
                 )
             }
@@ -175,7 +177,7 @@ private fun StreamHealthRow(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = if (scanProgress.isScanning) "Scanning..." else "Check Liveness",
+                    text = stringResource(if (scanProgress.isScanning) R.string.settings_channels_scan_busy else R.string.settings_channels_scan_action),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -192,7 +194,7 @@ private fun CacheRow(
     SettingRowLayout(
         text = {
             Text(
-                text = "Local Cache",
+                text = stringResource(R.string.settings_channels_cache_title),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
@@ -204,13 +206,13 @@ private fun CacheRow(
                 exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
             ) {
                 StatusText(
-                    text = "Cache cleared — refreshing channels",
+                    text = stringResource(R.string.settings_channels_cache_cleared),
                     status = Status.SUCCESS
                 )
             }
             if (!cacheCleared) {
                 Text(
-                    text = "Clear cached channels, guide data, and thumbnails",
+                    text = stringResource(R.string.settings_channels_cache_hint),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -225,7 +227,7 @@ private fun CacheRow(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = if (isClearingCache) "Clearing..." else "Clear Cache",
+                    text = stringResource(if (isClearingCache) R.string.settings_channels_cache_busy else R.string.settings_channels_cache_action),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -242,7 +244,7 @@ private fun GuideDataRow(
     SettingRowLayout(
         text = {
             Text(
-                text = "Guide Data",
+                text = stringResource(R.string.settings_channels_guide_title),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
@@ -254,13 +256,13 @@ private fun GuideDataRow(
                 exit = fadeOut(tween(DURATION_NORMAL, easing = EaseOutQuart))
             ) {
                 StatusText(
-                    text = "Guide data reset — schedule re-downloaded",
+                    text = stringResource(R.string.settings_channels_guide_reset),
                     status = Status.SUCCESS
                 )
             }
             if (!guideReset) {
                 Text(
-                    text = "Purge the program guide and re-download the schedule",
+                    text = stringResource(R.string.settings_channels_guide_hint),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -273,7 +275,7 @@ private fun GuideDataRow(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = if (isResettingGuide) "Resetting..." else "Reset Guide",
+                    text = stringResource(if (isResettingGuide) R.string.settings_channels_guide_busy else R.string.settings_channels_guide_action),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -288,14 +290,14 @@ private fun ResetAppDataRow(onResetAppData: () -> Unit) {
     SettingRowLayout(
         text = {
             Text(
-                text = "Reset App Data",
+                text = stringResource(R.string.settings_channels_reset_title),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Erase pairing, favorites, and all settings — like a fresh install",
+                text = stringResource(R.string.settings_channels_reset_hint),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -306,7 +308,7 @@ private fun ResetAppDataRow(onResetAppData: () -> Unit) {
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
             ) {
                 Text(
-                    text = "Reset App",
+                    text = stringResource(R.string.settings_channels_reset_action),
                     color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -359,15 +361,14 @@ private fun ResetAppDataConfirmDialog(
             ) {
                 Column(modifier = Modifier.padding(Dimens.Space5)) {
                     Text(
-                        text = "Reset app data?",
+                        text = stringResource(R.string.settings_channels_reset_confirm_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(Dimens.Space3))
                     Text(
-                        text = "This erases pairing, favorites, playback history, and all " +
-                            "settings. The app will close and start fresh, like a new install.",
+                        text = stringResource(R.string.settings_channels_reset_confirm_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -380,7 +381,7 @@ private fun ResetAppDataConfirmDialog(
                             onClick = onDismiss,
                             modifier = Modifier.focusRequester(cancelFocus)
                         ) {
-                            Text(text = "Cancel", fontWeight = FontWeight.SemiBold)
+                            Text(text = stringResource(R.string.settings_channels_reset_cancel), fontWeight = FontWeight.SemiBold)
                         }
                         FocusAwareButton(
                             onClick = onConfirm,
@@ -389,7 +390,7 @@ private fun ResetAppDataConfirmDialog(
                                 contentColor = MaterialTheme.colorScheme.onError
                             )
                         ) {
-                            Text(text = "Erase Everything", fontWeight = FontWeight.SemiBold)
+                            Text(text = stringResource(R.string.settings_channels_reset_confirm), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
