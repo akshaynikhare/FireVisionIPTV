@@ -1,11 +1,9 @@
 package com.cadnative.firevisioniptv.presentation.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.cadnative.firevisioniptv.R
@@ -14,40 +12,30 @@ import com.cadnative.firevisioniptv.R
  * Typography optimized for Android TV — minimum 16sp for readability.
  * Uses strong weight contrast for clear visual hierarchy.
  *
- * Brand typefaces (bundled variable fonts, weight selected via FontVariation
- * so a single .ttf per family covers every weight):
+ * Brand typefaces (one bundled .ttf per weight):
  *   • Display  — Space Grotesk (headings, hero numerics) — geometric, characterful
  *   • Body     — Manrope (body, labels, badges)          — clean, highly legible
  * Both mirror the web dashboard's fonts for cross-surface brand consistency.
  * Bundled (not Downloadable Fonts) so they render on Fire TV without Play Services.
+ *
+ * Static faces rather than one variable font per family: FontVariation needs API
+ * 26 and is silently ignored below it, which would flatten the entire hierarchy to
+ * a single weight on the oldest supported devices. These were instanced from the
+ * variable originals, so outlines and vertical metrics are unchanged.
  */
-
-@OptIn(ExperimentalTextApi::class)
-private fun displayFont(weight: FontWeight) = Font(
-    R.font.space_grotesk,
-    weight = weight,
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
-)
-
-@OptIn(ExperimentalTextApi::class)
-private fun bodyFont(weight: FontWeight) = Font(
-    R.font.manrope,
-    weight = weight,
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
-)
 
 // Space Grotesk tops out at 700; ExtraBold requests resolve to the Bold entry.
 val DisplayFontFamily = FontFamily(
-    displayFont(FontWeight.Medium),
-    displayFont(FontWeight.SemiBold),
-    displayFont(FontWeight.Bold),
+    Font(R.font.space_grotesk_medium, FontWeight.Medium),
+    Font(R.font.space_grotesk_semibold, FontWeight.SemiBold),
+    Font(R.font.space_grotesk_bold, FontWeight.Bold),
 )
 
 val BodyFontFamily = FontFamily(
-    bodyFont(FontWeight.Normal),
-    bodyFont(FontWeight.Medium),
-    bodyFont(FontWeight.SemiBold),
-    bodyFont(FontWeight.Bold),
+    Font(R.font.manrope_regular, FontWeight.Normal),
+    Font(R.font.manrope_medium, FontWeight.Medium),
+    Font(R.font.manrope_semibold, FontWeight.SemiBold),
+    Font(R.font.manrope_bold, FontWeight.Bold),
 )
 
 val FireVisionTypography = Typography(
