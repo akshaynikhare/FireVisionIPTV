@@ -144,6 +144,7 @@ const val EmphasisDisabled = 0.38f
 // surfaces don't apply — always dark regardless of app theme.
 val ScrimHeavy = Color(0xBF000000)          // 75% black — toasts, info panels
 val ScrimLight = Color(0x99000000)          // 60% black — number chip, lighter overlays
+val ScrimBadge = Color(0x8C000000)          // 55% black — badge backings on card art
 val OnVideo    = Color(0xFFFFFFFF)          // text/icons on video scrims
 val VideoOverlayBackground = ScrimHeavy
 
