@@ -22,67 +22,83 @@ import java.security.MessageDigest
 internal object ApkSignatures {
 
     /**
+     * Certificate digests plus the one bit needed to interpret them.
+     *
+     * A flat list cannot distinguish the two ways a package ends up with more
+     * than one certificate, and they have opposite rules: `[A, B]` from a
+     * single signer is a rotation *lineage*, where an update carrying the
+     * lineage is legitimate; `[A, B]` from two signers is the *current signer
+     * set*, which an update has to match exactly. [multipleSigners] is what
+     * tells them apart.
+     */
+    data class Signers(
+        val digests: List<String>,
+        val multipleSigners: Boolean
+    )
+
+    /**
      * Whether an update signed with [archive] may replace an app signed with [installed].
      *
-     * Not equality. Android supports signing-key rotation: an app still running the
-     * old key reports history `[A]`, while a legitimate update signed with the
-     * rotated key reports the proof-of-rotation lineage `[A, B]`. Requiring
-     * identical histories rejects exactly the transition the platform allows —
-     * and rejects it in the one component that cannot be fixed by an update,
-     * because it *is* the updater.
+     * Mirrors what the platform installer will do, because anything looser only
+     * means launching an installer that then refuses the APK — leaving the
+     * download on disk and reporting success to the user.
      *
-     * Containment is no weaker than equality: the lineage in an APK's signing
-     * block has to be signed by each preceding key, so an attacker without the
-     * original private key cannot claim [installed] in it, and the platform
-     * installer enforces the same rule independently. An APK signed only with a
-     * key the installed app has already rotated away from is still refused,
-     * since the installed history would not be a subset.
+     * - **Single signer**: containment, not equality. Android supports key
+     *   rotation, so an app still on the old key reports `[A]` while a
+     *   legitimate rotated update reports the proof-of-rotation lineage
+     *   `[A, B]`. Demanding identical histories rejects exactly the transition
+     *   the platform allows, in the one component that cannot ship its own fix.
+     *   This is not weaker than equality: a lineage has to be signed by each
+     *   preceding key, so an attacker without the original private key cannot
+     *   claim [installed] in it.
+     * - **Multiple signers on either side**: exact set equality. Rotation is
+     *   only defined for single-signer packages; a multi-signer package must
+     *   present the same current signer set. Containment would accept
+     *   `[A] -> [A, C]`, which Android rejects.
      */
-    fun accepts(installed: List<String>?, archive: List<String>?): Boolean {
-        if (installed.isNullOrEmpty() || archive.isNullOrEmpty()) return false
-        return archive.containsAll(installed)
+    fun accepts(installed: Signers?, archive: Signers?): Boolean {
+        if (installed == null || archive == null) return false
+        if (installed.digests.isEmpty() || archive.digests.isEmpty()) return false
+        if (installed.multipleSigners || archive.multipleSigners) {
+            // Both sides arrive sorted, so list equality is set equality.
+            return installed.digests == archive.digests
+        }
+        return archive.digests.containsAll(installed.digests)
     }
 
-    /** Digests of the certificates the installed app is signed with, or null if unreadable. */
-    fun installed(pm: PackageManager, packageName: String): List<String>? =
-        runCatching {
-            @Suppress("DEPRECATION")
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                PackageManager.GET_SIGNING_CERTIFICATES
-            } else {
-                PackageManager.GET_SIGNATURES
-            }
-            digests(pm.getPackageInfo(packageName, flags))
-        }.getOrNull()
+    /** Signing certificates of the installed app, or null if unreadable. */
+    fun installed(pm: PackageManager, packageName: String): Signers? =
+        runCatching { signers(pm.getPackageInfo(packageName, signatureFlags())) }.getOrNull()
 
-    /** Digests of the certificates an APK file on disk is signed with, or null if unreadable. */
-    fun archive(pm: PackageManager, apkPath: String): List<String>? =
-        runCatching {
-            @Suppress("DEPRECATION")
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                PackageManager.GET_SIGNING_CERTIFICATES
-            } else {
-                PackageManager.GET_SIGNATURES
-            }
-            digests(pm.getPackageArchiveInfo(apkPath, flags))
-        }.getOrNull()
+    /** Signing certificates of an APK file on disk, or null if unreadable. */
+    fun archive(pm: PackageManager, apkPath: String): Signers? =
+        runCatching { signers(pm.getPackageArchiveInfo(apkPath, signatureFlags())) }.getOrNull()
 
-    private fun digests(info: PackageInfo?): List<String>? {
+    @Suppress("DEPRECATION")
+    private fun signatureFlags(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            PackageManager.GET_SIGNATURES
+        }
+
+    private fun signers(info: PackageInfo?): Signers? {
         if (info == null) return null
+        val multipleSigners: Boolean
         val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val signingInfo = info.signingInfo ?: return null
-            // Rotated keys report history; multi-signer APKs report all current signers.
-            if (signingInfo.hasMultipleSigners()) {
-                signingInfo.apkContentsSigners
-            } else {
-                signingInfo.signingCertificateHistory
-            }
+            multipleSigners = signingInfo.hasMultipleSigners()
+            if (multipleSigners) signingInfo.apkContentsSigners else signingInfo.signingCertificateHistory
         } else {
             @Suppress("DEPRECATION")
-            info.signatures
+            val signatures = info.signatures
+            // Below 28 there is no lineage to read: `signatures` is always the
+            // current signer set, so more than one of them means multi-signer.
+            multipleSigners = (signatures?.size ?: 0) > 1
+            signatures
         }
         if (raw.isNullOrEmpty()) return null
-        return raw.map { sha256(it.toByteArray()) }.sorted()
+        return Signers(raw.map { sha256(it.toByteArray()) }.sorted(), multipleSigners)
     }
 
     private fun sha256(bytes: ByteArray): String =

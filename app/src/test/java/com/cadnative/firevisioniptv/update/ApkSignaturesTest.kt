@@ -10,6 +10,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -62,9 +63,10 @@ class ApkSignaturesTest {
         val signature = Signature("aabbcc")
         every { pm.getPackageInfo("com.app", any<Int>()) } returns legacyInfo(signature)
 
-        val digests = ApkSignatures.installed(pm, "com.app")
+        val signers = ApkSignatures.installed(pm, "com.app")!!
 
-        assertEquals(listOf(sha256(signature.toByteArray())), digests)
+        assertEquals(listOf(sha256(signature.toByteArray())), signers.digests)
+        assertFalse(signers.multipleSigners)
     }
 
     @Test
@@ -87,8 +89,12 @@ class ApkSignaturesTest {
         val b = Signature("ddeeff")
         every { pm.getPackageInfo("com.app", any<Int>()) } returns legacyInfo(a, b)
 
-        val digests = ApkSignatures.installed(pm, "com.app")!!
+        val signers = ApkSignatures.installed(pm, "com.app")!!
 
+        // Below 28 `signatures` is the current signer set, never a lineage,
+        // so two entries mean two signers and rotation rules must not apply.
+        assertTrue(signers.multipleSigners)
+        val digests = signers.digests
         assertEquals(2, digests.size)
         // Sorted, so the comparison never depends on the order the platform
         // happened to report the signers in.
@@ -116,14 +122,17 @@ class ApkSignaturesTest {
             signingInfo = signingInfoOf(multipleSigners = false, current, rotatedFrom)
         }
 
-        val digests = ApkSignatures.installed(pm, "com.app")!!
+        val signers = ApkSignatures.installed(pm, "com.app")!!
 
         // History, not just the current certificate: an update signed with the
         // previous key of a rotated pair is still legitimate.
         assertEquals(
             listOf(sha256(current.toByteArray()), sha256(rotatedFrom.toByteArray())).sorted(),
-            digests
+            signers.digests
         )
+        // The flag is what lets accepts() read this as a lineage rather than a
+        // two-signer set, which carries the opposite rule.
+        assertFalse(signers.multipleSigners)
     }
 
     @Test
@@ -135,12 +144,13 @@ class ApkSignaturesTest {
             signingInfo = signingInfoOf(multipleSigners = true, a, b)
         }
 
-        val digests = ApkSignatures.installed(pm, "com.app")!!
+        val signers = ApkSignatures.installed(pm, "com.app")!!
 
         assertEquals(
             listOf(sha256(a.toByteArray()), sha256(b.toByteArray())).sorted(),
-            digests
+            signers.digests
         )
+        assertTrue(signers.multipleSigners)
     }
 
     @Test
@@ -191,7 +201,7 @@ class ApkSignaturesTest {
 
         assertEquals(
             listOf(sha256(signature.toByteArray())),
-            ApkSignatures.archive(pm, "/tmp/update.apk")
+            ApkSignatures.archive(pm, "/tmp/update.apk")!!.digests
         )
     }
 }
