@@ -37,6 +37,10 @@ import kotlinx.coroutines.delay
 
 private const val HERO_SWAP_DEBOUNCE_MS = 300L
 
+// Seeding focus has to outlast the hero's entrance animation placing its node.
+private const val FOCUS_SEED_ATTEMPTS = 5
+private const val FOCUS_SEED_RETRY_MS = 50L
+
 @Composable
 fun HomeContent(
     channels: List<ChannelUiModel>,
@@ -77,15 +81,26 @@ fun HomeContent(
     val categoryEntries = remember(channelsByCategory) {
         channelsByCategory.entries.toList()
     }
-    val bannerChannels = remember(featuredChannels, channels) {
-        featuredChannels.ifEmpty { channels.take(5) }
+    // Sticky rather than derived directly: featuredChannels arrives after channels
+    // on a warm start, and re-keying the hero on every emission disposes whatever
+    // currently holds focus — which drops focus to the root and, on the next key
+    // press, back onto the rail. Only swap when the identities actually change.
+    var bannerChannels by remember { mutableStateOf(emptyList<ChannelUiModel>()) }
+    LaunchedEffect(featuredChannels, channels) {
+        val next = featuredChannels.ifEmpty { channels.take(5) }
+        if (next.isNotEmpty() && next.map { it.id } != bannerChannels.map { it.id }) {
+            bannerChannels = next
+        }
     }
 
     // Hero follows D-pad focus in the featured row, debounced so fast
     // scrubbing doesn't thrash image decodes. Defaults to the first
     // featured channel so the hero renders immediately.
-    var focusedFeatured by remember(bannerChannels) { mutableStateOf(bannerChannels.firstOrNull()) }
-    var heroChannel by remember(bannerChannels) { mutableStateOf(bannerChannels.firstOrNull()) }
+    // Keyed on the first channel's id, not the list instance: a reordered list with
+    // the same head should not reset the hero out from under the user.
+    val bannerHeadId = bannerChannels.firstOrNull()?.id
+    var focusedFeatured by remember(bannerHeadId) { mutableStateOf(bannerChannels.firstOrNull()) }
+    var heroChannel by remember(bannerHeadId) { mutableStateOf(bannerChannels.firstOrNull()) }
     LaunchedEffect(focusedFeatured) {
         if (heroChannel != focusedFeatured) {
             delay(HERO_SWAP_DEBOUNCE_MS)
@@ -111,8 +126,27 @@ fun HomeContent(
         featuredFocusId != null || recentFocusId != null ||
             (categoryFocusId != null && channels.any { it.id == categoryFocusId })
     }
-    LaunchedEffect(hasRestoreTarget) {
-        if (!hasRestoreTarget) runCatching { watchNowFocusRequester.requestFocus() }
+    // Keyed on the hero's id and retried, because a single attempt loses every
+    // race it can enter: the requester lives inside a LazyColumn item gated on
+    // heroChannel, behind an entrance animation, so on a cold start the node is
+    // routinely unplaced when the effect first runs. requestFocus throws then,
+    // runCatching swallows it, and focus stays wherever it was — which is the
+    // rail, since the rail is simply the first focusable in traversal order and
+    // nothing else claims focus on this screen.
+    //
+    // The latch matters as much as the retry: without it, any later recomposition
+    // that re-keys this effect would yank focus back to Watch now after the user
+    // had already moved.
+    var focusSeeded by remember { mutableStateOf(false) }
+    LaunchedEffect(bannerHeadId, hasRestoreTarget) {
+        if (focusSeeded || hasRestoreTarget || heroChannel == null) return@LaunchedEffect
+        repeat(FOCUS_SEED_ATTEMPTS) {
+            if (runCatching { watchNowFocusRequester.requestFocus() }.isSuccess) {
+                focusSeeded = true
+                return@LaunchedEffect
+            }
+            delay(FOCUS_SEED_RETRY_MS)
+        }
     }
 
     // Stable entrance offset for category rows based on how many

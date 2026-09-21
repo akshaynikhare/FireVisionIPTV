@@ -288,19 +288,13 @@ fun FireVisionNavGraph(
                     catchupDurationMin = catchupDur,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = {
-                        navController.navigate(Screen.Settings.route) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Screen.Settings.route) { fromPlayerNavOptions() }
                     },
                     onNavigateToSearch = {
-                        navController.navigate(Screen.Search.route) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Screen.Search.route) { fromPlayerNavOptions() }
                     },
                     onNavigateToGuide = {
-                        navController.navigate(Screen.Guide.route) {
-                            launchSingleTop = true
-                        }
+                        navController.navigate(Screen.Guide.route) { fromPlayerNavOptions() }
                     }
                 )
             }

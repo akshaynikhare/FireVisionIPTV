@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TV manifest checks are suppressed because lint evaluates this overlay as if it
+    were a whole manifest. The leanback launcher, banner and optional-touchscreen
+    declarations all live in the main manifest and are merged in.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingLeanbackLauncher,MissingLeanbackSupport,ImpliedTouchscreenHardware">
+
+    <application>
+        <!--
+            Amazon's DRM licence check only means anything for a build installed
+            from the Appstore, which a debug build never is — the manager already
+            treats an unavailable service as "licensed" and carries on.
+
+            Dropping it here also unblocks Robolectric: it instantiates every
+            receiver the merged manifest declares, and this one lives in a jar
+            predating stackmap frames, so loading it fails verification on a
+            modern JVM before any test body runs.
+        -->
+        <receiver
+            android:name="com.amazon.device.drm.ResponseReceiver"
+            tools:node="remove" />
+    </application>
+
+</manifest>

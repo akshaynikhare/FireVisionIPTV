@@ -65,6 +65,7 @@ import com.cadnative.firevisioniptv.drm.AmazonDrmManager
 import com.cadnative.firevisioniptv.domain.service.ChannelHealthScanner
 import com.cadnative.firevisioniptv.presentation.navigation.FireVisionNavGraph
 import com.cadnative.firevisioniptv.presentation.navigation.Screen
+import com.cadnative.firevisioniptv.presentation.navigation.topLevelNavOptions
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_ENTRANCE
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -310,15 +311,7 @@ private fun FireVisionAppShell(
     val isMobile = remember { isMobileDevice(context) }
 
     val onNavigate: (Screen) -> Unit = { screen ->
-        navController.navigate(screen.route) {
-            popUpTo(Screen.Home.route) { saveState = true }
-            launchSingleTop = true
-            // Home is the root, not a tab with its own stack. A non-inclusive
-            // popUpTo(Home) with saveState files whatever it popped (e.g. the
-            // Player → Guide chain) under Home's id, so restoring on the Home
-            // click would put that chain straight back on top of Home.
-            restoreState = screen != Screen.Home
-        }
+        navController.navigate(screen.route) { topLevelNavOptions(screen) }
     }
 
     // Single FireVisionNavGraph call site: an if/else per orientation would give

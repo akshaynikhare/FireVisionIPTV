@@ -52,7 +52,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 fun ChannelContextMenu(
     channel: ChannelUiModel,
     onToggleFavorite: () -> Unit,
-    onOpenMultiview: () -> Unit,
+    onOpenMultiview: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     val firstFocus = remember { FocusRequester() }
@@ -84,11 +84,15 @@ fun ChannelContextMenu(
                     onDismiss()
                 }
             )
-            ContextMenuRow(
-                label = "Open in Multiview",
-                icon = Icons.Filled.Dashboard,
-                onClick = onOpenMultiview
-            )
+            // Omitted where multiview makes no sense — the player's own channel
+            // overlay, which shows this menu purely to favourite a channel.
+            onOpenMultiview?.let { openMultiview ->
+                ContextMenuRow(
+                    label = "Open in Multiview",
+                    icon = Icons.Filled.Dashboard,
+                    onClick = openMultiview
+                )
+            }
         }
     }
 }
