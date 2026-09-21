@@ -27,6 +27,9 @@ object StreamErrorMessageResolver {
 
     private const val RECENT_THRESHOLD_MS = 3_600_000L // 1 hour
 
+    // The matched substrings are an internal contract with ErrorRecoveryManager,
+    // which produces them — they are diagnostic codes, never shown to anyone, and
+    // must not be translated or the matching stops working.
     fun resolve(context: StreamErrorContext): StreamErrorMessage {
         // A category-wide outage says more than any per-channel diagnosis.
         if (context.categoryScannedCount >= 3 &&

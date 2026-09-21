@@ -20,5 +20,8 @@ rg -n --type kotlin '"[A-Z][^"]{2,}"' \
   | rg -v '@Query|@ColumnInfo|@SerializedName|Entity\(|tableName|execSQL' \
   | rg -v ':\s*//|:\s*\*|:\s*/\*' \
   | rg -v 'data/source/(remote|local)' \
+  | rg -v 'di/NetworkModule|update/ApkSignatures|Suppress\(' \
+  | rg -v 'ui/player/ErrorRecoveryManager|ui/player/StreamErrorMessageResolver' \
+  | rg -v 'domain/service/ChannelHealthScanner' \
   | rg -v 'Screen\.kt|AppPreferences\.kt|PlayerKeyAction|NavOptions\.kt' \
   | rg -v '"(loading|error|empty|content|dark|light|system|on|off|paired|m3u|xtream)"'

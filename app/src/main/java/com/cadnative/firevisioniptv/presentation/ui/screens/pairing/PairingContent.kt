@@ -37,8 +37,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -164,7 +166,7 @@ private fun InfoColumn(
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = if (isTvDevice) "Pair Your TV" else "Pair Your Device",
+            text = stringResource(if (isTvDevice) R.string.pairing_title_tv else R.string.pairing_title_device),
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -172,13 +174,13 @@ private fun InfoColumn(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (isTvDevice) {
-            StepText("1. Visit $serverUrl and sign in")
-            StepText("2. Enter the PIN below to link your TV")
-            StepText("3. Add channels and start watching!")
+            StepText(stringResource(R.string.pairing_step_tv_1, serverUrl))
+            StepText(stringResource(R.string.pairing_step_tv_2_below))
+            StepText(stringResource(R.string.pairing_step_3))
         } else {
-            StepText("1. Tap 'Pair in Browser' and sign in")
-            StepText("2. Your device links automatically")
-            StepText("3. Add channels and start watching!")
+            StepText(stringResource(R.string.pairing_step_mobile_1))
+            StepText(stringResource(R.string.pairing_step_mobile_2))
+            StepText(stringResource(R.string.pairing_step_3))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -199,12 +201,12 @@ private fun InfoColumn(
 
         // Secondary paths, de-emphasized: pairing above is the primary flow.
         SecondaryLink(
-            text = "Just looking? Browse demo channels",
+            text = stringResource(R.string.pairing_demo_link),
             onClick = onUseDefaultClick
         )
         Spacer(modifier = Modifier.height(8.dp))
         SecondaryLink(
-            text = "Use a different source  ▸",
+            text = stringResource(R.string.pairing_advanced_link),
             onClick = onUseAdvancedClick
         )
     }
@@ -232,16 +234,16 @@ private fun PortraitLayout(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (isTvDevice) "Pair Your TV" else "Pair Your Device",
+            text = stringResource(if (isTvDevice) R.string.pairing_title_tv else R.string.pairing_title_device),
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
-        StepText("1. Visit $serverUrl and sign in", TextAlign.Center)
-        StepText("2. Enter this PIN to link your TV", TextAlign.Center)
-        StepText("3. Add channels and start watching!", TextAlign.Center)
+        StepText(stringResource(R.string.pairing_step_tv_1, serverUrl), TextAlign.Center)
+        StepText(stringResource(R.string.pairing_step_tv_2_here), TextAlign.Center)
+        StepText(stringResource(R.string.pairing_step_3), TextAlign.Center)
 
         Spacer(modifier = Modifier.height(20.dp))
         if (isTvDevice) {
@@ -263,9 +265,9 @@ private fun PortraitLayout(
         )
 
         Spacer(modifier = Modifier.height(20.dp))
-        SecondaryLink(text = "Just looking? Browse demo channels", onClick = onUseDefaultClick)
+        SecondaryLink(text = stringResource(R.string.pairing_demo_link), onClick = onUseDefaultClick)
         Spacer(modifier = Modifier.height(6.dp))
-        SecondaryLink(text = "Use a different source  ▸", onClick = onUseAdvancedClick)
+        SecondaryLink(text = stringResource(R.string.pairing_advanced_link), onClick = onUseAdvancedClick)
     }
 }
 

@@ -204,4 +204,52 @@
     <string name="settings_conn_not_found">Server not found \u2014 check URL</string>
     <string name="settings_conn_timeout">Connection timed out</string>
     <string name="settings_conn_failed">Failed: %1$s</string>
+
+    <!-- Pairing -->
+    <string name="pairing_title_tv">Pair Your TV</string>
+    <string name="pairing_title_device">Pair Your Device</string>
+    <string name="pairing_pin_placeholder">------</string>
+    <string name="pairing_demo_link">Just looking? Browse demo channels</string>
+    <string name="pairing_advanced_link">Use a different source  ▸</string>
+    <string name="pairing_step_tv_1">1. Visit %1$s and sign in</string>
+    <!-- Two variants: the landscape layout puts the PIN under the steps, the portrait one beside them. -->
+    <string name="pairing_step_tv_2_below">2. Enter the PIN below to link your TV</string>
+    <string name="pairing_step_tv_2_here">2. Enter this PIN to link your TV</string>
+    <string name="pairing_step_3">3. Add channels and start watching!</string>
+    <string name="pairing_step_mobile_1">1. Tap \'Pair in Browser\' and sign in</string>
+    <string name="pairing_step_mobile_2">2. Your device links automatically</string>
+    <string name="pairing_pin_heading">Your PIN</string>
+    <string name="pairing_pin_regenerate">Generate New PIN</string>
+    <string name="pairing_qr_heading">Scan with your phone to Pair</string>
+    <string name="a11y_pairing_qr">QR Code for Pairing</string>
+    <string name="pairing_quick_heading">Quick Pair</string>
+    <string name="pairing_quick_body">Tap to open your browser and complete pairing</string>
+    <string name="pairing_quick_action">Pair in Browser</string>
+    <string name="pairing_manual_hint">Or enter PIN manually at %1$s</string>
+    <string name="pairing_success_title">You\'re all set!</string>
+    <string name="pairing_success_welcome">Welcome, %1$s</string>
+    <string name="pairing_success_scan">Scan the QR code or visit</string>
+    <string name="a11y_pairing_qr_manager">QR Code for Channel Manager</string>
+    <string name="pairing_success_body">Add channels to your playlist to start watching</string>
+    <string name="pairing_success_open_manager">Open Channel Manager</string>
+    <string name="pairing_success_continue">Continue</string>
+
+    <!-- Pairing status messages -->
+    <string name="pairing_status_generating">Generating PIN…</string>
+    <string name="pairing_status_connecting">Connecting to server…</string>
+    <string name="pairing_status_waiting">Waiting for confirmation…</string>
+    <string name="pairing_status_demo_fetching">Fetching demo channels…</string>
+    <string name="pairing_status_demo_using">Using demo channel list</string>
+    <string name="pairing_status_demo_unavailable">Demo channels unavailable</string>
+    <string name="pairing_status_network_error">Network error — try again</string>
+    <string name="pairing_status_paired">Paired successfully! Welcome, %1$s!</string>
+    <string name="pairing_err_server">Server error: %1$d</string>
+    <string name="pairing_err_generate">Failed to generate PIN: %1$s</string>
+    <string name="pairing_err_unknown">Unknown error</string>
+    <string name="pairing_err_connection">Connection error: %1$s</string>
+    <string name="pairing_err_expired">PIN expired. Please generate a new one.</string>
+    <string name="pairing_err_timeout">Pairing timeout. Please try again.</string>
+    <string name="pairing_countdown_expired">PIN Expired</string>
+    <string name="pairing_countdown">Expires in: %1$d:%2$02d</string>
+    <string name="pairing_default_username">User</string>
 </resources>
