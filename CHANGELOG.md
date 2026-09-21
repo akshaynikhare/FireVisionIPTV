@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.2.4] - 2026-09-21
+
+### Added
+- ship static font weights instead of variable instances
+- lower minSdk to 23
+- make D-pad navigation predictable and glitch-free
+- update preview images with new assets
+
+### Changed
+- cover the Sentry diagnostics re-point
+- run on every pull request, not only those targeting main
+- skip Sentry uploads when no auth token is present
+- gate on lint, refuse unsigned releases, derive versionCode
+- drop Crashlytics, Perf, Firestore and Realtime Database
+- enable core library desugaring
+- thin the screen root and take the panel shape from the theme
+- route pairing traffic through Retrofit
+- simplify D-pad navigation and remove long press action for OK button
+- repair the unit test compile and isolate AppPreferences
+- target SDK 36, migrate kapt to KSP, consolidate versions
+- modern APIs, dead code, and lint cleanup
+- update API and architecture documentation to reflect recent changes in endpoints and components
+
+### Fixed
+- require an exact signer set for multi-signer packages
+- reject bad release tags, accept rotated signing keys, pin actions
+- match renamed channels by stream URL, not by legacy id format
+- confirm focus actually landed before giving up on it
+- make installation-id generation atomic
+- migrate M3U channel ids instead of orphaning saved state
+- disable Firebase Analytics collection in debug builds
+- make polling requests cancellable and locale-independent
+- stop leaking receivers and silently stalling downloads
+- serialize channel refresh and favorite sync
+- drop ANDROID_ID, encrypt the playlist EPG URL
+- honor the configured server URL and scope API headers
+
+---
+
 ## [2.2.3] - 2026-07-14
 
 ### Added
