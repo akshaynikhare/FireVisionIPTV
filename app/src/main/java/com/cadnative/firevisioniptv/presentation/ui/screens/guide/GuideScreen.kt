@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.model.ErrorType
 import com.cadnative.firevisioniptv.presentation.ui.components.EmptyState
@@ -47,7 +49,7 @@ fun GuideScreen(
     Box(modifier = modifier.fillMaxSize()) {
         when {
             uiState.isLoading && uiState.isEmpty ->
-                LoadingIndicator(message = "Loading guide…")
+                LoadingIndicator(message = stringResource(R.string.loading_guide))
 
             uiState.error != null && uiState.isEmpty ->
                 ErrorState(
@@ -59,7 +61,7 @@ fun GuideScreen(
 
             uiState.isEmpty ->
                 EmptyState(
-                    message = "No channels available for the guide",
+                    message = stringResource(R.string.empty_guide_channels),
                     onRetry = viewModel::retry
                 )
 

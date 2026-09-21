@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.screens.FocusAwareButton
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
@@ -45,7 +47,7 @@ internal fun PinSection(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Your PIN",
+            text = stringResource(R.string.pairing_pin_heading),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelLarge
         )
@@ -106,7 +108,7 @@ internal fun PinSection(
                 )
             ) {
                 Text(
-                    text = "Generate New PIN",
+                    text = stringResource(R.string.pairing_pin_regenerate),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )

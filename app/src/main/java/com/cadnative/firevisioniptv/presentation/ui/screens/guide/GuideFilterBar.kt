@@ -11,6 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.GuideFilter
 import com.cadnative.firevisioniptv.presentation.ui.components.CategoryChip
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
@@ -53,7 +56,7 @@ internal fun GuideFilterBar(
     ) {
         item("all") {
             CategoryChip(
-                label = "All",
+                label = stringResource(R.string.filter_all),
                 isSelected = selectedFilter is GuideFilter.All,
                 selectedContainerColor = Amber,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -64,7 +67,7 @@ internal fun GuideFilterBar(
         if (hasFavorites) {
             item("favorites") {
                 CategoryChip(
-                    label = "★ Favorites",
+                    label = stringResource(R.string.filter_favorites),
                     isSelected = selectedFilter is GuideFilter.Favorites,
                     selectedContainerColor = Amber,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -76,7 +79,7 @@ internal fun GuideFilterBar(
         items(categories.size, key = { categories[it] }) { i ->
             val category = categories[i]
             CategoryChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedFilter is GuideFilter.Category && selectedFilter.name == category,
                 selectedContainerColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

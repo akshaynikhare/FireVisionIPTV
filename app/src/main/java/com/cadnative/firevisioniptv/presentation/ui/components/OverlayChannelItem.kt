@@ -30,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -83,9 +85,9 @@ internal fun OverlayChannelItem(
             ) {
                 Text(
                     text = when {
-                        isCurrentChannel -> "NOW"
-                        recentIndex == 0 -> "LAST"
-                        else -> "RECENT"
+                        isCurrentChannel -> stringResource(R.string.badge_now)
+                        recentIndex == 0 -> stringResource(R.string.badge_last)
+                        else -> stringResource(R.string.badge_recent)
                     },
                     style = LabelBadge,
                     fontWeight = FontWeight.Bold,
@@ -138,7 +140,7 @@ internal fun OverlayCategoryChips(
     ) {
         item(key = "all") {
             OverlayFilterChip(
-                label = "All",
+                label = stringResource(R.string.filter_all),
                 isSelected = selectedCategory == null,
                 selectedColor = Amber,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -147,7 +149,7 @@ internal fun OverlayCategoryChips(
         }
         items(categories, key = { it }) { category ->
             OverlayFilterChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedCategory == category,
                 selectedColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

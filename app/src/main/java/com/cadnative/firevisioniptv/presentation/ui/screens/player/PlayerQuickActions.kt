@@ -48,6 +48,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimHeavy
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
 import com.cadnative.firevisioniptv.presentation.ui.theme.softShadow
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 // Rotating set of sleep-timer presets (minutes). null = off.
 internal val SLEEP_TIMER_STEPS = listOf<Int?>(null, 30, 60, 90, 120)
@@ -109,7 +111,7 @@ internal fun PlayerQuickActions(
     ) {
         QuickActionButton(
             icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            label = if (isPlaying) "Pause" else "Play",
+            label = stringResource(if (isPlaying) R.string.player_action_pause else R.string.player_action_play),
             tint = OnVideo,
             onClick = onPlayPause,
             focusRequester = firstActionFocusRequester
@@ -117,12 +119,13 @@ internal fun PlayerQuickActions(
 
         QuickActionButton(
             icon = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-            label = if (isFavorite) "Favorited" else "Favorite",
+            label = stringResource(if (isFavorite) R.string.player_action_favorited else R.string.player_action_favorite),
             tint = if (isFavorite) MaterialTheme.colorScheme.error else OnVideo,
             onClick = onToggleFavorite
         )
 
-        val sleepLabel = sleepTimerMinutes?.let { "Sleep ${it}m" } ?: "Sleep off"
+        val sleepLabel = sleepTimerMinutes?.let { stringResource(R.string.player_sleep_minutes, it) }
+            ?: stringResource(R.string.player_sleep_off)
         QuickActionButton(
             icon = Icons.Filled.Bedtime,
             label = sleepLabel,
@@ -139,14 +142,14 @@ internal fun PlayerQuickActions(
 
         QuickActionButton(
             icon = Icons.Filled.ClosedCaption,
-            label = "Audio/Subs",
+            label = stringResource(R.string.player_action_audio_subs),
             tint = OnVideo,
             onClick = onShowTracks
         )
 
         QuickActionButton(
             icon = Icons.AutoMirrored.Filled.List,
-            label = "Channels",
+            label = stringResource(R.string.player_action_channels),
             tint = OnVideo,
             onClick = onShowChannelList
         )
@@ -154,7 +157,7 @@ internal fun PlayerQuickActions(
         if (onShowGuide != null) {
             QuickActionButton(
                 icon = Icons.Filled.GridView,
-                label = "Guide",
+                label = stringResource(R.string.player_action_guide),
                 tint = OnVideo,
                 onClick = onShowGuide
             )

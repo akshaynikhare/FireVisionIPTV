@@ -45,8 +45,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
 import com.cadnative.firevisioniptv.presentation.model.GuideProgramUiModel
 import com.cadnative.firevisioniptv.presentation.model.GuideRowUiModel
@@ -263,7 +265,7 @@ private fun GuideRow(
         ) {
             when {
                 !row.isHydrated ->
-                    GuideGapCell(width = laneWidth, isCompact = isCompact, label = "Loading…")
+                    GuideGapCell(width = laneWidth, isCompact = isCompact, label = stringResource(R.string.guide_gap_loading))
 
                 row.programs.isEmpty() ->
                     GuideGapCell(width = laneWidth, isCompact = isCompact)

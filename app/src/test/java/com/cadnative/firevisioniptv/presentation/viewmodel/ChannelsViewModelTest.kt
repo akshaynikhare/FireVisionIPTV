@@ -45,6 +45,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import com.cadnative.firevisioniptv.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChannelsViewModelTest {
@@ -65,6 +66,7 @@ class ChannelsViewModelTest {
     private val playbackPositionDao: PlaybackPositionDao = mockk()
     private val favoriteCategoryDao: FavoriteCategoryDao = mockk()
     private val streamMetricsDao: StreamMetricsDao = mockk()
+    private val appContext: android.content.Context = mockk(relaxed = true)
 
     private val healthFlow = MutableStateFlow(emptyList<com.cadnative.firevisioniptv.data.source.local.entity.ChannelHealthEntity>())
 
@@ -97,6 +99,18 @@ class ChannelsViewModelTest {
         every { streamMetricsDao.observeMostPlayedIds(any()) } returns flowOf(emptyList())
         every { favoriteCategoryDao.getAllFavoriteCategoryNames() } returns flowOf(emptyList())
         every { channelDao.getAllChannels() } returns flowOf(emptyList())
+
+        // Real copy rather than a relaxed mock's empty string, so assertions can
+        // still be made against what the user actually sees.
+        every { appContext.getString(R.string.error_not_paired) } returns
+            "Device not paired — please pair your device"
+        every { appContext.getString(R.string.error_cannot_connect) } returns
+            "Cannot connect to server — check server URL in Settings"
+        every { appContext.getString(R.string.error_server) } returns
+            "Server error — please try again later"
+        every { appContext.getString(R.string.error_server_offline) } returns
+            "Server is offline — please try again later"
+        every { appContext.getString(R.string.error_generic) } returns "Something went wrong"
     }
 
     @After
@@ -117,7 +131,8 @@ class ChannelsViewModelTest {
         favoriteDao = favoriteDao,
         playbackPositionDao = playbackPositionDao,
         favoriteCategoryDao = favoriteCategoryDao,
-        streamMetricsDao = streamMetricsDao
+        streamMetricsDao = streamMetricsDao,
+        appContext = appContext
     )
 
     // ── Home rows ────────────────────────────────────────────────

@@ -19,6 +19,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextDim
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextPrimary
 import com.cadnative.firevisioniptv.presentation.ui.theme.TextSecondary
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun RecoveringOverlay(
@@ -27,9 +29,9 @@ fun RecoveringOverlay(
     modifier: Modifier = Modifier
 ) {
     val statusMessage = when {
-        attempt <= 1 -> "Checking stream source..."
-        attempt == maxAttempts -> "Last attempt..."
-        else -> "Trying alternate connection..."
+        attempt <= 1 -> stringResource(R.string.stream_checking_source)
+        attempt == maxAttempts -> stringResource(R.string.stream_last_attempt)
+        else -> stringResource(R.string.stream_trying_alternate)
     }
 
     Box(
@@ -49,7 +51,7 @@ fun RecoveringOverlay(
                 strokeWidth = 3.dp
             )
             Text(
-                text = "Reconnecting... ($attempt/$maxAttempts)",
+                text = stringResource(R.string.stream_reconnecting, attempt, maxAttempts),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
@@ -91,7 +93,7 @@ fun DeadStreamOverlay(
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Stream unavailable",
+                contentDescription = stringResource(R.string.stream_unavailable),
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(48.dp)
             )
@@ -112,14 +114,14 @@ fun DeadStreamOverlay(
             }
             if (countdown > 0) {
                 Text(
-                    text = "Going back in $countdown...",
+                    text = stringResource(R.string.stream_going_back, countdown),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Press any button to stay",
+                text = stringResource(R.string.stream_press_to_stay),
                 style = MaterialTheme.typography.labelSmall,
                 color = TextDim
             )

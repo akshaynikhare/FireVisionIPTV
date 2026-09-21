@@ -1,7 +1,9 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.SearchFilter
@@ -13,6 +15,7 @@ import com.cadnative.firevisioniptv.domain.usecase.ToggleFavoriteUseCase
 import com.cadnative.firevisioniptv.presentation.mapper.ChannelUiMapper
 import com.cadnative.firevisioniptv.presentation.model.SearchUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +40,7 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val searchChannelsUseCase: SearchChannelsUseCase,
     private val saveSearchQueryUseCase: SaveSearchQueryUseCase,
     private val getRecentSearchesUseCase: GetRecentSearchesUseCase,
@@ -127,7 +131,8 @@ class SearchViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    error = result.exception.message ?: "Search failed"
+                                    error = result.exception.message
+                                        ?: context.getString(R.string.search_failed)
                                 )
                             }
                         }

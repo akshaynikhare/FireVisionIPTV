@@ -22,7 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
@@ -34,6 +37,7 @@ import com.cadnative.firevisioniptv.presentation.ui.components.rememberShimmerBr
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import kotlinx.coroutines.delay
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
 
 private const val HERO_SWAP_DEBOUNCE_MS = 300L
 
@@ -76,7 +80,7 @@ fun HomeContent(
     }
 
     val channelsByCategory = remember(channels) {
-        channels.groupBy { it.category.ifBlank { "Other" } }
+        channels.groupBy { it.category.ifBlank { CategorySentinels.OTHER } }
     }
     val categoryEntries = remember(channelsByCategory) {
         channelsByCategory.entries.toList()
@@ -218,7 +222,7 @@ fun HomeContent(
                 ChannelRow(
                     // Live re-tune shortcut — quick jump back to channels the
                     // user was just watching (never a resumed file position).
-                    title = "Recently Watched",
+                    title = stringResource(R.string.home_row_recent),
                     channels = recentlyWatched,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
@@ -235,7 +239,7 @@ fun HomeContent(
         if (forYou.isNotEmpty()) {
             item(key = "for_you") {
                 ChannelRow(
-                    title = "For You",
+                    title = stringResource(R.string.home_row_for_you),
                     channels = forYou,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
@@ -267,7 +271,7 @@ fun HomeContent(
             key = { _, entry -> "category_${entry.key}" }
         ) { index, (category, categoryChannels) ->
             ChannelRow(
-                title = category,
+                title = categoryLabel(category),
                 channels = categoryChannels,
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,

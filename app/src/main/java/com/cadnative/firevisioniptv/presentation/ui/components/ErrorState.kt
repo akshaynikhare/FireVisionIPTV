@@ -13,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ErrorType
 import com.cadnative.firevisioniptv.presentation.ui.animation.FOCUS_SCALE_TILE
 import com.cadnative.firevisioniptv.presentation.ui.animation.animateFadeIn
@@ -39,9 +41,9 @@ fun ErrorState(
     // Contextual headline so the state reads as a clear problem, not just a raw
     // message dump. The message itself carries the detail below it.
     val title = when (errorType) {
-        ErrorType.AUTH_REQUIRED -> "Device not paired"
-        ErrorType.NETWORK_ERROR -> "Can't reach the server"
-        else -> "Something went wrong"
+        ErrorType.AUTH_REQUIRED -> stringResource(R.string.error_state_not_paired)
+        ErrorType.NETWORK_ERROR -> stringResource(R.string.error_state_unreachable)
+        else -> stringResource(R.string.error_state_unknown)
     }
 
     Box(
@@ -100,7 +102,7 @@ fun ErrorState(
                         .onFocusChanged { pairFocused = it.isFocused }
                 ) {
                     Text(
-                        text = "Pair Now",
+                        text = stringResource(R.string.settings_connection_pair_now),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -131,7 +133,7 @@ fun ErrorState(
                     .onFocusChanged { retryFocused = it.isFocused }
             ) {
                 Text(
-                    text = "Retry",
+                    text = stringResource(R.string.action_retry),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary

@@ -50,11 +50,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.screens.home.COMPACT_WIDTH_DP
@@ -206,7 +208,7 @@ private fun HeroNowBlock(hero: ChannelUiModel) {
     Column {
         hero.nowProgramTitle?.let { nowTitle ->
             Text(
-                text = "Now: $nowTitle",
+                text = stringResource(R.string.epg_now, nowTitle),
                 style = MaterialTheme.typography.titleMedium,
                 color = OnVideo,
                 maxLines = 1,
@@ -223,7 +225,7 @@ private fun HeroNowBlock(hero: ChannelUiModel) {
         hero.nextProgramTitle?.let { nextTitle ->
             Spacer(modifier = Modifier.height(Dimens.Space2))
             Text(
-                text = "Next: $nextTitle",
+                text = stringResource(R.string.epg_next, nextTitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = OnVideo.copy(alpha = 0.6f),
                 maxLines = 1,
@@ -428,7 +430,7 @@ private fun WatchNowButton(
         )
         Spacer(modifier = Modifier.width(Dimens.Space2))
         Text(
-            text = "Watch now",
+            text = stringResource(R.string.home_hero_watch_now),
             // Use the Manrope label style (not the tall display face, whose caps
             // get clipped inside a button's constrained content row).
             style = MaterialTheme.typography.labelLarge,

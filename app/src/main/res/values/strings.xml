@@ -1,38 +1,10 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">FireVision IPTV</string>
-    <string name="browse_title">FireVision IPTV</string>
-    <string name="related_movies">Related Videos</string>
-    <string name="grid_view">Grid View</string>
-    <string name="error_fragment">Error Fragment</string>
-    <string name="personal_settings">Personal Settings</string>
-    <string name="watch_trailer_1">Watch trailer</string>
-    <string name="watch_trailer_2">FREE</string>
-    <string name="rent_1">Rent By Day</string>
-    <string name="rent_2">From $1.99</string>
-    <string name="buy_1">Buy and Own</string>
-    <string name="buy_2">AT $9.99</string>
-    <string name="movie">Movie</string>
-
-    <!-- Error messages -->
-    <string name="error_fragment_message">An error occurred</string>
-    <string name="dismiss_error">Dismiss</string>
-
-    <!-- Sidebar Navigation -->
     <string name="home">Home</string>
     <string name="search">Search</string>
     <string name="categories">Categories</string>
-    <string name="languages">Languages</string>
     <string name="favorites">Favorites</string>
     <string name="settings">Settings</string>
-
-    <!-- Categories -->
-    <string name="category_icon">Category Icon</string>
-    <string name="no_categories_found">No categories found</string>
-    <string name="no_languages_found">No languages found</string>
-    <string name="browse_categories">Browse Categories</string>
-    <string name="browse_languages">Browse Languages</string>
-    
-    <!-- Category Names -->
     <string name="category_sports">Sports</string>
     <string name="category_news">News</string>
     <string name="category_movies">Movies</string>
@@ -41,7 +13,448 @@
     <string name="category_kids">Kids</string>
     <string name="category_documentary">Documentary</string>
     <string name="category_general">General</string>
+    <!-- Display label for the CategorySentinels.OTHER grouping key. -->
+    <string name="category_other">Other</string>
 
-    <!-- Settings -->
-    <string name="registration_qr_code">Registration QR Code</string>
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_guide">Guide</string>
+    <string name="a11y_brand">FireVision</string>
+
+    <!-- Settings: sections -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_connection">Connection</string>
+    <string name="settings_section_channels">Channels</string>
+    <string name="settings_section_controls">Controls</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_about">About</string>
+
+    <!-- Settings: appearance -->
+    <string name="settings_appearance_theme">Theme</string>
+
+    <!-- Settings: controls -->
+    <string name="settings_controls_title">Player Controls</string>
+    <string name="player_key_action_zap">Zap</string>
+    <string name="player_key_action_last_channel">Last Ch</string>
+    <string name="player_key_action_favorite">Favorite</string>
+    <string name="player_key_action_play_pause">Play/Pause</string>
+    <string name="player_key_action_controls">Controls</string>
+    <string name="settings_sleep_off">Off</string>
+    <string name="settings_sleep_30m">30 min</string>
+    <string name="settings_sleep_1h">1 h</string>
+    <string name="settings_sleep_2h">2 h</string>
+    <string name="settings_sleep_3h">3 h</string>
+    <string name="settings_timeout_4s">4 s</string>
+    <string name="settings_timeout_6s">6 s</string>
+    <string name="settings_timeout_8s">8 s</string>
+    <string name="settings_timeout_10s">10 s</string>
+    <string name="player_hint_ok_channels">OK  Channels</string>
+    <string name="player_hint_dpad">D-pad  %1$s</string>
+    <string name="player_hint_up_down">\u25b2\u25bc  %1$s</string>
+    <string name="player_hint_left_right">\u25c0\u25b6  %1$s</string>
+    <string name="settings_toggle_on">On</string>
+    <string name="settings_toggle_off">Off</string>
+    <string name="settings_controls_back_protection">Confirm app exit (press back twice on Home)</string>
+    <string name="settings_controls_always_show_bar">Always show program bar</string>
+    <string name="settings_controls_info_timeout">Info banner timeout</string>
+    <string name="settings_controls_dpad_up_down">D-pad up/down</string>
+    <string name="settings_controls_dpad_left_right">D-pad left/right</string>
+    <string name="settings_controls_sleep_timer">Sleep timer</string>
+
+    <!-- Settings: channels -->
+    <string name="settings_channels_scanning">Scanning channels\u2026</string>
+    <string name="settings_channels_health_title">Stream Health</string>
+    <!-- "checked" is a participle on a ratio, not a countable noun: no plural applies. -->
+    <string name="settings_channels_last_scan" tools:ignore="PluralsCandidate">Last scan: %1$d/%2$d checked</string>
+    <string name="settings_channels_scan_hint">Scan channels to check if streams are online</string>
+    <string name="settings_channels_scan_busy">Scanning\u2026</string>
+    <string name="settings_channels_scan_action">Check Liveness</string>
+    <string name="settings_channels_cache_title">Local Cache</string>
+    <string name="settings_channels_cache_cleared">Cache cleared \u2014 refreshing channels</string>
+    <string name="settings_channels_cache_hint">Clear cached channels, guide data, and thumbnails</string>
+    <string name="settings_channels_cache_busy">Clearing\u2026</string>
+    <string name="settings_channels_cache_action">Clear Cache</string>
+    <string name="settings_channels_guide_title">Guide Data</string>
+    <string name="settings_channels_guide_reset">Guide data reset \u2014 schedule re-downloaded</string>
+    <string name="settings_channels_guide_hint">Purge the program guide and re-download the schedule</string>
+    <string name="settings_channels_guide_busy">Resetting\u2026</string>
+    <string name="settings_channels_guide_action">Reset Guide</string>
+    <string name="settings_channels_reset_title">Reset App Data</string>
+    <string name="settings_channels_reset_hint">Erase pairing, favorites, and all settings \u2014 like a fresh install</string>
+    <string name="settings_channels_reset_action">Reset App</string>
+    <string name="settings_channels_reset_confirm_title">Reset app data?</string>
+    <string name="settings_channels_reset_confirm_body">This erases pairing, favorites, playback history, and all settings. The app will close and start fresh, like a new install.</string>
+    <string name="settings_channels_reset_cancel">Cancel</string>
+    <string name="settings_channels_reset_confirm">Erase Everything</string>
+
+    <!-- Settings: about -->
+    <string name="settings_about_version">Version</string>
+    <string name="settings_about_current">Current: %1$s</string>
+    <string name="settings_about_update_available">Update available: v%1$s</string>
+    <string name="settings_about_checking">Checking\u2026</string>
+    <string name="settings_about_downloading">Downloading\u2026</string>
+    <string name="settings_about_install">Update Now</string>
+    <string name="settings_about_check">Check for Updates</string>
+
+    <!-- Settings: connection -->
+    <string name="settings_connection_source_m3u">M3U playlist</string>
+    <string name="settings_connection_source_xtream">Xtream Codes</string>
+    <string name="settings_connection_paired">Paired</string>
+    <string name="settings_connection_reset">Reset</string>
+    <string name="settings_connection_demo_title">Demo Mode</string>
+    <string name="settings_connection_demo_body">Browsing shared demo channels. Pair your device to access your personal channel list.</string>
+    <string name="settings_connection_pair_now">Pair Now</string>
+    <string name="settings_connection_none_title">No channel source</string>
+    <string name="settings_connection_none_body">Pair your TV or add a playlist to start watching.</string>
+    <string name="settings_connection_set_up">Set up</string>
+    <string name="settings_connection_change_title">Change source</string>
+    <string name="settings_connection_change_body">Switch to pairing, a self-hosted server, or your own playlist.</string>
+    <string name="settings_connection_change_action">Change  \u25b8</string>
+
+    <!-- Shell -->
+    <string name="exit_confirm">Press back again to exit</string>
+
+    <!-- Channel cards -->
+    <string name="card_hold_ok_hint">Hold OK</string>
+    <string name="a11y_favorite">Favorite</string>
+    <string name="a11y_stream_online">Stream online</string>
+    <string name="a11y_stream_checking">Checking stream</string>
+    <string name="a11y_stream_offline">Stream offline</string>
+    <string name="a11y_stream_unresponsive">Stream unresponsive</string>
+    <string name="a11y_stream_unknown">Stream status unknown</string>
+    <string name="context_menu_add_favorite">Add to Favorites</string>
+    <string name="context_menu_remove_favorite">Remove from Favorites</string>
+    <string name="context_menu_multiview">Open in Multiview</string>
+
+    <!-- Stream status -->
+    <string name="stream_checking_source">Checking stream source\u2026</string>
+    <string name="stream_last_attempt">Last attempt\u2026</string>
+    <string name="stream_trying_alternate">Trying alternate connection\u2026</string>
+    <string name="stream_reconnecting">Reconnecting\u2026 (%1$d/%2$d)</string>
+    <string name="stream_unavailable">Stream unavailable</string>
+    <string name="stream_going_back">Going back in %1$d\u2026</string>
+    <string name="stream_press_to_stay">Press any button to stay</string>
+
+    <!-- Player -->
+    <string name="player_aspect_fit">Fit</string>
+    <string name="player_aspect_zoom">Zoom</string>
+    <string name="player_aspect_fill">Fill</string>
+    <string name="player_load_failed">Failed to load channel</string>
+    <string name="player_action_play">Play</string>
+    <string name="player_action_pause">Pause</string>
+    <string name="player_action_favorite">Favorite</string>
+    <string name="player_action_favorited">Favorited</string>
+    <string name="player_sleep_minutes">Sleep %1$dm</string>
+    <string name="player_sleep_off">Sleep off</string>
+    <string name="player_favorite_added">Added to Favorites</string>
+    <string name="player_favorite_removed">Removed from Favorites</string>
+    <string name="player_sleep_countdown">Sleep in %1$ds</string>
+    <string name="player_still_watching">Still watching? Press any button to continue</string>
+    <string name="player_tracks_audio">Audio</string>
+    <string name="player_tracks_subtitles">Subtitles</string>
+    <string name="player_tracks_no_audio">No alternate audio tracks</string>
+    <string name="player_track_subtitle">Subtitle</string>
+
+    <!-- Stream error explanations -->
+    <string name="stream_err_provider_title">Source Provider Issue</string>
+    <string name="stream_err_provider_body">Multiple channels in this group are down. This usually means the source provider is experiencing problems.</string>
+    <string name="stream_err_connection_title">Connection Lost</string>
+    <string name="stream_err_connection_body">Your device lost its network connection. Check your Wi-Fi or ethernet and try again.</string>
+    <string name="stream_err_server_title">Server Not Responding</string>
+    <string name="stream_err_server_body">The channel\'s streaming server isn\'t responding. This is a third-party server outside our control.</string>
+    <string name="stream_err_format_title">Stream Format Error</string>
+    <string name="stream_err_format_body">The stream format has changed or is incompatible. The source provider may have updated their feed.</string>
+    <string name="stream_err_offline_title">Channel Offline</string>
+    <string name="stream_err_offline_body">We tried all available sources for this channel and none are responding right now.</string>
+    <string name="stream_err_generic_title">Stream Unavailable</string>
+    <string name="stream_err_generic_body">This channel\'s stream couldn\'t be loaded. IPTV streams depend on third-party sources that can go offline at any time.</string>
+    <string name="stream_err_recent_suffix">This channel was working recently and may come back soon.</string>
+
+    <!-- Errors surfaced from ViewModels -->
+    <string name="error_not_paired">Device not paired \u2014 please pair your device</string>
+    <string name="error_cannot_connect">Cannot connect to server \u2014 check server URL in Settings</string>
+    <string name="error_server">Server error \u2014 please try again later</string>
+    <string name="error_server_offline">Server is offline \u2014 please try again later</string>
+    <string name="error_generic">Something went wrong</string>
+    <string name="error_update_favorite">Failed to update favorite</string>
+    <string name="error_load_channel">Failed to load channel</string>
+
+    <!-- Settings results -->
+    <string name="settings_err_theme">Failed to update theme</string>
+    <string name="settings_err_grid">Failed to update grid size</string>
+    <string name="settings_err_font">Failed to update font size</string>
+    <string name="settings_err_animation">Failed to update animation speed</string>
+    <string name="settings_err_density">Failed to update layout density</string>
+    <string name="settings_err_back_protection">Failed to update back protection</string>
+    <string name="settings_err_program_bar">Failed to update program bar</string>
+    <string name="settings_err_banner_timeout">Failed to update banner timeout</string>
+    <string name="settings_err_key_action">Failed to update key action</string>
+    <string name="settings_err_sleep_timer">Failed to update sleep timer</string>
+    <string name="settings_err_clear_cache">Failed to clear cache</string>
+    <string name="settings_err_reset">Failed to reset app data</string>
+    <string name="settings_err_update_check">Failed to check for updates</string>
+    <string name="settings_version_unknown">Unknown</string>
+    <string name="settings_playlist_managed">Using managed source</string>
+    <string name="settings_playlist_loaded">Playlist loaded</string>
+    <string name="settings_playlist_failed">Failed to load playlist</string>
+    <string name="settings_conn_ok">Connected</string>
+    <string name="settings_conn_status">Server returned %1$d</string>
+    <string name="settings_conn_refused">Connection refused \u2014 check server URL</string>
+    <string name="settings_conn_not_found">Server not found \u2014 check URL</string>
+    <string name="settings_conn_timeout">Connection timed out</string>
+    <string name="settings_conn_failed">Failed: %1$s</string>
+
+    <!-- Pairing -->
+    <string name="pairing_title_tv">Pair Your TV</string>
+    <string name="pairing_title_device">Pair Your Device</string>
+    <string name="pairing_pin_placeholder">------</string>
+    <string name="pairing_demo_link">Just looking? Browse demo channels</string>
+    <string name="pairing_advanced_link">Use a different source  ▸</string>
+    <string name="pairing_step_tv_1">1. Visit %1$s and sign in</string>
+    <!-- Two variants: the landscape layout puts the PIN under the steps, the portrait one beside them. -->
+    <string name="pairing_step_tv_2_below">2. Enter the PIN below to link your TV</string>
+    <string name="pairing_step_tv_2_here">2. Enter this PIN to link your TV</string>
+    <string name="pairing_step_3">3. Add channels and start watching!</string>
+    <string name="pairing_step_mobile_1">1. Tap \'Pair in Browser\' and sign in</string>
+    <string name="pairing_step_mobile_2">2. Your device links automatically</string>
+    <string name="pairing_pin_heading">Your PIN</string>
+    <string name="pairing_pin_regenerate">Generate New PIN</string>
+    <string name="pairing_qr_heading">Scan with your phone to Pair</string>
+    <string name="a11y_pairing_qr">QR Code for Pairing</string>
+    <string name="pairing_quick_heading">Quick Pair</string>
+    <string name="pairing_quick_body">Tap to open your browser and complete pairing</string>
+    <string name="pairing_quick_action">Pair in Browser</string>
+    <string name="pairing_manual_hint">Or enter PIN manually at %1$s</string>
+    <string name="pairing_success_title">You\'re all set!</string>
+    <string name="pairing_success_welcome">Welcome, %1$s</string>
+    <string name="pairing_success_scan">Scan the QR code or visit</string>
+    <string name="a11y_pairing_qr_manager">QR Code for Channel Manager</string>
+    <string name="pairing_success_add_hint">to add channels to your playlist</string>
+    <string name="pairing_success_body">Add channels to your playlist to start watching</string>
+    <string name="pairing_success_open_manager">Open Channel Manager</string>
+    <string name="pairing_success_continue">Continue</string>
+
+    <!-- Pairing status messages -->
+    <string name="pairing_status_generating">Generating PIN…</string>
+    <string name="pairing_status_connecting">Connecting to server…</string>
+    <string name="pairing_status_waiting">Waiting for confirmation…</string>
+    <string name="pairing_status_demo_fetching">Fetching demo channels…</string>
+    <string name="pairing_status_demo_using">Using demo channel list</string>
+    <string name="pairing_status_demo_unavailable">Demo channels unavailable</string>
+    <string name="pairing_status_network_error">Network error — try again</string>
+    <string name="pairing_status_paired">Paired successfully! Welcome, %1$s!</string>
+    <string name="pairing_err_server">Server error: %1$d</string>
+    <string name="pairing_err_generate">Failed to generate PIN: %1$s</string>
+    <string name="pairing_err_unknown">Unknown error</string>
+    <string name="pairing_err_connection">Connection error: %1$s</string>
+    <string name="pairing_err_expired">PIN expired. Please generate a new one.</string>
+    <string name="pairing_err_timeout">Pairing timeout. Please try again.</string>
+    <string name="pairing_countdown_expired">PIN Expired</string>
+    <string name="pairing_countdown">Expires in: %1$d:%2$02d</string>
+    <string name="pairing_default_username">User</string>
+
+    <!-- In-app update -->
+    <string name="update_notification_title">FireVision IPTV Update</string>
+    <string name="update_notification_body">Downloading update\u2026</string>
+    <string name="update_err_no_url">No download URL</string>
+    <string name="update_err_in_progress">An update download is already in progress</string>
+    <string name="update_err_download_failed">Download failed</string>
+    <string name="update_err_download_unavailable">Download result was unavailable</string>
+    <string name="update_err_download_start">Failed to start download</string>
+    <string name="update_err_missing_file">Failed to get download file</string>
+    <string name="update_err_signature">Update verification failed \u2014 signature mismatch</string>
+    <string name="update_err_install">Failed to install update</string>
+
+    <!-- Generic states -->
+    <string name="loading">Loading\u2026</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_try_again">Try Again</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_see_all">See All</string>
+    <string name="a11y_back">Back</string>
+    <string name="filter_all">All</string>
+    <string name="filter_favorites">\u2605 Favorites</string>
+
+    <!-- Error state -->
+    <string name="error_state_not_paired">Device not paired</string>
+    <string name="error_state_unreachable">Can\'t reach the server</string>
+    <string name="error_state_unknown">Something went wrong</string>
+
+    <!-- Empty playlist -->
+    <string name="a11y_empty_playlist">Empty playlist</string>
+    <string name="empty_playlist_title">Your channel list is empty</string>
+    <string name="empty_playlist_body">Add channels to your playlist to start watching</string>
+    <string name="empty_playlist_open_manager">Open Channel Manager</string>
+    <string name="empty_playlist_scan_hint">Scan the QR code to learn how to add channels</string>
+    <string name="a11y_empty_playlist_qr">QR code \u2014 how to add channels</string>
+    <string name="empty_playlist_refresh_hint">Add channels on the web, then press Refresh</string>
+
+    <!-- Home -->
+    <string name="home_row_featured">Featured</string>
+    <string name="home_row_categories">Popular Categories</string>
+    <plurals name="channel_count_live">
+        <item quantity="one">%1$d live</item>
+        <item quantity="other">%1$d live</item>
+    </plurals>
+    <string name="home_row_recent">Recently Watched</string>
+    <string name="home_row_for_you">For You</string>
+    <string name="home_hero_watch_now">Watch now</string>
+    <string name="channels_all_title">All Channels</string>
+    <string name="card_hold_to_favorite">Hold to favorite</string>
+
+    <!-- EPG program labels -->
+    <string name="epg_now">Now: %1$s</string>
+    <string name="epg_now_with_time">Now: %1$s  %2$s</string>
+    <string name="epg_next">Next: %1$s</string>
+    <string name="epg_next_with_time">Next: %1$s  %2$s</string>
+    <string name="epg_no_info">No program info</string>
+    <string name="epg_no_information">No information</string>
+    <string name="badge_now">NOW</string>
+    <string name="badge_last">LAST</string>
+    <string name="badge_recent">RECENT</string>
+
+    <!-- Search -->
+    <string name="search_title">Search</string>
+    <string name="search_empty_title">Find your channels</string>
+    <string name="search_empty_body">Search by name or category</string>
+    <string name="search_recent">Recent</string>
+    <string name="search_no_results">No results for \"%1$s\"</string>
+    <string name="search_no_results_hint">Try a different search term</string>
+    <string name="search_field_placeholder">Search channels, categories\u2026</string>
+    <string name="search_failed">Search failed</string>
+    <string name="a11y_keyboard_space">Space</string>
+    <string name="a11y_keyboard_backspace">Backspace</string>
+    <string name="voice_search_start">Voice search</string>
+    <string name="voice_search_stop">Stop voice search</string>
+    <string name="voice_search_listening">Listening\u2026</string>
+    <string name="voice_search_not_understood">Didn\'t catch that \u2014 try again</string>
+
+    <!-- Guide -->
+    <string name="guide_title">Guide</string>
+    <string name="guide_no_schedule">No program schedule available \u2014 showing channels only</string>
+    <string name="guide_highlight_hint">Highlight a program for details</string>
+    <string name="a11y_live_now">Live now</string>
+    <string name="guide_gap_loading">Loading\u2026</string>
+
+    <!-- Player controls -->
+    <string name="player_action_audio_subs">Audio/Subs</string>
+    <string name="player_action_channels">Channels</string>
+    <string name="player_action_guide">Guide</string>
+    <string name="player_action_pip">PiP</string>
+    <string name="player_track_off">Off</string>
+    <string name="player_tab_schedule">Schedule</string>
+    <string name="player_tab_channels">Channels</string>
+    <string name="player_tab_no_channels">No channels in this category</string>
+    <string name="player_tab_no_guide_data">No guide data for this channel</string>
+    <string name="player_tab_no_guide">This channel has no program guide</string>
+    <string name="player_locked">Screen locked</string>
+    <string name="player_locked_unlock_hint">Tap again to unlock</string>
+    <string name="a11y_brightness">Brightness</string>
+    <string name="a11y_volume">Volume</string>
+    <string name="a11y_fullscreen_enter">Fullscreen</string>
+    <string name="a11y_fullscreen_exit">Exit fullscreen</string>
+    <string name="a11y_audio_subtitles">Audio and subtitles</string>
+    <string name="a11y_pip">Picture in picture</string>
+    <string name="a11y_channel_prev">Previous channel</string>
+    <string name="a11y_channel_next">Next channel</string>
+    <string name="a11y_channel_list">Channel list</string>
+    <string name="a11y_aspect_ratio">Aspect ratio</string>
+    <string name="a11y_sleep_timer">Sleep timer</string>
+    <string name="a11y_lock_screen">Lock screen</string>
+
+    <!-- Errors surfaced from the player and favorites -->
+    <string name="error_load_favorites">Failed to load favorites</string>
+    <string name="error_remove_favorite">Failed to remove favorite</string>
+    <string name="error_reorder_favorites">Failed to reorder favorites</string>
+    <string name="error_switch_channel">Failed to switch channel</string>
+    <string name="error_stream_buffering_timeout">Stream unresponsive (buffering timeout)</string>
+
+    <!-- System surfaces -->
+    <string name="tif_channel_unknown">Unknown</string>
+    <string name="setup_paired_toast">Device paired! Syncing channels\u2026</string>
+
+    <!-- Add source -->
+    <string name="add_source_title">Add a different source</string>
+    <string name="add_source_tab_self_host">Self-hosted server</string>
+    <string name="add_source_tab_m3u">M3U</string>
+    <string name="add_source_tab_xtream">Xtream</string>
+    <string name="add_source_guide_scan">Scan to view the server setup guide, or visit:</string>
+    <string name="a11y_add_source_guide_qr">Server setup guide QR code</string>
+    <string name="add_source_step_1">Deploy FireVision IPTV Server on your machine</string>
+    <string name="add_source_step_2">Add your IPTV channels via the web dashboard</string>
+    <!-- Two variants: the step list sits above the form in landscape, below it in portrait. -->
+    <string name="add_source_step_3_here">Enter your server URL and pairing code here</string>
+    <string name="add_source_step_3_below">Enter your server URL and pairing code below</string>
+    <string name="add_source_view_guide">View Setup Guide</string>
+    <string name="add_source_m3u_title">M3U Playlist</string>
+    <string name="add_source_m3u_body">Paste an M3U / M3U8 playlist URL \u2014 no FireVision server required.</string>
+    <string name="add_source_xtream_title">Xtream Codes</string>
+    <string name="add_source_xtream_body">Enter your Xtream Codes login \u2014 no FireVision server required.</string>
+    <string name="add_source_hint_username">Username</string>
+    <string name="add_source_hint_password">Password</string>
+    <string name="add_source_load_playlist">Load Playlist</string>
+    <string name="add_source_server_url">Server URL</string>
+    <string name="add_source_hint_server_url">https://your-server.com</string>
+    <string name="add_source_tv_code">TV Pairing Code</string>
+    <string name="add_source_hint_tv_code">Enter TV code</string>
+    <string name="add_source_connect">Connect</string>
+    <string name="add_source_saved">Saved</string>
+    <string name="add_source_testing">Testing\u2026</string>
+    <string name="add_source_test_connection">Test Connection</string>
+    <string name="add_source_pair_with_pin">No code? Pair with a PIN instead</string>
+    <string name="add_source_err_required">Server URL and TV code are required</string>
+    <string name="add_source_err_scheme">URL must start with http:// or https://</string>
+    <string name="add_source_err_invalid">Invalid settings</string>
+
+    <!-- Screen titles and empty states -->
+    <string name="categories_title">Categories</string>
+    <string name="favorites_title">Favorites</string>
+    <string name="section_categories">Categories</string>
+    <string name="section_channels">Channels</string>
+    <string name="loading_categories">Loading categories\u2026</string>
+    <string name="loading_channels">Loading channel\u2026</string>
+    <string name="loading_guide">Loading guide\u2026</string>
+    <string name="error_load_categories">Failed to load categories</string>
+    <string name="empty_categories">No categories available</string>
+    <string name="empty_favorites">No favorites yet</string>
+    <string name="empty_category_channels">No channels in this category</string>
+    <string name="empty_guide_channels">No channels available for the guide</string>
+    <string name="empty_multiview_channels">No channels available for multiview</string>
+    <string name="multiview_layout">Layout</string>
+    <string name="multiview_choose_channel">Choose channel</string>
+    <string name="search_hint">Search channels\u2026</string>
+    <string name="search_in_category">in %1$s</string>
+
+    <!-- Update overlay -->
+    <string name="update_overlay_title">Update Available</string>
+    <string name="update_overlay_version">Version %1$s</string>
+    <string name="update_overlay_downloading">Downloading update\u2026</string>
+    <!-- Separator-prefixed fragments appended to the version line. Kept whole,
+         separator included, so a translation can move or drop the separator. -->
+    <string name="update_overlay_detail">  \u00b7  %1$s</string>
+    <string name="update_overlay_recommended">  \u00b7  Recommended</string>
+    <string name="update_overlay_mandatory">  \u00b7  Mandatory</string>
+    <string name="settings_about_up_to_date">%1$s  \u00b7  Up to date</string>
+    <string name="update_overlay_install">Update Now</string>
+    <string name="update_overlay_later">Not Now</string>
+
+    <!-- Appearance options -->
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_system">System</string>
+
+    <!-- Plurals -->
+    <plurals name="channel_count">
+        <item quantity="one">%1$d channel</item>
+        <item quantity="other">%1$d channels</item>
+    </plurals>
+    <plurals name="search_result_count">
+        <item quantity="one">%1$d result for \"%2$s\"</item>
+        <item quantity="other">%1$d results for \"%2$s\"</item>
+    </plurals>
 </resources>

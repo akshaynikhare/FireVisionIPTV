@@ -20,7 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.SearchUiState
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -70,7 +73,7 @@ internal fun SearchResultsArea(
                 showShimmer = !LocalPerfProfile.current.reduceMotion
             )
             "error" -> ErrorState(
-                message = uiState.error ?: "Search failed",
+                message = uiState.error ?: stringResource(R.string.search_failed),
                 onRetry = onRetry
             )
             "recent" -> RecentSearches(
@@ -86,7 +89,12 @@ internal fun SearchResultsArea(
                 }
                 Column {
                     Text(
-                        text = "${uiState.results.size} result${if (uiState.results.size != 1) "s" else ""} for \"$searchQuery\"",
+                        text = pluralStringResource(
+                            R.plurals.search_result_count,
+                            uiState.results.size,
+                            uiState.results.size,
+                            searchQuery
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.padding(bottom = Dimens.RowTitleGap)

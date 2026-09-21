@@ -70,6 +70,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.EmphasisMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 
 private const val LONG_PRESS_THRESHOLD_MS = 600L
@@ -388,7 +390,7 @@ private fun ChannelCardContent(
         // instead of chrome on every tile.
         if (showHoldHint && focused) {
             Text(
-                text = "Hold OK",
+                text = stringResource(R.string.card_hold_ok_hint),
                 style = LabelBadge,
                 color = OnVideo.copy(alpha = EmphasisMedium),
                 modifier = Modifier
@@ -490,7 +492,7 @@ private fun FavoriteBadge(
     }
     Icon(
         imageVector = Icons.Filled.Favorite,
-        contentDescription = "Favorite",
+        contentDescription = stringResource(R.string.a11y_favorite),
         tint = Amber,
         modifier = modifier
             .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
@@ -512,11 +514,11 @@ private fun HealthIndicatorDot(
     }
 
     val label = when (status) {
-        ChannelHealthStatus.ONLINE -> "Stream online"
-        ChannelHealthStatus.CHECKING -> "Checking stream"
-        ChannelHealthStatus.OFFLINE -> "Stream offline"
-        ChannelHealthStatus.UNRESPONSIVE -> "Stream unresponsive"
-        ChannelHealthStatus.UNKNOWN -> "Stream status unknown"
+        ChannelHealthStatus.ONLINE -> stringResource(R.string.a11y_stream_online)
+        ChannelHealthStatus.CHECKING -> stringResource(R.string.a11y_stream_checking)
+        ChannelHealthStatus.OFFLINE -> stringResource(R.string.a11y_stream_offline)
+        ChannelHealthStatus.UNRESPONSIVE -> stringResource(R.string.a11y_stream_unresponsive)
+        ChannelHealthStatus.UNKNOWN -> stringResource(R.string.a11y_stream_unknown)
     }
 
     val alpha = if (status == ChannelHealthStatus.CHECKING) {

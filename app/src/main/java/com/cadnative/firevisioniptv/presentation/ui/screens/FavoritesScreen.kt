@@ -17,9 +17,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -42,7 +45,7 @@ fun FavoritesScreen(
     // Hoisted so scroll position survives navigation to the player and back
     val gridState = rememberLazyGridState()
 
-    ScreenScaffold(title = "Favorites", modifier = modifier, onBack = onNavigateBack) {
+    ScreenScaffold(title = stringResource(R.string.favorites_title), modifier = modifier, onBack = onNavigateBack) {
         val hasAnyContent = uiState.favorites.isNotEmpty() || uiState.favoriteCategories.isNotEmpty()
         val contentState = when {
             uiState.isLoading && !hasAnyContent -> "loading"
@@ -59,10 +62,10 @@ fun FavoritesScreen(
             when (state) {
                 "loading" -> ChannelsGridLoadingSkeleton()
                 "error" -> ErrorState(
-                    message = uiState.error ?: "Failed to load favorites",
+                    message = uiState.error ?: stringResource(R.string.error_load_favorites),
                     onRetry = { viewModel.retryLoadFavorites() }
                 )
-                "empty" -> EmptyState(message = "No favorites yet")
+                "empty" -> EmptyState(message = stringResource(R.string.empty_favorites))
                 else -> FavoritesContent(
                     favorites = uiState.favorites,
                     favoriteCategories = uiState.favoriteCategories,
@@ -107,7 +110,7 @@ private fun FavoritesContent(
         if (favoriteCategories.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column {
-                    SectionHeader(title = "Categories", accentColor = MaterialTheme.colorScheme.primary)
+                    SectionHeader(title = stringResource(R.string.section_categories), accentColor = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(if (isCompact) Dimens.RowTitleGapMobile else Dimens.RowTitleGap))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(if (isCompact) Dimens.CardGapMobile else Dimens.CategoryCardGap)
@@ -119,8 +122,11 @@ private fun FavoritesContent(
                                 imageUrl = category.imageUrl,
                                 isFavorite = true,
                                 onClick = { onCategoryClick(category.name) },
-                                subtitle = "${category.channelCount} " +
-                                    if (category.channelCount == 1) "channel" else "channels",
+                                subtitle = pluralStringResource(
+                                    R.plurals.channel_count,
+                                    category.channelCount,
+                                    category.channelCount
+                                ),
                                 modifier = Modifier
                                     .width(if (isCompact) Dimens.CategoryCardWidthMobile else Dimens.CategoryCardWidthTv)
                                     .height(if (isCompact) Dimens.CategoryCardHeightMobile else Dimens.CategoryCardHeightTv)
@@ -129,7 +135,7 @@ private fun FavoritesContent(
                     }
                     if (favorites.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(if (isCompact) Dimens.HeroCardGapMobile else Dimens.HeroCardGap))
-                        SectionHeader(title = "Channels", accentColor = MaterialTheme.colorScheme.primary)
+                        SectionHeader(title = stringResource(R.string.section_channels), accentColor = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

@@ -12,14 +12,19 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.LabelToast
 import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
 import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimHeavy
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapePill
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 
-/** Short hint label for a remappable key action (mirrors Settings wording). */
-private fun keyActionHintLabel(action: String): String = when (action) {
-    PlayerKeyAction.ZAP -> "Zap"
-    PlayerKeyAction.LAST_CHANNEL -> "Last Ch"
-    PlayerKeyAction.FAVORITE -> "Favorite"
-    PlayerKeyAction.PLAY_PAUSE -> "Play/Pause"
-    else -> "Controls" // MENU (and any unknown) summons the quick-actions bar
+/** Label for a remappable key action — the same resources Settings offers. */
+@StringRes
+private fun keyActionHintLabel(action: String): Int = when (action) {
+    PlayerKeyAction.ZAP -> R.string.player_key_action_zap
+    PlayerKeyAction.LAST_CHANNEL -> R.string.player_key_action_last_channel
+    PlayerKeyAction.FAVORITE -> R.string.player_key_action_favorite
+    PlayerKeyAction.PLAY_PAUSE -> R.string.player_key_action_play_pause
+    // MENU, and anything unrecognised, summons the quick-actions bar
+    else -> R.string.player_key_action_controls
 }
 
 /**
@@ -35,12 +40,12 @@ internal fun PlayerKeyHintStrip(
     modifier: Modifier = Modifier
 ) {
     val segments = buildList {
-        add("OK  Channels")
+        add(stringResource(R.string.player_hint_ok_channels))
         if (keyUpDownAction == keyLeftRightAction) {
-            add("D-pad  ${keyActionHintLabel(keyUpDownAction)}")
+            add(stringResource(R.string.player_hint_dpad, stringResource(keyActionHintLabel(keyUpDownAction))))
         } else {
-            add("▲▼  ${keyActionHintLabel(keyUpDownAction)}")
-            add("◀▶  ${keyActionHintLabel(keyLeftRightAction)}")
+            add(stringResource(R.string.player_hint_up_down, stringResource(keyActionHintLabel(keyUpDownAction))))
+            add(stringResource(R.string.player_hint_left_right, stringResource(keyActionHintLabel(keyLeftRightAction))))
         }
     }
     Text(

@@ -45,12 +45,14 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.source.remote.playlist.StreamUrlTemplate
 import com.cadnative.firevisioniptv.domain.model.Channel
 import com.cadnative.firevisioniptv.presentation.ui.components.SelectableRow
@@ -90,7 +92,7 @@ fun MultiviewScreen(
     if (channels.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = "No channels available for multiview",
+                text = stringResource(R.string.empty_multiview_channels),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -152,7 +154,7 @@ fun MultiviewScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Layout",
+                    text = stringResource(R.string.multiview_layout),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -371,7 +373,7 @@ private fun ChannelPickerOverlay(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Choose channel",
+                text = stringResource(R.string.multiview_choose_channel),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 6.dp)

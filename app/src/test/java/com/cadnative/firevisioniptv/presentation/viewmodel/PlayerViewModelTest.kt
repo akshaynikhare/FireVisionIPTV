@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
@@ -39,6 +40,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import com.cadnative.firevisioniptv.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModelTest {
@@ -84,6 +86,9 @@ class PlayerViewModelTest {
         language = "en", country = "US", tvgId = tvgId, isFavorite = isFavorite
     )
 
+    // Relaxed: the Context is only there for the localized fallbacks on
+    // exception.message, and every case below supplies a message.
+    private val context: Context = mockk(relaxed = true)
     @Before
     fun setup() {
         coEvery { savePlaybackPositionUseCase(any()) } returns Result.Success(Unit)
@@ -96,7 +101,7 @@ class PlayerViewModelTest {
         coEvery { getGuideProgramsUseCase(any()) } returns emptyMap()
 
         viewModel = PlayerViewModel(
-            getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
+            context, getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
             savePlaybackPositionUseCase, getPlaybackPositionUseCase, toggleFavoriteUseCase,
             reportStreamStatusUseCase, reportStreamPlayUseCase, channelUiMapper,
             channelHealthDao, thumbnailExtractor, epgRepository, getGuideProgramsUseCase,
@@ -405,7 +410,8 @@ class PlayerViewModelTest {
         assertTrue(state.isStreamDead)
         assertFalse(state.isRecovering)
         assertFalse(state.isPlaying)
-        assertEquals("Stream Unavailable", state.deadStreamTitle)
+        // The resolver hands back a resource id now; the composable renders it.
+        assertEquals(R.string.stream_err_generic_title, state.deadStreamMessage?.titleRes)
         coVerify { reportStreamStatusUseCase(any()) }
     }
 

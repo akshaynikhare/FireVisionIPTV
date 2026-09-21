@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
@@ -119,11 +120,11 @@ class AppUpdater @Inject constructor(
     @Synchronized
     fun downloadAndInstall(updateInfo: UpdateInfo, onState: (DownloadState) -> Unit) {
         if (updateInfo.downloadUrl.isEmpty()) {
-            onState(DownloadState.Failed("No download URL"))
+            onState(DownloadState.Failed(context.getString(R.string.update_err_no_url)))
             return
         }
         if (downloadReceiver != null) {
-            onState(DownloadState.Failed("An update download is already in progress"))
+            onState(DownloadState.Failed(context.getString(R.string.update_err_in_progress)))
             return
         }
         try {
@@ -131,8 +132,8 @@ class AppUpdater @Inject constructor(
             if (oldFile.exists()) oldFile.delete()
 
             val request = DownloadManager.Request(Uri.parse(updateInfo.downloadUrl)).apply {
-                setTitle("FireVision IPTV Update")
-                setDescription("Downloading update...")
+                setTitle(context.getString(R.string.update_notification_title))
+                setDescription(context.getString(R.string.update_notification_body))
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, APK_FILENAME)
                 setAllowedOverMetered(true)
@@ -156,10 +157,10 @@ class AppUpdater @Inject constructor(
                             if (status == DownloadManager.STATUS_SUCCESSFUL) {
                                 onState(installUpdate())
                             } else {
-                                onState(DownloadState.Failed("Download failed"))
+                                onState(DownloadState.Failed(context.getString(R.string.update_err_download_failed)))
                             }
                         } else {
-                            onState(DownloadState.Failed("Download result was unavailable"))
+                            onState(DownloadState.Failed(context.getString(R.string.update_err_download_unavailable)))
                         }
                     } finally {
                         cursor.close()
@@ -183,19 +184,19 @@ class AppUpdater @Inject constructor(
         } catch (e: Exception) {
             clearDownloadReceiver()
             Log.e(TAG, "Error downloading update", e)
-            onState(DownloadState.Failed("Failed to start download"))
+            onState(DownloadState.Failed(context.getString(R.string.update_err_download_start)))
         }
     }
 
     private fun installUpdate(): DownloadState {
         return try {
             val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), APK_FILENAME)
-            if (!file.exists()) return DownloadState.Failed("Failed to get download file")
+            if (!file.exists()) return DownloadState.Failed(context.getString(R.string.update_err_missing_file))
 
             if (!verifyApkSignature(file)) {
                 Log.e(TAG, "APK signature verification failed — refusing to install")
                 file.delete()
-                return DownloadState.Failed("Update verification failed — signature mismatch")
+                return DownloadState.Failed(context.getString(R.string.update_err_signature))
             }
 
             val apkUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -207,7 +208,7 @@ class AppUpdater @Inject constructor(
             DownloadState.InstallLaunched
         } catch (e: Exception) {
             Log.e(TAG, "Error installing update", e)
-            DownloadState.Failed("Failed to install update")
+            DownloadState.Failed(context.getString(R.string.update_err_install))
         }
     }
 

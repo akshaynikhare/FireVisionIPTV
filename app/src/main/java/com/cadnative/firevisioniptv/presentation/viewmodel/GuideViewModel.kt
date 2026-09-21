@@ -31,6 +31,9 @@ import kotlinx.coroutines.sync.withLock
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
+import com.cadnative.firevisioniptv.R
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 
 /**
  * Hours of timeline shown on the horizontal axis. EPG is persisted client-side
@@ -52,7 +55,8 @@ class GuideViewModel @Inject constructor(
     private val getChannelsUseCase: GetChannelsUseCase,
     private val getFavoriteChannelsUseCase: GetFavoriteChannelsUseCase,
     private val getGuideProgramsUseCase: GetGuideProgramsUseCase,
-    private val guideUiMapper: GuideUiMapper
+    private val guideUiMapper: GuideUiMapper,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GuideUiState())
@@ -235,15 +239,15 @@ class GuideViewModel @Inject constructor(
 
     private fun classifyError(exception: Exception): Pair<String, ErrorType> = when (exception) {
         is UnauthorizedException, is ForbiddenException ->
-            "Device not paired — please pair your device" to ErrorType.AUTH_REQUIRED
+            appContext.getString(R.string.error_not_paired) to ErrorType.AUTH_REQUIRED
         is NetworkException, is java.net.ConnectException,
         is java.net.UnknownHostException, is java.net.SocketTimeoutException ->
-            "Cannot connect to server — check server URL in Settings" to ErrorType.NETWORK_ERROR
+            appContext.getString(R.string.error_cannot_connect) to ErrorType.NETWORK_ERROR
         is ServerException ->
-            "Server error — please try again later" to ErrorType.SERVER_ERROR
+            appContext.getString(R.string.error_server) to ErrorType.SERVER_ERROR
         is ServiceUnavailableException ->
-            "Server is offline — please try again later" to ErrorType.SERVER_ERROR
+            appContext.getString(R.string.error_server_offline) to ErrorType.SERVER_ERROR
         else ->
-            (exception.message ?: "Something went wrong") to ErrorType.UNKNOWN
+            (exception.message ?: appContext.getString(R.string.error_generic)) to ErrorType.UNKNOWN
     }
 }

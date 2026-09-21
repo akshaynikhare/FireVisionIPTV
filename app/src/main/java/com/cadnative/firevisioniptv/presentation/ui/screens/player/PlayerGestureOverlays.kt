@@ -33,9 +33,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
@@ -77,7 +79,7 @@ internal fun BoxScope.GestureLevelIndicator(state: PlayerOverlayState) {
         ) {
             Icon(
                 imageVector = if (isBrightness) Icons.Filled.BrightnessMedium else Icons.AutoMirrored.Filled.VolumeUp,
-                contentDescription = if (isBrightness) "Brightness" else "Volume",
+                contentDescription = stringResource(if (isBrightness) R.string.a11y_brightness else R.string.a11y_volume),
                 tint = OnVideo,
                 modifier = Modifier.size(Dimens.IconMedium)
             )
@@ -220,12 +222,14 @@ internal fun BoxScope.LockChip(state: PlayerOverlayState) {
         ) {
             Icon(
                 imageVector = Icons.Filled.Lock,
-                contentDescription = "Screen locked",
+                contentDescription = stringResource(R.string.player_locked),
                 tint = if (state.unlockArmed) Amber else OnVideo,
                 modifier = Modifier.size(Dimens.IconSmall)
             )
             Text(
-                text = if (state.unlockArmed) "Tap again to unlock" else "Screen locked",
+                text = stringResource(
+                    if (state.unlockArmed) R.string.player_locked_unlock_hint else R.string.player_locked
+                ),
                 style = LabelToast,
                 color = OnVideo
             )

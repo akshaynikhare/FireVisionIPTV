@@ -1,8 +1,10 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
@@ -29,6 +31,7 @@ import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorContext
 import com.cadnative.firevisioniptv.presentation.ui.player.StreamErrorMessageResolver
 import com.cadnative.firevisioniptv.presentation.ui.animation.AUTO_HIDE_DELAY_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +65,7 @@ private const val EPG_TICK_MS = 60_000L
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val getChannelByIdUseCase: GetChannelByIdUseCase,
     private val getChannelsUseCase: GetChannelsUseCase,
     private val getChannelsByCategoryUseCase: GetChannelsByCategoryUseCase,
@@ -195,7 +199,8 @@ class PlayerViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = result.exception.message ?: "Failed to load channel"
+                                error = result.exception.message
+                                        ?: context.getString(R.string.error_load_channel)
                             )
                         }
                     }
@@ -784,7 +789,8 @@ class PlayerViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isSwitchingChannel = false,
-                                error = result.exception.message ?: "Failed to switch channel"
+                                error = result.exception.message
+                                        ?: context.getString(R.string.error_switch_channel)
                             )
                         }
                     }
@@ -890,8 +896,7 @@ class PlayerViewModel @Inject constructor(
                 isRecovering = false,
                 isPlaying = false,
                 isStreamDead = true,
-                deadStreamTitle = "Stream Unavailable",
-                deadStreamExplanation = "",
+                deadStreamMessage = null,
                 error = null
             )
         }
@@ -927,8 +932,7 @@ class PlayerViewModel @Inject constructor(
             )
             _uiState.update {
                 it.copy(
-                    deadStreamTitle = resolved.title,
-                    deadStreamExplanation = resolved.explanation
+                    deadStreamMessage = resolved
                 )
             }
         }
@@ -943,7 +947,7 @@ class PlayerViewModel @Inject constructor(
                 status = ChannelHealthStatus.UNRESPONSIVE.name,
                 lastCheckedAt = System.currentTimeMillis(),
                 responseTimeMs = null,
-                errorMessage = "Stream unresponsive (buffering timeout)"
+                errorMessage = context.getString(R.string.error_stream_buffering_timeout)
             )
             reportStreamStatusUseCase(
                 ReportStreamStatusUseCase.Params(

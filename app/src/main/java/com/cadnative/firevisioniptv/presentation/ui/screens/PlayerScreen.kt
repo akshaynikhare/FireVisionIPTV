@@ -28,6 +28,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.ui.PlayerView
@@ -172,6 +173,9 @@ fun PlayerScreen(
                 catchupStartMs, catchupDurationMin
             )
             if (!prepared) {
+                // A diagnostic code, not copy: onStreamDead reasons are matched
+                // on by StreamErrorMessageResolver and never shown verbatim, so
+                // they must not be translated. See ErrorRecoveryManager.
                 viewModel.onStreamDead("Invalid stream URL")
                 return@let
             }
@@ -349,7 +353,7 @@ fun PlayerScreen(
                         isMobile = isMobile,
                         isPortrait = isPortraitMobile,
                         alwaysShowInfoBar = uiState.alwaysShowProgramBar,
-                        aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+                        aspectLabel = stringResource(ASPECT_MODES[aspectModeIndex].second),
                         quickActionsFocusRequester = quickActionsFocusRequester,
                         onToggleFavorite = onToggleFavorite,
                         onPlayPause = onPlayPause,
@@ -367,7 +371,7 @@ fun PlayerScreen(
                 PlayerPortraitSections(
                     uiState = uiState,
                     zapChannels = zapChannels,
-                    aspectLabel = ASPECT_MODES[aspectModeIndex].second,
+                    aspectLabel = stringResource(ASPECT_MODES[aspectModeIndex].second),
                     actions = PortraitSectionActions(
                         onToggleFavorite = onToggleFavorite,
                         onShowTracks = onShowTracks,

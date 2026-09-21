@@ -83,6 +83,7 @@ import com.google.firebase.FirebaseApp
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
 
 private const val EXIT_CONFIRM_WINDOW_MS = 2000L
 
@@ -201,7 +202,7 @@ class ComposeMainActivity : ComponentActivity() {
 
                         if (exitArmed) {
                             OverlayToast(
-                                text = "Press back again to exit",
+                                text = stringResource(R.string.exit_confirm),
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .padding(bottom = 48.dp)
@@ -351,7 +352,7 @@ private fun FireVisionAppShell(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.nav_search))
                         }
                     }
                 }
@@ -368,11 +369,11 @@ private fun FireVisionAppShell(
 }
 
 private val bottomNavItems = listOf(
-    Triple(Screen.Home, Icons.Default.Home, "Home"),
-    Triple(Screen.Favorites, Icons.Default.Favorite, "Favorites"),
-    Triple(Screen.Categories, Icons.Default.Category, "Categories"),
-    Triple(Screen.Guide, Icons.Default.GridView, "Guide"),
-    Triple(Screen.Settings, Icons.Default.Settings, "Settings"),
+    Triple(Screen.Home, Icons.Default.Home, R.string.nav_home),
+    Triple(Screen.Favorites, Icons.Default.Favorite, R.string.nav_favorites),
+    Triple(Screen.Categories, Icons.Default.Category, R.string.nav_categories),
+    Triple(Screen.Guide, Icons.Default.GridView, R.string.nav_guide),
+    Triple(Screen.Settings, Icons.Default.Settings, R.string.nav_settings),
 )
 
 @Composable
@@ -395,7 +396,8 @@ private fun BottomNavBar(
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         tonalElevation = 0.dp
     ) {
-        bottomNavItems.forEach { (screen, icon, label) ->
+        bottomNavItems.forEach { (screen, icon, labelRes) ->
+            val label = stringResource(labelRes)
             val isSelected = currentRoute == screen.route ||
                 (screen == Screen.Channels && currentRoute == Screen.ChannelsByCategory.route)
             NavigationBarItem(

@@ -20,9 +20,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
@@ -57,7 +60,8 @@ fun ChannelsScreen(
     }
 
     ScreenScaffold(
-        title = uiState.selectedCategory ?: "All Channels",
+        title = uiState.selectedCategory?.let { categoryLabel(it) }
+            ?: stringResource(R.string.channels_all_title),
         modifier = modifier,
         onBack = if (uiState.selectedCategory != null || initialCategory != null) {
             {
@@ -102,7 +106,7 @@ fun ChannelsScreen(
             when (state) {
                 "loading" -> ChannelsGridLoadingSkeleton()
                 "error" -> ErrorState(
-                    message = uiState.error ?: "Unknown error",
+                    message = uiState.error ?: stringResource(R.string.error_generic),
                     onRetry = { viewModel.refresh() },
                     errorType = uiState.errorType,
                     onPairDevice = onPairDevice
@@ -110,7 +114,7 @@ fun ChannelsScreen(
                 "empty" -> {
                     if (uiState.selectedCategory != null) {
                         EmptyState(
-                            message = "No channels in this category",
+                            message = stringResource(R.string.empty_category_channels),
                             onRetry = { viewModel.refresh() }
                         )
                     } else {
@@ -185,7 +189,7 @@ private fun CategoryChips(
         if (showAllChip) {
             item {
                 CategoryChip(
-                    label = "All",
+                    label = stringResource(R.string.filter_all),
                     isSelected = selectedCategory == null,
                     selectedContainerColor = Amber,
                     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -196,7 +200,7 @@ private fun CategoryChips(
         }
         items(categories, key = { it }) { category ->
             CategoryChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedCategory == category,
                 selectedContainerColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

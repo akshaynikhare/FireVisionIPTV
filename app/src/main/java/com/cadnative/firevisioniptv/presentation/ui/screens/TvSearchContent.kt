@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.SearchUiState
 import com.cadnative.firevisioniptv.presentation.ui.components.ScreenHeaderTitle
 import com.cadnative.firevisioniptv.presentation.ui.components.TvSearchKeyboard
@@ -63,7 +65,7 @@ internal fun TvSearchContent(
                 modifier = Modifier.height(Dimens.HeaderBandHeightTv),
                 contentAlignment = Alignment.CenterStart
             ) {
-                ScreenHeaderTitle(text = "Search")
+                ScreenHeaderTitle(text = stringResource(R.string.search_title))
             }
             Spacer(modifier = Modifier.height(Dimens.Space5))
             TvSearchKeyboard(

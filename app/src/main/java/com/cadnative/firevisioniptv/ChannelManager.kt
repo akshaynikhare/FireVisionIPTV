@@ -228,7 +228,7 @@ class ChannelManager private constructor(
     }
 
     private fun truncateName(name: String?): String {
-        if (name == null) return "Unknown"
+        if (name == null) return context.getString(R.string.tif_channel_unknown)
         if (name.length <= 25) return name
         return "${name.substring(0, 22)}..."
     }

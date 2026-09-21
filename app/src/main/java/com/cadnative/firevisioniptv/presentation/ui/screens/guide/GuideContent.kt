@@ -22,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.GuideFocusedProgram
 import com.cadnative.firevisioniptv.presentation.model.GuideUiState
 import com.cadnative.firevisioniptv.presentation.ui.components.ScreenScaffold
@@ -61,7 +63,7 @@ internal fun GuideContent(
     }
 
     ScreenScaffold(
-        title = "Guide",
+        title = stringResource(R.string.guide_title),
         modifier = modifier,
         trailing = {
             GuideHeaderDetail(
@@ -109,7 +111,7 @@ private fun GuideHeaderDetail(
         // With no timeline there are no program cells to focus — show the
         // notice pill instead of the (always empty) program details.
         Text(
-            text = "No program schedule available — showing channels only",
+            text = stringResource(R.string.guide_no_schedule),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -124,7 +126,7 @@ private fun GuideHeaderDetail(
 
     if (focused == null) {
         Text(
-            text = "Highlight a program for details",
+            text = stringResource(R.string.guide_highlight_hint),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -145,7 +147,7 @@ private fun GuideHeaderDetail(
             if (program.isLive) {
                 Icon(
                     imageVector = Icons.Filled.FiberManualRecord,
-                    contentDescription = "Live now",
+                    contentDescription = stringResource(R.string.a11y_live_now),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.height(Dimens.IconSmall)
                 )

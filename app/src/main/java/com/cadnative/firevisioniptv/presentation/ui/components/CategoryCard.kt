@@ -21,11 +21,14 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
 import com.cadnative.firevisioniptv.presentation.ui.theme.*
@@ -42,7 +45,7 @@ fun CategoryCard(
     isFavorite: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    subtitle: String = "$channelCount " + if (channelCount == 1) "channel" else "channels",
+    subtitle: String = pluralStringResource(R.plurals.channel_count, channelCount, channelCount),
     onToggleFavorite: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -159,7 +162,7 @@ fun CategoryCard(
             if (isFavorite) {
                 Icon(
                     imageVector = Icons.Filled.Favorite,
-                    contentDescription = "Favorite",
+                    contentDescription = stringResource(R.string.a11y_favorite),
                     tint = Amber,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -172,7 +175,7 @@ fun CategoryCard(
             // "Hold to favorite" hint when focused
             if (onToggleFavorite != null && isFocused && !isFavorite) {
                 Text(
-                    text = "Hold to favorite",
+                    text = stringResource(R.string.card_hold_to_favorite),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier

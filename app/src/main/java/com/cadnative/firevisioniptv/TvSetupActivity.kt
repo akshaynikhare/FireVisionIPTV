@@ -15,7 +15,7 @@ class TvSetupActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            Toast.makeText(this, "Device paired! Syncing channels...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.setup_paired_toast, Toast.LENGTH_SHORT).show()
             syncChannels()
         }
         setResult(result.resultCode)
