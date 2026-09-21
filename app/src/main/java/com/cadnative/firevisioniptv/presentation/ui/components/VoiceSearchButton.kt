@@ -41,8 +41,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -110,7 +112,7 @@ fun VoiceSearchButton(
                         permissionDenied = true
                         currentOnStatusChange(null)
                     } else {
-                        showHint("Didn't catch that — try again")
+                        showHint(context.getString(R.string.voice_search_not_understood))
                     }
                 }
 
@@ -134,7 +136,7 @@ fun VoiceSearchButton(
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         }
         isListening = true
-        currentOnStatusChange("Listening…")
+        currentOnStatusChange(context.getString(R.string.voice_search_listening))
         speech.startListening(intent)
     }
 
@@ -204,7 +206,9 @@ fun VoiceSearchButton(
     ) {
         Icon(
             imageVector = Icons.Default.Mic,
-            contentDescription = if (isListening) "Stop voice search" else "Voice search",
+            contentDescription = stringResource(
+                    if (isListening) R.string.voice_search_stop else R.string.voice_search_start
+                ),
             tint = if (isListening) MaterialTheme.colorScheme.secondary
             else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(Dimens.IconMedium)

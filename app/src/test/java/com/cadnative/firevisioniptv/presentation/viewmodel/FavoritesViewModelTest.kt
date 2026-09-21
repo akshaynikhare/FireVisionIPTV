@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelDao
@@ -67,8 +68,12 @@ class FavoritesViewModelTest {
         every { favoriteCategoryDao.getAllFavoriteCategories() } returns flowOf(favCategories)
     }
 
+    // Relaxed: the Context is only there for the localized fallbacks on
+    // exception.message, and every case below supplies a message.
+    private val context: Context = mockk(relaxed = true)
+
     private fun createViewModel() = FavoritesViewModel(
-        getFavoriteChannelsUseCase, toggleFavoriteUseCase, reorderFavoritesUseCase,
+        context, getFavoriteChannelsUseCase, toggleFavoriteUseCase, reorderFavoritesUseCase,
         channelUiMapper, channelHealthDao, channelDao, favoriteCategoryDao
     )
 

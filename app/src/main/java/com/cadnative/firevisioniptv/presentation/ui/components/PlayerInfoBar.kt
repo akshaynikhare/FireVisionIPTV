@@ -20,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.theme.BodyOverlay
@@ -80,7 +82,7 @@ fun PlayerInfoBar(
 
         if (nowPlaying != null) {
             Text(
-                text = "Now: ${nowPlaying.title}  ${formatEpgTimeRange(nowPlaying)}",
+                text = stringResource(R.string.epg_now_with_time, nowPlaying.title, formatEpgTimeRange(nowPlaying)),
                 style = BodyOverlay,
                 color = OnVideo,
                 maxLines = 1,
@@ -90,7 +92,7 @@ fun PlayerInfoBar(
         }
         if (nextProgram != null) {
             Text(
-                text = "Next: ${nextProgram.title}  ${formatEpgTimeRange(nextProgram)}",
+                text = stringResource(R.string.epg_next_with_time, nextProgram.title, formatEpgTimeRange(nextProgram)),
                 style = LabelToast,
                 color = OnVideo.copy(alpha = EmphasisMedium),
                 maxLines = 1,
@@ -154,7 +156,7 @@ private fun CompactInfoBar(
         }
         if (nextProgram != null) {
             Text(
-                text = "Next: ${nextProgram.title}",
+                text = stringResource(R.string.epg_next, nextProgram.title),
                 style = LabelToast,
                 color = OnVideo.copy(alpha = EmphasisMedium),
                 maxLines = 1,

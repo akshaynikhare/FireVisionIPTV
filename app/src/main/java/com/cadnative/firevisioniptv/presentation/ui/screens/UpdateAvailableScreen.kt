@@ -33,9 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.DiagonalGradientBackground
@@ -99,7 +101,7 @@ fun UpdateAvailableScreen(
             Spacer(modifier = Modifier.height(Dimens.Space5))
 
             Text(
-                text = "Update Available",
+                text = stringResource(R.string.update_overlay_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -110,7 +112,7 @@ fun UpdateAvailableScreen(
 
             Text(
                 text = buildString {
-                    append("Version ${updateInfo.versionName}")
+                    append(stringResource(R.string.update_overlay_version, updateInfo.versionName))
                     if (updateInfo.fileSize.isNotEmpty()) append("  ·  ${updateInfo.fileSize}")
                     if (updateInfo.isMandatory) append("  ·  Recommended")
                 },
@@ -149,7 +151,7 @@ fun UpdateAvailableScreen(
                     )
                     Spacer(modifier = Modifier.width(Dimens.Space3))
                     Text(
-                        text = "Downloading update…",
+                        text = stringResource(R.string.update_overlay_downloading),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -167,13 +169,13 @@ fun UpdateAvailableScreen(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Text("Update Now", fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.update_overlay_install), fontWeight = FontWeight.SemiBold)
                     }
                     FocusAwareOutlinedButton(
                         onClick = onDismiss,
                         modifier = if (stackButtons) Modifier.fillMaxWidth() else Modifier
                     ) {
-                        Text("Not Now")
+                        Text(stringResource(R.string.update_overlay_later))
                     }
                 }
 

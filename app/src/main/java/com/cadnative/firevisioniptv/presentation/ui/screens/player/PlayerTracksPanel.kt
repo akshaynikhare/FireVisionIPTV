@@ -129,7 +129,7 @@ internal fun PlayerTracksPanel(
 
             SectionHeader(stringResource(R.string.player_tracks_subtitles))
             TrackRow(
-                label = "Off",
+                label = stringResource(R.string.player_track_off),
                 selected = subtitlesOff,
                 focusRequester = if (!hasAudio) firstRowFocus else null,
                 onClick = { disableSubtitles() }

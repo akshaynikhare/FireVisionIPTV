@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
@@ -85,6 +86,9 @@ class PlayerViewModelTest {
         language = "en", country = "US", tvgId = tvgId, isFavorite = isFavorite
     )
 
+    // Relaxed: the Context is only there for the localized fallbacks on
+    // exception.message, and every case below supplies a message.
+    private val context: Context = mockk(relaxed = true)
     @Before
     fun setup() {
         coEvery { savePlaybackPositionUseCase(any()) } returns Result.Success(Unit)
@@ -97,7 +101,7 @@ class PlayerViewModelTest {
         coEvery { getGuideProgramsUseCase(any()) } returns emptyMap()
 
         viewModel = PlayerViewModel(
-            getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
+            context, getChannelByIdUseCase, getChannelsUseCase, getChannelsByCategoryUseCase,
             savePlaybackPositionUseCase, getPlaybackPositionUseCase, toggleFavoriteUseCase,
             reportStreamStatusUseCase, reportStreamPlayUseCase, channelUiMapper,
             channelHealthDao, thumbnailExtractor, epgRepository, getGuideProgramsUseCase,

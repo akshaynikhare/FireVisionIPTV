@@ -142,14 +142,14 @@ internal fun PlayerQuickActions(
 
         QuickActionButton(
             icon = Icons.Filled.ClosedCaption,
-            label = "Audio/Subs",
+            label = stringResource(R.string.player_action_audio_subs),
             tint = OnVideo,
             onClick = onShowTracks
         )
 
         QuickActionButton(
             icon = Icons.AutoMirrored.Filled.List,
-            label = "Channels",
+            label = stringResource(R.string.player_action_channels),
             tint = OnVideo,
             onClick = onShowChannelList
         )
@@ -157,7 +157,7 @@ internal fun PlayerQuickActions(
         if (onShowGuide != null) {
             QuickActionButton(
                 icon = Icons.Filled.GridView,
-                label = "Guide",
+                label = stringResource(R.string.player_action_guide),
                 tint = OnVideo,
                 onClick = onShowGuide
             )

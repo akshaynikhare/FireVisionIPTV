@@ -96,7 +96,7 @@ internal fun PairingSuccessContent(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "to add channels to your playlist",
+                    text = stringResource(R.string.pairing_success_add_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

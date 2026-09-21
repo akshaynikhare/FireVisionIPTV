@@ -15,6 +15,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -73,7 +75,7 @@ fun HomeScreen(
             when (state) {
                 "loading" -> HomeSkeleton()
                 "error" -> ErrorState(
-                    message = uiState.error ?: "Unknown error",
+                    message = uiState.error ?: stringResource(R.string.error_generic),
                     onRetry = { viewModel.refresh() },
                     errorType = uiState.errorType,
                     onPairDevice = onPairDevice

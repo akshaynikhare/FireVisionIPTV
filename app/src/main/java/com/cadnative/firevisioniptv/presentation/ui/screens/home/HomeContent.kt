@@ -22,7 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.LocalPerfProfile
@@ -207,7 +209,7 @@ fun HomeContent(
                 ChannelRow(
                     // Live re-tune shortcut — quick jump back to channels the
                     // user was just watching (never a resumed file position).
-                    title = "Recently Watched",
+                    title = stringResource(R.string.home_row_recent),
                     channels = recentlyWatched,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,
@@ -224,7 +226,7 @@ fun HomeContent(
         if (forYou.isNotEmpty()) {
             item(key = "for_you") {
                 ChannelRow(
-                    title = "For You",
+                    title = stringResource(R.string.home_row_for_you),
                     channels = forYou,
                     onChannelClick = onChannelClick,
                     onToggleFavorite = onToggleFavorite,

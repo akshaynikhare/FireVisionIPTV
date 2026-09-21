@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import com.cadnative.firevisioniptv.MainDispatcherRule
 import com.cadnative.firevisioniptv.data.model.Result
 import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
@@ -67,7 +68,12 @@ class SearchViewModelTest {
         every { searchChannelsUseCase(any()) } returns flowOf(Result.Success(emptyList()))
     }
 
+    // Relaxed: the Context is only there for the localized fallbacks on
+    // exception.message, and every case below supplies a message.
+    private val context: Context = mockk(relaxed = true)
+
     private fun createViewModel() = SearchViewModel(
+        context = context,
         searchChannelsUseCase = searchChannelsUseCase,
         saveSearchQueryUseCase = saveSearchQueryUseCase,
         getRecentSearchesUseCase = getRecentSearchesUseCase,

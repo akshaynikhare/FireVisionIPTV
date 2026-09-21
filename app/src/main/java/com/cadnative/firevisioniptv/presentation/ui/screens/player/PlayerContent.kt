@@ -57,12 +57,16 @@ internal fun VideoPlayer(
     )
 }
 
-/** Aspect/zoom modes cycled by the player's Aspect quick-action, with labels. */
+/**
+ * Aspect/zoom modes cycled by the player's Aspect quick-action. The label is a
+ * resource id, not text: this is a top-level val with no Context, so the caller
+ * resolves it at the render site.
+ */
 @OptIn(UnstableApi::class)
-internal val ASPECT_MODES: List<Pair<Int, String>> = listOf(
-    AspectRatioFrameLayout.RESIZE_MODE_FIT to "Fit",
-    AspectRatioFrameLayout.RESIZE_MODE_ZOOM to "Zoom",
-    AspectRatioFrameLayout.RESIZE_MODE_FILL to "Fill"
+internal val ASPECT_MODES: List<Pair<Int, Int>> = listOf(
+    AspectRatioFrameLayout.RESIZE_MODE_FIT to R.string.player_aspect_fit,
+    AspectRatioFrameLayout.RESIZE_MODE_ZOOM to R.string.player_aspect_zoom,
+    AspectRatioFrameLayout.RESIZE_MODE_FILL to R.string.player_aspect_fill
 )
 
 /** Loading/error crossfade plus stream recovery and dead-stream overlays. */
@@ -86,7 +90,7 @@ internal fun PlayerStateOverlays(
         label = "playerState"
     ) { state ->
         when (state) {
-            "loading" -> LoadingIndicator(message = "Loading channel...")
+            "loading" -> LoadingIndicator(message = stringResource(R.string.loading_channels))
             "error" -> ErrorState(
                 message = uiState.error ?: stringResource(R.string.player_load_failed),
                 onRetry = onRetry

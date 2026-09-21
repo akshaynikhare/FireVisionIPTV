@@ -21,8 +21,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PopularCategoryUiModel
 import com.cadnative.firevisioniptv.presentation.ui.components.CategoryCard
@@ -83,7 +85,7 @@ internal fun FeaturedRow(
 
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         SectionHeader(
-            title = "Featured",
+            title = stringResource(R.string.home_row_featured),
             accentColor = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(titleGap))
@@ -129,7 +131,7 @@ internal fun PopularCategoriesSlider(
 
     Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
         SectionHeader(
-            title = "Popular Categories",
+            title = stringResource(R.string.home_row_categories),
             accentColor = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(titleGap))

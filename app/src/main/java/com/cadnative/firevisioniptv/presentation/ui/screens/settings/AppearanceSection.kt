@@ -32,9 +32,24 @@ internal fun AppearanceSection(
             },
             action = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingOption(label = "Dark",   value = "dark",   current = currentTheme, onSelect = onThemeChange)
-                    SettingOption(label = "Light",  value = "light",  current = currentTheme, onSelect = onThemeChange)
-                    SettingOption(label = "System", value = "system", current = currentTheme, onSelect = onThemeChange)
+                    SettingOption(
+                        label = stringResource(R.string.settings_theme_dark),
+                        value = "dark",
+                        current = currentTheme,
+                        onSelect = onThemeChange
+                    )
+                    SettingOption(
+                        label = stringResource(R.string.settings_theme_light),
+                        value = "light",
+                        current = currentTheme,
+                        onSelect = onThemeChange
+                    )
+                    SettingOption(
+                        label = stringResource(R.string.settings_theme_system),
+                        value = "system",
+                        current = currentTheme,
+                        onSelect = onThemeChange
+                    )
                 }
             }
         )

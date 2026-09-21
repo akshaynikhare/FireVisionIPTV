@@ -34,10 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
@@ -83,14 +85,14 @@ internal fun PortraitTabs(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("Schedule", style = MaterialTheme.typography.labelMedium) },
+                text = { Text(stringResource(R.string.player_tab_schedule), style = MaterialTheme.typography.labelMedium) },
                 selectedContentColor = Amber,
                 unselectedContentColor = TextSecondary
             )
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Channels", style = MaterialTheme.typography.labelMedium) },
+                text = { Text(stringResource(R.string.player_tab_channels), style = MaterialTheme.typography.labelMedium) },
                 selectedContentColor = Amber,
                 unselectedContentColor = TextSecondary
             )
@@ -129,7 +131,7 @@ private fun ChannelsZapTab(
     }
 
     if (channels.isEmpty()) {
-        TabEmptyState("No channels in this category")
+        TabEmptyState(stringResource(R.string.player_tab_no_channels))
         return
     }
 
@@ -227,7 +229,10 @@ private fun ScheduleTab(
         }
         programs.isEmpty() -> {
             TabEmptyState(
-                if (hasEpgId) "No guide data for this channel" else "This channel has no program guide"
+                stringResource(
+                    if (hasEpgId) R.string.player_tab_no_guide_data
+                    else R.string.player_tab_no_guide
+                )
             )
             return
         }

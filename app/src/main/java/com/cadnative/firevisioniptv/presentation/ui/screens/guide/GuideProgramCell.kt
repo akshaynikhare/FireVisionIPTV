@@ -25,10 +25,12 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.GuideProgramUiModel
 import com.cadnative.firevisioniptv.presentation.ui.components.tvFocusVisuals
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
@@ -142,7 +144,7 @@ internal fun GuideGapCell(
     width: Dp,
     isCompact: Boolean,
     modifier: Modifier = Modifier,
-    label: String = "No information"
+    label: String = stringResource(R.string.epg_no_information)
 ) {
     val shape = ShapeMedium
     Box(

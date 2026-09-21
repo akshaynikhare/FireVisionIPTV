@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -81,7 +83,7 @@ fun SearchScreen(
     }
 
     if (isMobile) {
-        ScreenScaffold(title = "Search", modifier = modifier, onBack = onNavigateBack) {
+        ScreenScaffold(title = stringResource(R.string.search_title), modifier = modifier, onBack = onNavigateBack) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -98,12 +100,12 @@ fun SearchScreen(
                     AppTextField(
                         value = searchQuery,
                         onValueChange = { setQuery(it) },
-                        placeholder = "Search channels…",
+                        placeholder = stringResource(R.string.search_hint),
                         dpadEditToggle = false,
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
+                                contentDescription = stringResource(R.string.search_title),
                                 tint = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(Dimens.IconMedium)
                             )
@@ -117,7 +119,7 @@ fun SearchScreen(
                                 IconButton(onClick = { setQuery("") }) {
                                     Icon(
                                         imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear",
+                                        contentDescription = stringResource(R.string.action_clear),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }

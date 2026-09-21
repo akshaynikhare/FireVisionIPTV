@@ -38,7 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_EXIT
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
@@ -99,7 +101,7 @@ internal fun BoxScope.PlayerMobileChrome(
         ) {
             ChromeIconButton(
                 icon = Icons.Filled.Fullscreen,
-                contentDescription = "Fullscreen",
+                contentDescription = stringResource(R.string.a11y_fullscreen_enter),
                 onClick = actions.onEnterFullscreen
             )
         }
@@ -125,7 +127,7 @@ internal fun BoxScope.PlayerMobileChrome(
             IconButton(onClick = actions.onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.a11y_back),
                     tint = OnVideo
                 )
             }
@@ -150,14 +152,14 @@ internal fun BoxScope.PlayerMobileChrome(
             IconButton(onClick = actions.onShowTracks) {
                 Icon(
                     imageVector = Icons.Filled.ClosedCaption,
-                    contentDescription = "Audio and subtitles",
+                    contentDescription = stringResource(R.string.a11y_audio_subtitles),
                     tint = OnVideo
                 )
             }
             IconButton(onClick = actions.onEnterPip) {
                 Icon(
                     imageVector = Icons.Filled.PictureInPictureAlt,
-                    contentDescription = "Picture in picture",
+                    contentDescription = stringResource(R.string.a11y_pip),
                     tint = OnVideo
                 )
             }
@@ -179,44 +181,44 @@ internal fun BoxScope.PlayerMobileChrome(
         ) {
             ChromeIconButton(
                 icon = Icons.Filled.SkipPrevious,
-                contentDescription = "Previous channel",
+                contentDescription = stringResource(R.string.a11y_channel_prev),
                 onClick = actions.onPrevChannel
             )
             ChromeIconButton(
                 icon = if (uiState.channel?.isFavorite == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                contentDescription = "Favorite",
+                contentDescription = stringResource(R.string.a11y_favorite),
                 tint = if (uiState.channel?.isFavorite == true) MaterialTheme.colorScheme.error else OnVideo,
                 onClick = actions.onToggleFavorite
             )
             ChromeIconButton(
                 icon = Icons.AutoMirrored.Filled.List,
-                contentDescription = "Channel list",
+                contentDescription = stringResource(R.string.a11y_channel_list),
                 onClick = actions.onShowChannelList
             )
             ChromeIconButton(
                 icon = Icons.Filled.AspectRatio,
-                contentDescription = "Aspect ratio",
+                contentDescription = stringResource(R.string.a11y_aspect_ratio),
                 onClick = actions.onCycleAspect
             )
             ChromeIconButton(
                 icon = Icons.Filled.Bedtime,
-                contentDescription = "Sleep timer",
+                contentDescription = stringResource(R.string.a11y_sleep_timer),
                 tint = if (uiState.sleepTimerMinutes != null) Amber else OnVideo,
                 onClick = { actions.onCycleSleepTimer(nextSleepTimerStep(uiState.sleepTimerMinutes)) }
             )
             ChromeIconButton(
                 icon = Icons.Filled.Lock,
-                contentDescription = "Lock screen",
+                contentDescription = stringResource(R.string.a11y_lock_screen),
                 onClick = { state.lockScreen() }
             )
             ChromeIconButton(
                 icon = Icons.Filled.SkipNext,
-                contentDescription = "Next channel",
+                contentDescription = stringResource(R.string.a11y_channel_next),
                 onClick = actions.onNextChannel
             )
             ChromeIconButton(
                 icon = Icons.Filled.FullscreenExit,
-                contentDescription = "Exit fullscreen",
+                contentDescription = stringResource(R.string.a11y_fullscreen_exit),
                 onClick = actions.onExitFullscreen
             )
         }

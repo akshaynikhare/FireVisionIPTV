@@ -329,12 +329,17 @@ class SettingsViewModel @Inject constructor(
     /** Switch back to the managed (paired) source. */
     fun useManagedSource() {
         AppPreferences.useManagedSource(application)
-        _uiState.update { it.copy(playlistResult = application.getString(R.string.settings_playlist_managed)) }
+        _uiState.update {
+            it.copy(
+                playlistResult = application.getString(R.string.settings_playlist_managed),
+                playlistLoaded = false
+            )
+        }
     }
 
     private fun loadPlaylist() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingPlaylist = true, playlistResult = null) }
+            _uiState.update { it.copy(isLoadingPlaylist = true, playlistResult = null, playlistLoaded = false) }
             val result = refreshChannelsUseCase(Unit)
             _uiState.update {
                 it.copy(
@@ -342,7 +347,8 @@ class SettingsViewModel @Inject constructor(
                     playlistResult = when (result) {
                         is Result.Success -> application.getString(R.string.settings_playlist_loaded)
                         is Result.Error -> application.getString(R.string.settings_playlist_failed)
-                    }
+                    },
+                    playlistLoaded = result is Result.Success
                 )
             }
         }
@@ -510,26 +516,30 @@ class SettingsViewModel @Inject constructor(
 
     fun testConnection() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isTestingConnection = true, connectionTestResult = null) }
-            val result = withContext(Dispatchers.IO) {
+            _uiState.update {
+                it.copy(isTestingConnection = true, connectionTestResult = null, connectionTestOk = false)
+            }
+            val (message, ok) = withContext(Dispatchers.IO) {
                 try {
                     val serverUrl = _uiState.value.serverUrl.trim().trimEnd('/')
                     val response = PinnedHttpClient.get("$serverUrl/health")
                     response.use { resp ->
-                        if (resp.code in 200..299) application.getString(R.string.settings_conn_ok)
-                        else application.getString(R.string.settings_conn_status, resp.code)
+                        if (resp.code in 200..299) application.getString(R.string.settings_conn_ok) to true
+                        else application.getString(R.string.settings_conn_status, resp.code) to false
                     }
                 } catch (e: java.net.ConnectException) {
-                    application.getString(R.string.settings_conn_refused)
+                    application.getString(R.string.settings_conn_refused) to false
                 } catch (e: java.net.UnknownHostException) {
-                    application.getString(R.string.settings_conn_not_found)
+                    application.getString(R.string.settings_conn_not_found) to false
                 } catch (e: java.net.SocketTimeoutException) {
-                    application.getString(R.string.settings_conn_timeout)
+                    application.getString(R.string.settings_conn_timeout) to false
                 } catch (e: Exception) {
-                    application.getString(R.string.settings_conn_failed, e.message ?: "")
+                    application.getString(R.string.settings_conn_failed, e.message ?: "") to false
                 }
             }
-            _uiState.update { it.copy(isTestingConnection = false, connectionTestResult = result) }
+            _uiState.update {
+                it.copy(isTestingConnection = false, connectionTestResult = message, connectionTestOk = ok)
+            }
         }
     }
 
