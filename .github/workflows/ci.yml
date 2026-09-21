@@ -3,8 +3,9 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+  # Every pull request, not only those targeting main: a stacked PR is based on
+  # its parent branch, so a base filter silently gives it no CI at all.
   pull_request:
-    branches: [ main, develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
