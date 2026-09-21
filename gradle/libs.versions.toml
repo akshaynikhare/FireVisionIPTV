@@ -70,10 +70,6 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 # Platform services and utilities
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
-firebase-perf = { group = "com.google.firebase", name = "firebase-perf" }
-firebase-database = { group = "com.google.firebase", name = "firebase-database" }
-firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 androidx-tvprovider = { group = "androidx.tvprovider", name = "tvprovider", version.ref = "tvprovider" }
 amazon-appstore = { group = "com.amazon.device", name = "amazon-appstore-sdk", version.ref = "amazonAppstore" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }

@@ -28,8 +28,9 @@ Data flows reactively via Kotlin `Flow`. ViewModels expose `StateFlow<UiState>` 
 | Navigation | Jetpack Navigation Compose | 2.7 |
 | Background | WorkManager | 2.9 |
 | Security | EncryptedSharedPreferences | - |
-| Analytics | Firebase Analytics + Crashlytics + Perf | BoM 33.1.0 |
-| Min SDK | 28 (Android 9) | Target SDK 34 |
+| Analytics | Firebase Analytics (BoM 33.1.0) | product events only |
+| Diagnostics | Sentry | crashes, ANRs, handled errors via AnalyticsHelper |
+| Min SDK | 23 (Android 6) | Target SDK 36 |
 
 ## Quick Start
 

@@ -5,8 +5,6 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.google.firebase.firebase-perf")
     id("io.sentry.android.gradle")
     id("jacoco")
 }
@@ -124,10 +122,6 @@ dependencies {
     // Firebase - using BoM for version management
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.perf)
-    implementation(libs.firebase.database)
-    implementation(libs.firebase.firestore)
 
     // TV Provider support
     implementation(libs.androidx.tvprovider)
@@ -271,4 +265,18 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     executionData.setFrom(fileTree(layout.buildDirectory.get()) {
         include("jacoco/testDebugUnitTest.exec")
     })
+
+    // classDirectories points at an AGP-internal intermediates path that only
+    // exists because a plugin runs ASM instrumentation. If AGP renames it, or the
+    // last instrumenting plugin is removed, jacoco reports 0% rather than failing
+    // — so assert we actually resolved some bytecode.
+    doFirst {
+        val hasClasses = classDirectories.files.any { dir ->
+            dir.exists() && dir.walkTopDown().any { it.extension == "class" }
+        }
+        require(hasClasses) {
+            "jacoco resolved no .class files — the AGP ASM intermediates path has moved. " +
+                "Check app/build/intermediates/classes/debug/."
+        }
+    }
 }
