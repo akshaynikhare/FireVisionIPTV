@@ -9,6 +9,8 @@ plugins {
     id("jacoco")
 }
 
+val hasReleaseSigning = System.getenv("SIGNING_KEY_STORE") != null
+
 android {
     namespace = "com.cadnative.firevisioniptv"
     compileSdk = 36
@@ -20,12 +22,16 @@ android {
         // AndroidX, Material3 and Play Services.
         resourceConfigurations += listOf("en")
         targetSdk = 36
-        versionCode = 5
-        versionName = if (project.hasProperty("versionName")) {
-            project.property("versionName") as String
-        } else {
-            "1.5"
-        }
+        val resolvedVersionName = (project.findProperty("versionName") as String?) ?: "1.5"
+        versionName = resolvedVersionName
+        // Derived from the tag rather than hand-maintained: it was pinned at 5 while
+        // versionName moved with every release, so in-place updates had nothing
+        // monotonic to compare. 1.5 -> 10500. Floored above the last published code.
+        versionCode = resolvedVersionName.split(".").let { parts ->
+            (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 10000 +
+                (parts.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
+                (parts.getOrNull(2)?.toIntOrNull() ?: 0)
+        }.coerceAtLeast(6)
         
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
@@ -50,11 +56,20 @@ android {
     }
 
     testOptions {
-        unitTests.isReturnDefaultValues = true
+        unitTests {
+            isReturnDefaultValues = true
+            // Lets JVM tests read the merged manifest and resources.
+            isIncludeAndroidResources = true
+        }
     }
 
     lint {
-        abortOnError = false
+        // Lint gates CI. The baseline absorbs findings that predate that decision;
+        // it deliberately contains no NewApi/InlinedApi entries, since those are the
+        // class of defect the minSdk floor introduces and must stay loud.
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
+        error += setOf("NewApi", "InlinedApi", "StringFormatInvalid", "StringFormatMatches")
         checkReleaseBuilds = false
         // Release resource shrinking handles legacy XML assets; dependency upgrades and
         // icon/vector redesigns are tracked separately from correctness lint.
@@ -78,7 +93,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else null
         }
         create("dev") {
             initWith(getByName("debug"))
@@ -198,6 +213,18 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
+}
+
+// Without a keystore the release signingConfig is left empty and assembleRelease
+// still succeeds — producing an unsigned APK that the release workflow would
+// happily publish. Fail instead, with an opt-out for local smoke builds.
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        require(hasReleaseSigning || project.hasProperty("allowUnsignedRelease")) {
+            "SIGNING_KEY_STORE is not set — refusing to build an unsigned release. " +
+                "Use -PallowUnsignedRelease for a local unsigned build."
+        }
+    }
 }
 
 ksp {

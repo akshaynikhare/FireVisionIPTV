@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Majors here are not routine upgrades. Kotlin 2.x replaces
+      # composeOptions.kotlinCompilerExtensionVersion with the Compose compiler
+      # plugin and moves KSP to KSP2; AGP 9 requires Gradle 9, which KGP 1.9.x
+      # does not support. Each needs a deliberate, isolated migration.
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.jetbrains.kotlin:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "com.google.devtools.ksp:*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        update-types: [minor, patch]
