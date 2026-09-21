@@ -93,7 +93,11 @@ private fun VersionLabel(
         )
         Spacer(modifier = Modifier.height(2.dp))
         StatusText(
-            text = if (upToDate) "$appVersion  ·  Up to date" else appVersion,
+            text = if (upToDate) {
+                stringResource(R.string.settings_about_up_to_date, appVersion)
+            } else {
+                appVersion
+            },
             status = if (upToDate) Status.SUCCESS else Status.NEUTRAL
         )
     }
@@ -116,8 +120,12 @@ private fun UpdateAvailableLabel(
         Text(
             text = buildString {
                 append(stringResource(R.string.settings_about_current, appVersion))
-                if (updateInfo.fileSize.isNotEmpty()) append("  ·  ${updateInfo.fileSize}")
-                if (updateInfo.isMandatory) append("  ·  Mandatory")
+                if (updateInfo.fileSize.isNotEmpty()) {
+                    append(stringResource(R.string.update_overlay_detail, updateInfo.fileSize))
+                }
+                if (updateInfo.isMandatory) {
+                    append(stringResource(R.string.update_overlay_mandatory))
+                }
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

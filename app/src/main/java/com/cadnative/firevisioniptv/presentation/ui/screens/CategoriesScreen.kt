@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
 import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_NORMAL
 import com.cadnative.firevisioniptv.presentation.ui.animation.EaseOutQuart
@@ -95,7 +96,7 @@ fun CategoriesScreen(
                     ) {
                         itemsIndexed(categoriesData) { index, (category, count, imageUrl) ->
                             CategoryCard(
-                                name = category,
+                                name = categoryLabel(category),
                                 channelCount = count,
                                 imageUrl = imageUrl,
                                 isFavorite = category in uiState.favoriteCategoryNames,

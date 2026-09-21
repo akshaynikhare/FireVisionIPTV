@@ -228,6 +228,52 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `a successful playlist load flags success without comparing message text`() = runTest {
+        coEvery { refreshChannelsUseCase(Unit) } returns Result.Success(Unit)
+
+        val vm = createViewModel()
+        runCurrent()
+        vm.saveM3uPlaylist("https://example.invalid/list.m3u")
+        runCurrent()
+
+        // The flag, not the message: the message is localized, so the screen used
+        // to compare it against English text and silently failed in every other
+        // locale.
+        assertTrue(vm.uiState.value.playlistLoaded)
+    }
+
+    @Test
+    fun `a failed playlist load does not flag success`() = runTest {
+        coEvery { refreshChannelsUseCase(Unit) } returns Result.Error(Exception("nope"))
+
+        val vm = createViewModel()
+        runCurrent()
+        vm.saveM3uPlaylist("https://example.invalid/list.m3u")
+        runCurrent()
+
+        assertFalse(vm.uiState.value.playlistLoaded)
+    }
+
+    @Test
+    fun `consuming the success stops the navigate effect re-firing on Back`() = runTest {
+        coEvery { refreshChannelsUseCase(Unit) } returns Result.Success(Unit)
+
+        val vm = createViewModel()
+        runCurrent()
+        vm.saveM3uPlaylist("https://example.invalid/list.m3u")
+        runCurrent()
+        assertTrue(vm.uiState.value.playlistLoaded)
+
+        vm.consumePlaylistLoaded()
+        runCurrent()
+
+        // Left set, AddSource's LaunchedEffect would navigate to Home again every
+        // time that destination recomposed — which it does on Back, because
+        // arriving from Settings leaves AddSource on the stack.
+        assertFalse(vm.uiState.value.playlistLoaded)
+    }
+
+    @Test
     fun `clearCache success refreshes channels`() = runTest {
         coEvery { userPreferencesRepository.clearCache() } returns Result.Success(Unit)
         coEvery { refreshChannelsUseCase(Unit) } returns Result.Success(Unit)

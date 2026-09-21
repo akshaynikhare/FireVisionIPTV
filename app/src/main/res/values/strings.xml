@@ -13,6 +13,8 @@
     <string name="category_kids">Kids</string>
     <string name="category_documentary">Documentary</string>
     <string name="category_general">General</string>
+    <!-- Display label for the CategorySentinels.OTHER grouping key. -->
+    <string name="category_other">Other</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
@@ -295,6 +297,10 @@
     <!-- Home -->
     <string name="home_row_featured">Featured</string>
     <string name="home_row_categories">Popular Categories</string>
+    <plurals name="channel_count_live">
+        <item quantity="one">%1$d live</item>
+        <item quantity="other">%1$d live</item>
+    </plurals>
     <string name="home_row_recent">Recently Watched</string>
     <string name="home_row_for_you">For You</string>
     <string name="home_hero_watch_now">Watch now</string>
@@ -428,6 +434,12 @@
     <string name="update_overlay_title">Update Available</string>
     <string name="update_overlay_version">Version %1$s</string>
     <string name="update_overlay_downloading">Downloading update\u2026</string>
+    <!-- Separator-prefixed fragments appended to the version line. Kept whole,
+         separator included, so a translation can move or drop the separator. -->
+    <string name="update_overlay_detail">  \u00b7  %1$s</string>
+    <string name="update_overlay_recommended">  \u00b7  Recommended</string>
+    <string name="update_overlay_mandatory">  \u00b7  Mandatory</string>
+    <string name="settings_about_up_to_date">%1$s  \u00b7  Up to date</string>
     <string name="update_overlay_install">Update Now</string>
     <string name="update_overlay_later">Not Now</string>
 

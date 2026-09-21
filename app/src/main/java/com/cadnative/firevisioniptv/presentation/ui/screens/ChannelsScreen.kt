@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
 import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
@@ -59,7 +60,8 @@ fun ChannelsScreen(
     }
 
     ScreenScaffold(
-        title = uiState.selectedCategory ?: stringResource(R.string.channels_all_title),
+        title = uiState.selectedCategory?.let { categoryLabel(it) }
+            ?: stringResource(R.string.channels_all_title),
         modifier = modifier,
         onBack = if (uiState.selectedCategory != null || initialCategory != null) {
             {
@@ -198,7 +200,7 @@ private fun CategoryChips(
         }
         items(categories, key = { it }) { category ->
             CategoryChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedCategory == category,
                 selectedContainerColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

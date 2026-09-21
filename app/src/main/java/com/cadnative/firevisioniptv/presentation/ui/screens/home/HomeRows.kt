@@ -21,6 +21,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -148,7 +149,11 @@ internal fun PopularCategoriesSlider(
                     imageUrl = category.imageUrl,
                     isFavorite = category.isFavorite,
                     onClick = { onCategoryClick(category.name) },
-                    subtitle = "${category.channelCount} live",
+                    subtitle = pluralStringResource(
+                        R.plurals.channel_count_live,
+                        category.channelCount,
+                        category.channelCount
+                    ),
                     modifier = Modifier
                         .width(cardWidth)
                         .height(cardHeight)

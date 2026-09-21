@@ -77,7 +77,12 @@ fun AddSourceScreen(
 
     // Advance to Home once a bring-your-own playlist loads successfully.
     LaunchedEffect(uiState.playlistLoaded) {
-        if (uiState.playlistLoaded) onPlaylistLoaded()
+        if (uiState.playlistLoaded) {
+            // Consume before navigating: the flag is a one-shot, and leaving it
+            // set makes Back bounce straight to Home again.
+            viewModel.consumePlaylistLoaded()
+            onPlaylistLoaded()
+        }
     }
 
     // Preselect the tab for the source that's currently in use, so opening this

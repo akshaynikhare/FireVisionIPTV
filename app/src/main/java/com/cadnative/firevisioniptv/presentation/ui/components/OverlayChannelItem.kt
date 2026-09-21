@@ -149,7 +149,7 @@ internal fun OverlayCategoryChips(
         }
         items(categories, key = { it }) { category ->
             OverlayFilterChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedCategory == category,
                 selectedColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

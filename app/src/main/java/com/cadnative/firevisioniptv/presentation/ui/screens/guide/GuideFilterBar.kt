@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import com.cadnative.firevisioniptv.presentation.ui.components.categoryLabel
 import com.cadnative.firevisioniptv.R
 import com.cadnative.firevisioniptv.presentation.model.GuideFilter
 import com.cadnative.firevisioniptv.presentation.ui.components.CategoryChip
@@ -78,7 +79,7 @@ internal fun GuideFilterBar(
         items(categories.size, key = { categories[it] }) { i ->
             val category = categories[i]
             CategoryChip(
-                label = category,
+                label = categoryLabel(category),
                 isSelected = selectedFilter is GuideFilter.Category && selectedFilter.name == category,
                 selectedContainerColor = categoryColor(category),
                 selectedLabelColor = MaterialTheme.colorScheme.background,

@@ -113,8 +113,12 @@ fun UpdateAvailableScreen(
             Text(
                 text = buildString {
                     append(stringResource(R.string.update_overlay_version, updateInfo.versionName))
-                    if (updateInfo.fileSize.isNotEmpty()) append("  ·  ${updateInfo.fileSize}")
-                    if (updateInfo.isMandatory) append("  ·  Recommended")
+                    if (updateInfo.fileSize.isNotEmpty()) {
+                        append(stringResource(R.string.update_overlay_detail, updateInfo.fileSize))
+                    }
+                    if (updateInfo.isMandatory) {
+                        append(stringResource(R.string.update_overlay_recommended))
+                    }
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

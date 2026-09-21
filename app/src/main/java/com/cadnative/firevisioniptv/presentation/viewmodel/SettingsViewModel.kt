@@ -543,6 +543,20 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Acknowledge a successful playlist load.
+     *
+     * `playlistLoaded` is a one-shot signal, not durable state. Left set, the
+     * AddSource screen's navigate-to-Home effect re-fires every time that
+     * destination recomposes — and it does recompose on Back, because arriving
+     * from Settings leaves AddSource on the stack (the navigation pops
+     * Screen.Pairing, which is not there on that route). The user is bounced
+     * straight back to Home and can never reach the form again.
+     */
+    fun consumePlaylistLoaded() {
+        _uiState.update { it.copy(playlistLoaded = false) }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null, downloadError = null) }
     }
