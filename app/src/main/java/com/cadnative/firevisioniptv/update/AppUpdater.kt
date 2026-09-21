@@ -215,7 +215,7 @@ class AppUpdater @Inject constructor(
         val pm = context.packageManager
         val currentSigs = ApkSignatures.installed(pm, context.packageName)
         val apkSigs = ApkSignatures.archive(pm, apkFile.absolutePath)
-        if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
+        if (currentSigs == null || apkSigs == null) {
             Log.e(TAG, "Could not retrieve signatures for verification")
             return false
         }
