@@ -239,11 +239,19 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Uploading the R8 mapping and the source bundle needs a Sentry auth token, and
+// the plugin's upload tasks fail the build rather than skipping when there isn't
+// one. Only release.yml holds the secret, so without this gate assembleRelease
+// is red on every PR and every fork — after R8 has already succeeded, which is
+// the part CI is actually there to verify.
+val sentryAuthToken: String? = System.getenv("SENTRY_AUTH_TOKEN")?.takeIf { it.isNotBlank() }
+
 sentry {
-    includeSourceContext = true
+    includeSourceContext = sentryAuthToken != null
+    autoUploadProguardMapping = sentryAuthToken != null
     org = "cadnative-design-solution"
     projectName = "firevisioniptv"
-    authToken = System.getenv("SENTRY_AUTH_TOKEN")
+    authToken = sentryAuthToken
 }
 
 tasks.withType<Test> {
