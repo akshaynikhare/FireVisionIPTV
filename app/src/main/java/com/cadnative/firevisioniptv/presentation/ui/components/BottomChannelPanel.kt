@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,12 +41,10 @@ import com.cadnative.firevisioniptv.domain.model.EpgProgram
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
+import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeFlat
 import com.cadnative.firevisioniptv.presentation.ui.theme.SurfaceDark
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-
-// Flush, square-topped sheet — edge-to-edge, no rounded corner or drag handle.
-private val PanelShape = RoundedCornerShape(0.dp)
 
 // Let the overlay's entrance animation begin before claiming focus, so the request
 // lands on a node that has been placed.
@@ -143,7 +140,8 @@ internal fun BottomChannelPanel(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { translationY = dragOffsetY.coerceAtLeast(0f) }
-            .background(color = SurfaceDark.copy(alpha = 0.95f), shape = PanelShape)
+            // Flush, square-topped sheet — edge-to-edge, no rounded corner or drag handle.
+            .background(color = SurfaceDark.copy(alpha = 0.95f), shape = ShapeFlat)
             // Hard focus trap: while the overlay is open, D-pad can never dump
             // focus onto the invisible root or a hidden bar behind it. BACK
             // still bubbles to the root handler for dismissal.

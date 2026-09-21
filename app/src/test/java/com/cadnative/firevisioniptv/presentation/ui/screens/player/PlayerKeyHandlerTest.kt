@@ -56,6 +56,101 @@ class PlayerKeyHandlerTest {
         onNavigateToSearch = null
     )
 
+    private fun handleRoot(
+        event: androidx.compose.ui.input.key.KeyEvent,
+        uiState: PlayerUiState = PlayerUiState(),
+        showTracksPanel: Boolean = false,
+        isMobile: Boolean = false,
+        onCloseTracksPanel: () -> Unit = {},
+        onBack: () -> Unit = {},
+    ): Boolean = handlePlayerRootKeyEvent(
+        keyEvent = event,
+        uiState = uiState,
+        exoPlayer = exoPlayer,
+        viewModel = viewModel,
+        state = state,
+        showTracksPanel = showTracksPanel,
+        isMobile = isMobile,
+        onCloseTracksPanel = onCloseTracksPanel,
+        onBack = onBack,
+        onNavigateToSettings = null,
+        onNavigateToSearch = null
+    )
+
+    // ── Root key handling (BACK, tracks-panel passthrough) ───────────
+
+    @Test
+    fun `back closes the tracks panel before it reaches the back action`() {
+        var closed = false
+        var backs = 0
+        assertTrue(
+            handleRoot(
+                composeKey(KeyEvent.KEYCODE_BACK),
+                showTracksPanel = true,
+                onCloseTracksPanel = { closed = true },
+                onBack = { backs++ }
+            )
+        )
+        assertTrue("Panel must close", closed)
+        assertEquals("Back must not also pop the player", 0, backs)
+        assertTrue("Focus returns to the bar that opened it", state.controlsFocusRequest > 0)
+    }
+
+    @Test
+    fun `closing the tracks panel on mobile does not claim bar focus`() {
+        handleRoot(
+            composeKey(KeyEvent.KEYCODE_BACK),
+            showTracksPanel = true,
+            isMobile = true
+        )
+        assertEquals(0, state.controlsFocusRequest)
+    }
+
+    @Test
+    fun `back invokes the back action once and is always consumed`() {
+        var backs = 0
+        assertTrue(handleRoot(composeKey(KeyEvent.KEYCODE_BACK), onBack = { backs++ }))
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun `held back pops exactly one level`() {
+        var backs = 0
+        // Android auto-repeats a held BACK; only the first delivery may act, and
+        // every delivery must still be consumed or Compose eats the focus instead.
+        assertTrue(handleRoot(composeKey(KeyEvent.KEYCODE_BACK), onBack = { backs++ }))
+        repeat(3) {
+            assertTrue(
+                handleRoot(composeKey(KeyEvent.KEYCODE_BACK, repeat = it + 1), onBack = { backs++ })
+            )
+        }
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun `back on key release is consumed without acting`() {
+        var backs = 0
+        assertTrue(
+            handleRoot(
+                composeKey(KeyEvent.KEYCODE_BACK, action = KeyEvent.ACTION_UP),
+                onBack = { backs++ }
+            )
+        )
+        assertEquals(0, backs)
+    }
+
+    @Test
+    fun `an open tracks panel keeps other keys for its own rows`() {
+        assertFalse(handleRoot(composeKey(KeyEvent.KEYCODE_DPAD_UP), showTracksPanel = true))
+        assertEquals("Player must not react behind the panel", 0, state.controlsFocusRequest)
+    }
+
+    @Test
+    fun `with no panel open root delegates to the player key handler`() {
+        assertTrue(handleRoot(composeKey(KeyEvent.KEYCODE_DPAD_UP)))
+        assertTrue(state.controlsFocusRequest > 0)
+    }
+
     // ── Defaults (no direct zap on the D-pad) ────────────────────────
 
     @Test

@@ -52,6 +52,56 @@ private fun togglePlayPause(exoPlayer: ExoPlayer, state: PlayerOverlayState) {
 }
 
 /**
+ * Key handling for the player's root Box, ahead of [handlePlayerKeyEvent].
+ *
+ * BACK is dealt with here rather than in a BackHandler: if it bubbles unhandled,
+ * Compose clears focus and eats ACTION_DOWN, so the BackHandler never runs on TV.
+ * The repeatCount gate matters too — Android auto-repeats a held BACK, and without
+ * it a hold pops more than one level (or drops straight out of the player).
+ *
+ * Returns true when the event is consumed.
+ */
+internal fun handlePlayerRootKeyEvent(
+    keyEvent: androidx.compose.ui.input.key.KeyEvent,
+    uiState: PlayerUiState,
+    exoPlayer: ExoPlayer,
+    viewModel: PlayerViewModel,
+    state: PlayerOverlayState,
+    showTracksPanel: Boolean,
+    isMobile: Boolean,
+    onCloseTracksPanel: () -> Unit,
+    onBack: () -> Unit,
+    onNavigateToSettings: (() -> Unit)?,
+    onNavigateToSearch: (() -> Unit)?
+): Boolean {
+    if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
+        if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+            keyEvent.nativeKeyEvent.repeatCount == 0
+        ) {
+            if (showTracksPanel) {
+                onCloseTracksPanel()
+                // Return focus to the bar that launched the panel
+                if (!isMobile) state.focusQuickActions()
+            } else {
+                onBack()
+            }
+        }
+        return true
+    }
+    // While the tracks panel is open, let its focusable rows handle keys.
+    if (showTracksPanel) return false
+    return handlePlayerKeyEvent(
+        keyEvent = keyEvent,
+        uiState = uiState,
+        exoPlayer = exoPlayer,
+        viewModel = viewModel,
+        state = state,
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToSearch = onNavigateToSearch
+    )
+}
+
+/**
  * Remote/keyboard input handling for the player. Returns true when the
  * event is consumed. Includes long-press OK detection and 0-9 digit entry.
  */
