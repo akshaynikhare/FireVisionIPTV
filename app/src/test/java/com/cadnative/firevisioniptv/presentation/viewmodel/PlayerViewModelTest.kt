@@ -39,6 +39,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import com.cadnative.firevisioniptv.R
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModelTest {
@@ -405,7 +406,8 @@ class PlayerViewModelTest {
         assertTrue(state.isStreamDead)
         assertFalse(state.isRecovering)
         assertFalse(state.isPlaying)
-        assertEquals("Stream Unavailable", state.deadStreamTitle)
+        // The resolver hands back a resource id now; the composable renders it.
+        assertEquals(R.string.stream_err_generic_title, state.deadStreamMessage?.titleRes)
         coVerify { reportStreamStatusUseCase(any()) }
     }
 

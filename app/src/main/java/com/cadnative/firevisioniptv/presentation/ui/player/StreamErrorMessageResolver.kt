@@ -1,5 +1,8 @@
 package com.cadnative.firevisioniptv.presentation.ui.player
 
+import androidx.annotation.StringRes
+import com.cadnative.firevisioniptv.R
+
 data class StreamErrorContext(
     val errorMessage: String,
     val lastCheckedAt: Long?,
@@ -8,9 +11,16 @@ data class StreamErrorContext(
     val categoryScannedCount: Int
 )
 
+/**
+ * Resource ids rather than strings: this resolver has no Context and is a pure
+ * object, which is what makes it directly unit-testable. The composable that
+ * renders the message does the resolving.
+ */
 data class StreamErrorMessage(
-    val title: String,
-    val explanation: String
+    @StringRes val titleRes: Int,
+    @StringRes val explanationRes: Int,
+    /** Appended when the channel was working within the last hour. */
+    @StringRes val recentSuffixRes: Int? = null
 )
 
 object StreamErrorMessageResolver {
@@ -18,40 +28,31 @@ object StreamErrorMessageResolver {
     private const val RECENT_THRESHOLD_MS = 3_600_000L // 1 hour
 
     fun resolve(context: StreamErrorContext): StreamErrorMessage {
-        // Category-wide outage check
+        // A category-wide outage says more than any per-channel diagnosis.
         if (context.categoryScannedCount >= 3 &&
             context.categoryOfflineCount >= context.categoryScannedCount / 2
         ) {
             return StreamErrorMessage(
-                title = "Source Provider Issue",
-                explanation = "Multiple channels in this group are down. " +
-                        "This usually means the source provider is experiencing problems."
+                R.string.stream_err_provider_title,
+                R.string.stream_err_provider_body
             ).withRecentSuffix(context)
         }
 
         val (title, explanation) = when {
             context.errorMessage.contains("Network connection", ignoreCase = true) ->
-                "Connection Lost" to
-                        "Your device lost its network connection. Check your Wi-Fi or ethernet and try again."
+                R.string.stream_err_connection_title to R.string.stream_err_connection_body
 
             context.errorMessage.contains("Server error", ignoreCase = true) ->
-                "Server Not Responding" to
-                        "The channel's streaming server isn't responding. " +
-                        "This is a third-party server outside our control."
+                R.string.stream_err_server_title to R.string.stream_err_server_body
 
             context.errorMessage.contains("Invalid stream format", ignoreCase = true) ->
-                "Stream Format Error" to
-                        "The stream format has changed or is incompatible. " +
-                        "The source provider may have updated their feed."
+                R.string.stream_err_format_title to R.string.stream_err_format_body
 
             context.errorMessage.contains("All streams exhausted", ignoreCase = true) ->
-                "Channel Offline" to
-                        "We tried all available sources for this channel and none are responding right now."
+                R.string.stream_err_offline_title to R.string.stream_err_offline_body
 
             else ->
-                "Stream Unavailable" to
-                        "This channel's stream couldn't be loaded. " +
-                        "IPTV streams depend on third-party sources that can go offline at any time."
+                R.string.stream_err_generic_title to R.string.stream_err_generic_body
         }
 
         return StreamErrorMessage(title, explanation).withRecentSuffix(context)
@@ -61,9 +62,7 @@ object StreamErrorMessageResolver {
         if (context.previousStatus == "ONLINE" && context.lastCheckedAt != null) {
             val elapsed = System.currentTimeMillis() - context.lastCheckedAt
             if (elapsed < RECENT_THRESHOLD_MS) {
-                return copy(
-                    explanation = "$explanation This channel was working recently and may come back soon."
-                )
+                return copy(recentSuffixRes = R.string.stream_err_recent_suffix)
             }
         }
         return this

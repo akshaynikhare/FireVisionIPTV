@@ -890,8 +890,7 @@ class PlayerViewModel @Inject constructor(
                 isRecovering = false,
                 isPlaying = false,
                 isStreamDead = true,
-                deadStreamTitle = "Stream Unavailable",
-                deadStreamExplanation = "",
+                deadStreamMessage = null,
                 error = null
             )
         }
@@ -927,8 +926,7 @@ class PlayerViewModel @Inject constructor(
             )
             _uiState.update {
                 it.copy(
-                    deadStreamTitle = resolved.title,
-                    deadStreamExplanation = resolved.explanation
+                    deadStreamMessage = resolved
                 )
             }
         }

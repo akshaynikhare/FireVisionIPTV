@@ -48,6 +48,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
+import com.cadnative.firevisioniptv.R
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 
 private const val RECENTLY_WATCHED_LIMIT = 20
 private const val FEATURED_CHANNELS_LIMIT = 5
@@ -71,7 +75,8 @@ class ChannelsViewModel @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val playbackPositionDao: PlaybackPositionDao,
     private val favoriteCategoryDao: FavoriteCategoryDao,
-    private val streamMetricsDao: StreamMetricsDao
+    private val streamMetricsDao: StreamMetricsDao,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChannelsUiState())
@@ -352,7 +357,7 @@ class ChannelsViewModel @Inject constructor(
                                 channel
                             }
                         },
-                        error = result.exception.message ?: "Failed to update favorite"
+                        error = result.exception.message ?: appContext.getString(R.string.error_update_favorite)
                     )
                 }
             }
@@ -427,7 +432,7 @@ class ChannelsViewModel @Inject constructor(
         // (most recent) score higher.
         val categoryWeight = mutableMapOf<String, Int>()
         recentlyWatched.forEachIndexed { index, channel ->
-            val cat = channel.category.ifBlank { "Other" }
+            val cat = channel.category.ifBlank { CategorySentinels.OTHER }
             categoryWeight[cat] = (categoryWeight[cat] ?: 0) + (recentlyWatched.size - index)
         }
 
@@ -435,8 +440,8 @@ class ChannelsViewModel @Inject constructor(
         return allChannels
             .asSequence()
             .filter { it.id !in recentIds }
-            .filter { (categoryWeight[it.category.ifBlank { "Other" }] ?: 0) > 0 }
-            .sortedByDescending { categoryWeight[it.category.ifBlank { "Other" }] ?: 0 }
+            .filter { (categoryWeight[it.category.ifBlank { CategorySentinels.OTHER }] ?: 0) > 0 }
+            .sortedByDescending { categoryWeight[it.category.ifBlank { CategorySentinels.OTHER }] ?: 0 }
             .take(FOR_YOU_LIMIT)
             .toList()
     }
@@ -480,16 +485,16 @@ class ChannelsViewModel @Inject constructor(
     private fun classifyError(exception: Exception): Pair<String, ErrorType> {
         return when (exception) {
             is UnauthorizedException, is ForbiddenException ->
-                "Device not paired — please pair your device" to ErrorType.AUTH_REQUIRED
+                appContext.getString(R.string.error_not_paired) to ErrorType.AUTH_REQUIRED
             is NetworkException, is java.net.ConnectException,
             is java.net.UnknownHostException, is java.net.SocketTimeoutException ->
-                "Cannot connect to server — check server URL in Settings" to ErrorType.NETWORK_ERROR
+                appContext.getString(R.string.error_cannot_connect) to ErrorType.NETWORK_ERROR
             is ServerException ->
-                "Server error — please try again later" to ErrorType.SERVER_ERROR
+                appContext.getString(R.string.error_server) to ErrorType.SERVER_ERROR
             is ServiceUnavailableException ->
-                "Server is offline — please try again later" to ErrorType.SERVER_ERROR
+                appContext.getString(R.string.error_server_offline) to ErrorType.SERVER_ERROR
             else ->
-                (exception.message ?: "Something went wrong") to ErrorType.UNKNOWN
+                (exception.message ?: appContext.getString(R.string.error_generic)) to ErrorType.UNKNOWN
         }
     }
 }

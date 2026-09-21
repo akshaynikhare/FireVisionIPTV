@@ -108,9 +108,16 @@ internal fun PlayerStateOverlays(
         enter = overlayEnter(reduceMotion, DURATION_ENTRANCE),
         exit = overlayExit(reduceMotion)
     ) {
+        val message = uiState.deadStreamMessage
         DeadStreamOverlay(
-            title = uiState.deadStreamTitle,
-            explanation = uiState.deadStreamExplanation,
+            title = message?.let { stringResource(it.titleRes) }
+                ?: stringResource(R.string.stream_err_generic_title),
+            explanation = message?.let { m ->
+                listOfNotNull(
+                    stringResource(m.explanationRes),
+                    m.recentSuffixRes?.let { stringResource(it) }
+                ).joinToString(" ")
+            }.orEmpty(),
             countdown = uiState.deadStreamCountdown,
             onDismiss = onDismissDeadStream
         )

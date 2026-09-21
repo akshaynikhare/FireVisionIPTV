@@ -155,4 +155,53 @@
     <string name="player_tracks_subtitles">Subtitles</string>
     <string name="player_tracks_no_audio">No alternate audio tracks</string>
     <string name="player_track_subtitle">Subtitle</string>
+
+    <!-- Stream error explanations -->
+    <string name="stream_err_provider_title">Source Provider Issue</string>
+    <string name="stream_err_provider_body">Multiple channels in this group are down. This usually means the source provider is experiencing problems.</string>
+    <string name="stream_err_connection_title">Connection Lost</string>
+    <string name="stream_err_connection_body">Your device lost its network connection. Check your Wi-Fi or ethernet and try again.</string>
+    <string name="stream_err_server_title">Server Not Responding</string>
+    <string name="stream_err_server_body">The channel\'s streaming server isn\'t responding. This is a third-party server outside our control.</string>
+    <string name="stream_err_format_title">Stream Format Error</string>
+    <string name="stream_err_format_body">The stream format has changed or is incompatible. The source provider may have updated their feed.</string>
+    <string name="stream_err_offline_title">Channel Offline</string>
+    <string name="stream_err_offline_body">We tried all available sources for this channel and none are responding right now.</string>
+    <string name="stream_err_generic_title">Stream Unavailable</string>
+    <string name="stream_err_generic_body">This channel\'s stream couldn\'t be loaded. IPTV streams depend on third-party sources that can go offline at any time.</string>
+    <string name="stream_err_recent_suffix">This channel was working recently and may come back soon.</string>
+
+    <!-- Errors surfaced from ViewModels -->
+    <string name="error_not_paired">Device not paired \u2014 please pair your device</string>
+    <string name="error_cannot_connect">Cannot connect to server \u2014 check server URL in Settings</string>
+    <string name="error_server">Server error \u2014 please try again later</string>
+    <string name="error_server_offline">Server is offline \u2014 please try again later</string>
+    <string name="error_generic">Something went wrong</string>
+    <string name="error_update_favorite">Failed to update favorite</string>
+    <string name="error_load_channel">Failed to load channel</string>
+
+    <!-- Settings results -->
+    <string name="settings_err_theme">Failed to update theme</string>
+    <string name="settings_err_grid">Failed to update grid size</string>
+    <string name="settings_err_font">Failed to update font size</string>
+    <string name="settings_err_animation">Failed to update animation speed</string>
+    <string name="settings_err_density">Failed to update layout density</string>
+    <string name="settings_err_back_protection">Failed to update back protection</string>
+    <string name="settings_err_program_bar">Failed to update program bar</string>
+    <string name="settings_err_banner_timeout">Failed to update banner timeout</string>
+    <string name="settings_err_key_action">Failed to update key action</string>
+    <string name="settings_err_sleep_timer">Failed to update sleep timer</string>
+    <string name="settings_err_clear_cache">Failed to clear cache</string>
+    <string name="settings_err_reset">Failed to reset app data</string>
+    <string name="settings_err_update_check">Failed to check for updates</string>
+    <string name="settings_version_unknown">Unknown</string>
+    <string name="settings_playlist_managed">Using managed source</string>
+    <string name="settings_playlist_loaded">Playlist loaded</string>
+    <string name="settings_playlist_failed">Failed to load playlist</string>
+    <string name="settings_conn_ok">Connected</string>
+    <string name="settings_conn_status">Server returned %1$d</string>
+    <string name="settings_conn_refused">Connection refused \u2014 check server URL</string>
+    <string name="settings_conn_not_found">Server not found \u2014 check URL</string>
+    <string name="settings_conn_timeout">Connection timed out</string>
+    <string name="settings_conn_failed">Failed: %1$s</string>
 </resources>

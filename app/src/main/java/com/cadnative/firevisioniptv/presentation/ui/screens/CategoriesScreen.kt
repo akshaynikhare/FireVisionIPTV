@@ -18,6 +18,7 @@ import com.cadnative.firevisioniptv.presentation.ui.animation.animateItemEntranc
 import com.cadnative.firevisioniptv.presentation.ui.components.*
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.viewmodel.ChannelsViewModel
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
 
 @Composable
 fun CategoriesScreen(
@@ -58,7 +59,7 @@ fun CategoriesScreen(
                 else -> {
                     val categoriesData = remember(uiState.channels) {
                         uiState.channels
-                            .groupBy { it.category.ifBlank { "Other" } }
+                            .groupBy { it.category.ifBlank { CategorySentinels.OTHER } }
                             .map { (name, channels) ->
                                 Triple(
                                     name,

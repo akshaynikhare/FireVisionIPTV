@@ -34,6 +34,7 @@ import com.cadnative.firevisioniptv.presentation.ui.components.rememberShimmerBr
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import kotlinx.coroutines.delay
+import com.cadnative.firevisioniptv.domain.model.CategorySentinels
 
 private const val HERO_SWAP_DEBOUNCE_MS = 300L
 
@@ -76,7 +77,7 @@ fun HomeContent(
     }
 
     val channelsByCategory = remember(channels) {
-        channels.groupBy { it.category.ifBlank { "Other" } }
+        channels.groupBy { it.category.ifBlank { CategorySentinels.OTHER } }
     }
     val categoryEntries = remember(channelsByCategory) {
         channelsByCategory.entries.toList()
