@@ -1,9 +1,9 @@
 package com.cadnative.firevisioniptv.data.repository
 
 import android.app.Application
-import android.provider.Settings
 import android.util.Log
 import com.cadnative.firevisioniptv.data.model.Result
+import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.model.dto.HealthSyncItem
 import com.cadnative.firevisioniptv.data.model.dto.HealthSyncRequest
 import com.cadnative.firevisioniptv.data.model.dto.StreamPlayReport
@@ -182,9 +182,6 @@ class StreamMetricsRepositoryImpl @Inject constructor(
     }
 
     private fun getDeviceId(): String {
-        return Settings.Secure.getString(
-            application.contentResolver,
-            Settings.Secure.ANDROID_ID
-        ) ?: "unknown_device"
+        return AppPreferences.getInstallationId(application)
     }
 }

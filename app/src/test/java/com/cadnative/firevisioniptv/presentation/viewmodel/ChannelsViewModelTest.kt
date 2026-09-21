@@ -127,7 +127,7 @@ class ChannelsViewModelTest {
 
     @Test
     fun `init calls refresh`() = runTest {
-        val vm = createViewModel()
+        createViewModel()
         advanceTimeBy(600)
         runCurrent()
 

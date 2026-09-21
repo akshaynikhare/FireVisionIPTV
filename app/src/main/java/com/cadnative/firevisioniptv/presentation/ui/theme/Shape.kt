@@ -5,6 +5,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 // ── Corner token scale — YouTube-TV flat style ───────────────────────
+val ShapeFlat   = RoundedCornerShape(0.dp)    // edge-to-edge sheets, square by design
 val ShapeSmall  = RoundedCornerShape(4.dp)    // chips, badges, small buttons
 val ShapeMedium = RoundedCornerShape(6.dp)    // cards, panels
 val ShapeBadge  = RoundedCornerShape(8.dp)    // QR frames, image tiles, badges

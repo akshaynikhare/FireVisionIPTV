@@ -3,7 +3,6 @@ package com.cadnative.firevisioniptv.presentation.ui.screens
 import android.content.Context
 import android.content.res.Configuration
 import android.media.AudioManager
-import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -33,23 +32,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.ui.PlayerView
 import com.cadnative.firevisioniptv.ComposeMainActivity
-import com.cadnative.firevisioniptv.presentation.ui.components.ChannelOverlay
 import com.cadnative.firevisioniptv.presentation.ui.player.ErrorRecoveryManager
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.ASPECT_MODES
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.MobileChromeActions
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PipRemoteActionsEffect
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerFocusOwnerEffect
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerGestureActions
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerModals
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlayTimers
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerOverlays
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerPlaybackListenerEffect
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerPortraitSections
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerStateOverlays
-import com.cadnative.firevisioniptv.presentation.ui.screens.player.PlayerTracksPanel
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.PortraitSectionActions
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.TvBackgroundPauseEffect
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.VideoPlayer
-import com.cadnative.firevisioniptv.presentation.ui.screens.player.handlePlayerKeyEvent
+import com.cadnative.firevisioniptv.presentation.ui.screens.player.handlePlayerRootKeyEvent
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.playerGestures
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.prepareChannelStream
 import com.cadnative.firevisioniptv.presentation.ui.screens.player.rememberPlayerOrientationController
@@ -219,21 +218,15 @@ fun PlayerScreen(
         }
     }
 
-    // Single focus owner: channel overlay > tracks panel > quick-actions bar > root box.
-    // Modals grab their own first row internally; this effect stands down while they're
-    // open and drops any stale bar-focus claim. Only caller of requestFocus at this level.
     val rootFocusRequester = remember { FocusRequester() }
     val quickActionsFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(uiState.showChannelOverlay, showTracksPanel, overlayState.controlsFocusRequest) {
-        when {
-            uiState.showChannelOverlay || showTracksPanel ->
-                overlayState.controlsFocusRequest = 0
-            overlayState.controlsFocusRequest > 0 ->
-                runCatching { quickActionsFocusRequester.requestFocus() }
-                    .onFailure { overlayState.controlsFocusRequest = 0 }
-            else -> runCatching { rootFocusRequester.requestFocus() }
-        }
-    }
+    PlayerFocusOwnerEffect(
+        showChannelOverlay = uiState.showChannelOverlay,
+        showTracksPanel = showTracksPanel,
+        state = overlayState,
+        rootFocusRequester = rootFocusRequester,
+        quickActionsFocusRequester = quickActionsFocusRequester
+    )
 
     val haptic = LocalHapticFeedback.current
 
@@ -295,22 +288,16 @@ fun PlayerScreen(
             .focusRequester(rootFocusRequester)
             .focusable()
             .onKeyEvent { keyEvent ->
-                // BACK must be consumed here: if it bubbles unhandled, Compose
-                // clears focus and eats ACTION_DOWN, so BackHandler never runs.
-                if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
-                    if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-                        if (showTracksPanel) showTracksPanel = false else onBackAction()
-                    }
-                    return@onKeyEvent true
-                }
-                // While the tracks panel is open, let its focusable rows handle keys.
-                if (showTracksPanel) return@onKeyEvent false
-                handlePlayerKeyEvent(
+                handlePlayerRootKeyEvent(
                     keyEvent = keyEvent,
                     uiState = uiState,
                     exoPlayer = exoPlayer,
                     viewModel = viewModel,
                     state = overlayState,
+                    showTracksPanel = showTracksPanel,
+                    isMobile = isMobile,
+                    onCloseTracksPanel = { showTracksPanel = false },
+                    onBack = onBackAction,
                     onNavigateToSettings = onNavigateToSettings,
                     onNavigateToSearch = onNavigateToSearch
                 )
@@ -365,6 +352,7 @@ fun PlayerScreen(
                         aspectLabel = ASPECT_MODES[aspectModeIndex].second,
                         quickActionsFocusRequester = quickActionsFocusRequester,
                         onToggleFavorite = onToggleFavorite,
+                        onPlayPause = onPlayPause,
                         onCycleSleepTimer = onCycleSleepTimer,
                         onCycleAspect = onCycleAspect,
                         onShowTracks = onShowTracks,
@@ -394,31 +382,14 @@ fun PlayerScreen(
         }
 
         if (!isInPip) {
-            if (showTracksPanel) {
-                PlayerTracksPanel(
-                    exoPlayer = exoPlayer,
-                    onDismiss = { showTracksPanel = false }
-                )
-            }
-
-            ChannelOverlay(
-                isVisible = uiState.showChannelOverlay,
-                currentChannel = uiState.channel,
-                recentChannels = uiState.recentChannels,
-                overlayEpg = uiState.overlayEpg,
-                channels = uiState.overlayChannels,
-                categories = uiState.overlayCategories,
-                selectedCategory = uiState.overlaySelectedCategory,
-                isLoadingChannels = uiState.overlayIsLoadingChannels,
-                isSwitchingChannel = uiState.isSwitchingChannel,
-                nowProgram = uiState.nowPlaying,
-                nextProgram = uiState.nextProgram,
-                onChannelClick = { viewModel.switchChannel(it) },
-                onCategorySelected = { viewModel.loadChannelList(it) },
-                onFavoriteClick = { viewModel.toggleOverlayFavorite(it) },
-                onInteraction = { viewModel.resetAutoHideTimer() },
-                onDismiss = { viewModel.hideOverlay() },
-                modifier = Modifier.fillMaxSize()
+            PlayerModals(
+                uiState = uiState,
+                state = overlayState,
+                viewModel = viewModel,
+                exoPlayer = exoPlayer,
+                isMobile = isMobile,
+                showTracksPanel = showTracksPanel,
+                onCloseTracksPanel = { showTracksPanel = false }
             )
         }
     }

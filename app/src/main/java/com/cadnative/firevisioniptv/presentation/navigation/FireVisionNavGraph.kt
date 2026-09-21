@@ -48,8 +48,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun FireVisionNavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Home.route,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestination: String = Screen.Home.route
 ) {
     val reduceMotion = LocalPerfProfile.current.reduceMotion
     val enterSlideOffsetPx = with(LocalDensity.current) { 16.dp.roundToPx() }
@@ -106,27 +106,6 @@ fun FireVisionNavGraph(
             HomeScreen(
                 onNavigateToChannels = { category ->
                     navController.navigate(Screen.ChannelsByCategory.createRoute(category))
-                },
-                onNavigateToSearch = {
-                    navController.navigate(Screen.Search.route) {
-                        popUpTo(Screen.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onNavigateToFavorites = {
-                    navController.navigate(Screen.Favorites.route) {
-                        popUpTo(Screen.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route) {
-                        popUpTo(Screen.Home.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
                 },
                 onChannelClick = { channelId ->
                     navController.navigate(Screen.Player.createRoute(channelId))

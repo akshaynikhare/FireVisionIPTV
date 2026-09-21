@@ -22,12 +22,10 @@ import java.util.Locale
 /** Minutes between vertical tick labels on the time axis. */
 internal const val GUIDE_TICK_MINUTES = 30L
 
-private val hourFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-
 /** Local-time "h:mm a" label for [instant]. */
 internal fun formatSlotLabel(instant: Instant): String =
-    hourFormatter.format(instant.atZone(ZoneId.systemDefault()))
+    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+        .format(instant.atZone(ZoneId.systemDefault()))
 
 /**
  * Horizontal dp offset of [instant] from [windowStart], at [minuteWidth] per minute.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
     <!-- 
         Network security configuration for FireVision IPTV.
         Enforces HTTPS-only connections for all network traffic.
@@ -12,7 +12,9 @@
          very commonly serve over http://. The managed FireVision server is still
          reached over HTTPS with certificate pinning (enforced in OkHttp), so this does
          not weaken the managed path. -->
-    <base-config cleartextTrafficPermitted="true">
+    <base-config
+        cleartextTrafficPermitted="true"
+        tools:ignore="InsecureBaseConfiguration">
         <trust-anchors>
             <!-- Trust system certificate authorities -->
             <certificates src="system" />

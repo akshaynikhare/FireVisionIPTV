@@ -15,8 +15,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 
 @Composable
 fun LoadingIndicator(
-    message: String = "Loading...",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String = "Loading..."
 ) {
     Box(
         modifier = modifier

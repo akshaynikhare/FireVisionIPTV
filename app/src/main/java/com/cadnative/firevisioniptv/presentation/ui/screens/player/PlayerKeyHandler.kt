@@ -7,7 +7,6 @@ import com.cadnative.firevisioniptv.presentation.model.PlayerUiState
 import com.cadnative.firevisioniptv.presentation.viewmodel.PlayerViewModel
 
 internal const val CHANNEL_SWITCH_DEBOUNCE_MS = 250L
-private const val LONG_PRESS_THRESHOLD_MS = 600L
 private const val NUMBER_BUFFER_MAX_DIGITS = 4
 
 /** Executes a remappable key action (see [PlayerKeyAction]). */
@@ -53,6 +52,56 @@ private fun togglePlayPause(exoPlayer: ExoPlayer, state: PlayerOverlayState) {
 }
 
 /**
+ * Key handling for the player's root Box, ahead of [handlePlayerKeyEvent].
+ *
+ * BACK is dealt with here rather than in a BackHandler: if it bubbles unhandled,
+ * Compose clears focus and eats ACTION_DOWN, so the BackHandler never runs on TV.
+ * The repeatCount gate matters too — Android auto-repeats a held BACK, and without
+ * it a hold pops more than one level (or drops straight out of the player).
+ *
+ * Returns true when the event is consumed.
+ */
+internal fun handlePlayerRootKeyEvent(
+    keyEvent: androidx.compose.ui.input.key.KeyEvent,
+    uiState: PlayerUiState,
+    exoPlayer: ExoPlayer,
+    viewModel: PlayerViewModel,
+    state: PlayerOverlayState,
+    showTracksPanel: Boolean,
+    isMobile: Boolean,
+    onCloseTracksPanel: () -> Unit,
+    onBack: () -> Unit,
+    onNavigateToSettings: (() -> Unit)?,
+    onNavigateToSearch: (() -> Unit)?
+): Boolean {
+    if (keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
+        if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+            keyEvent.nativeKeyEvent.repeatCount == 0
+        ) {
+            if (showTracksPanel) {
+                onCloseTracksPanel()
+                // Return focus to the bar that launched the panel
+                if (!isMobile) state.focusQuickActions()
+            } else {
+                onBack()
+            }
+        }
+        return true
+    }
+    // While the tracks panel is open, let its focusable rows handle keys.
+    if (showTracksPanel) return false
+    return handlePlayerKeyEvent(
+        keyEvent = keyEvent,
+        uiState = uiState,
+        exoPlayer = exoPlayer,
+        viewModel = viewModel,
+        state = state,
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToSearch = onNavigateToSearch
+    )
+}
+
+/**
  * Remote/keyboard input handling for the player. Returns true when the
  * event is consumed. Includes long-press OK detection and 0-9 digit entry.
  */
@@ -69,8 +118,10 @@ internal fun handlePlayerKeyEvent(
     val keyCode = keyEvent.nativeKeyEvent.keyCode
 
     // ── Sleep timer "Still watching?" window: any key press keeps watching ──
+    // Fires on RELEASE so the cancelling press's UP can't leak into the OK
+    // branch below and open the overlay.
     if (uiState.sleepTimerExpired) {
-        if (action == KeyEvent.ACTION_DOWN) {
+        if (action == KeyEvent.ACTION_UP) {
             viewModel.cancelSleepTimerExpiry()
             exoPlayer.play()
         }
@@ -82,63 +133,55 @@ internal fun handlePlayerKeyEvent(
     if (state.controlsFocused) {
         if (action != KeyEvent.ACTION_DOWN) return false
         return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MENU -> {
-                state.exitQuickActions()
+            // Any vertical press (or MENU) leaves the bar — once per press,
+            // held-key repeats are consumed without re-firing
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_MENU -> {
+                if (keyEvent.nativeKeyEvent.repeatCount == 0) state.exitQuickActions()
                 true
             }
-            KeyEvent.KEYCODE_DPAD_DOWN -> true   // swallow — would fall through to zap
-            else -> false                        // ◀▶ → focus traversal; OK → clickable (BACK handled at root)
+            else -> false // ◀▶ → focus traversal; OK → clickable (BACK handled at root)
         }
     }
 
-    // ── Long-press detection for DPAD_CENTER / ENTER (remappable action) ──
+    // ── OK opens the channel switcher. Fires on release so the press can't
+    // leak into the overlay's first card; no hold behavior — one key, one job.
     if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
         if (uiState.showChannelOverlay) return false
-        when (action) {
-            KeyEvent.ACTION_DOWN -> {
-                val native = keyEvent.nativeKeyEvent
-                if (native.repeatCount == 0) {
-                    state.longPressConsumed = false
-                } else if (!state.longPressConsumed &&
-                    (native.isLongPress ||
-                        native.eventTime - native.downTime >= LONG_PRESS_THRESHOLD_MS)
-                ) {
-                    state.longPressConsumed = true
-                    performKeyAction(uiState.longOkAction, true, exoPlayer, viewModel, state)
-                }
-                return true
-            }
-            KeyEvent.ACTION_UP -> {
-                if (!state.longPressConsumed) {
-                    // Short press → open channel switcher
-                    viewModel.showOverlay()
-                }
-                state.longPressConsumed = false
-                return true
-            }
-        }
+        if (action == KeyEvent.ACTION_UP) viewModel.showOverlay()
+        return true
     }
 
     if (action != KeyEvent.ACTION_DOWN) return false
 
+    // Held-key repeats must not re-fire discrete actions; each branch below is
+    // gated. Repeats still fall through while the overlay is open so held ◀▶
+    // keeps scrolling the channel list via native focus traversal.
+    val isRepeat = keyEvent.nativeKeyEvent.repeatCount > 0
+
     // Menu: reveal + focus the quick-actions bar (channel overlay stays on OK / Channels button)
     if (keyCode == KeyEvent.KEYCODE_MENU) {
-        if (uiState.showChannelOverlay) viewModel.hideOverlay() else state.focusQuickActions()
+        if (!isRepeat) {
+            if (uiState.showChannelOverlay) viewModel.hideOverlay() else state.focusQuickActions()
+        }
         return true
     }
 
     if (keyCode == KeyEvent.KEYCODE_SETTINGS && onNavigateToSettings != null) {
-        onNavigateToSettings()
+        if (!isRepeat) onNavigateToSettings()
         return true
     }
 
     if (keyCode == KeyEvent.KEYCODE_SEARCH && onNavigateToSearch != null) {
-        onNavigateToSearch()
+        if (!isRepeat) onNavigateToSearch()
         return true
     }
 
     // Remaining keys only apply when overlay is NOT visible
     if (uiState.showChannelOverlay) return false
+
+    // Bare player: consume held-key repeats outright — one press = one action.
+    // Returning false would drop them into Compose focus search instead.
+    if (isRepeat) return true
 
     return when (keyCode) {
         KeyEvent.KEYCODE_DPAD_UP -> {

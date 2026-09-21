@@ -34,8 +34,8 @@ private val InvertColorFilter = ColorFilter.colorMatrix(
 fun ThemeAwareQrCode(
     bitmap: Bitmap,
     contentDescription: String,
-    size: Dp = 180.dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: Dp = 180.dp
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 

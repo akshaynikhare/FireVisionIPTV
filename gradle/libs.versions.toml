@@ -1,6 +1,7 @@
 [versions]
 agp = "8.7.0"
 kotlin = "1.9.24"
+ksp = "1.9.24-1.0.20"
 sentry = "7.14.0"
 leanback = "1.2.0-alpha04"
 glide = "4.16.0"
@@ -10,6 +11,11 @@ compose = "1.7.5"
 composeTv = "1.0.0-alpha10"
 hilt = "2.51"
 room = "2.6.1"
+firebaseBom = "33.1.0"
+tvprovider = "1.1.0"
+amazonAppstore = "3.0.5"
+zxing = "3.5.3"
+lottie = "6.4.0"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 coil = "2.7.0"
@@ -60,6 +66,18 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
+# Platform services and utilities
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+firebase-perf = { group = "com.google.firebase", name = "firebase-perf" }
+firebase-database = { group = "com.google.firebase", name = "firebase-database" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+androidx-tvprovider = { group = "androidx.tvprovider", name = "tvprovider", version.ref = "tvprovider" }
+amazon-appstore = { group = "com.amazon.device", name = "amazon-appstore-sdk", version.ref = "amazonAppstore" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
+
 # Retrofit & OkHttp
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
@@ -101,5 +119,4 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
-
+kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

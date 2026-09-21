@@ -312,7 +312,11 @@ private fun FireVisionAppShell(
         navController.navigate(screen.route) {
             popUpTo(Screen.Home.route) { saveState = true }
             launchSingleTop = true
-            restoreState = true
+            // Home is the root, not a tab with its own stack. A non-inclusive
+            // popUpTo(Home) with saveState files whatever it popped (e.g. the
+            // Player → Guide chain) under Home's id, so restoring on the Home
+            // click would put that chain straight back on top of Home.
+            restoreState = screen != Screen.Home
         }
     }
 

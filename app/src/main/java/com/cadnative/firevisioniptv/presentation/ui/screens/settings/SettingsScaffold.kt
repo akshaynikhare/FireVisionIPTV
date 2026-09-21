@@ -83,11 +83,12 @@ internal fun SettingsScaffold(
     uiState: SettingsUiState,
     scanProgress: ScanProgress,
     actions: SettingsActions,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    ScreenScaffold(title = "Settings", modifier = modifier) {
+    ScreenScaffold(title = "Settings", modifier = modifier, onBack = onBack) {
         if (isPortrait) {
             StackedSettings(
                 uiState = uiState,
@@ -292,14 +293,12 @@ private fun SectionContent(
             backExitProtection = uiState.backExitProtection,
             keyUpDownAction = uiState.keyUpDownAction,
             keyLeftRightAction = uiState.keyLeftRightAction,
-            longOkAction = uiState.longOkAction,
             sleepTimerDefaultMinutes = uiState.sleepTimerDefaultMinutes,
             alwaysShowProgramBar = uiState.alwaysShowProgramBar,
             infoBarTimeoutSeconds = uiState.infoBarTimeoutSeconds,
             onBackExitProtectionChange = actions.onBackExitProtectionChange,
             onKeyUpDownChange = actions.onKeyUpDownChange,
             onKeyLeftRightChange = actions.onKeyLeftRightChange,
-            onLongOkChange = actions.onLongOkChange,
             onSleepTimerDefaultChange = actions.onSleepTimerDefaultChange,
             onAlwaysShowProgramBarChange = actions.onAlwaysShowProgramBarChange,
             onInfoBarTimeoutChange = actions.onInfoBarTimeoutChange,

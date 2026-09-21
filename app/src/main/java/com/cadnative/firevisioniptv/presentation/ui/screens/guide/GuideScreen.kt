@@ -29,10 +29,10 @@ import com.cadnative.firevisioniptv.presentation.viewmodel.GuideViewModel
 fun GuideScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onCatchup: (channelId: String, startMillis: Long, durationMinutes: Int) -> Unit =
         { id, _, _ -> onChannelClick(id) },
     onPairDevice: () -> Unit = {},
-    modifier: Modifier = Modifier,
     viewModel: GuideViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

@@ -90,8 +90,12 @@ interface ChannelDao {
     @Transaction
     suspend fun replaceAllChannels(channels: List<ChannelEntity>) {
         val newIds = channels.map { it.id }.toSet()
-        val existingIds = getAllChannelIds()
-        val idsToDelete = existingIds.filter { it !in newIds }
+        val existing = getAllChannelIdentities()
+        val idsToDelete = existing.map { it.id }.filter { it !in newIds }
+
+        // Before the stale rows go, hand their user state to whichever incoming channel
+        // is the same channel under a new id.
+        remapRenamedChannels(channels, existing)
 
         idsToDelete.chunked(900).forEach { batch ->
             deleteChannelsByIds(batch)
@@ -99,8 +103,93 @@ interface ChannelDao {
         insertChannels(channels)
     }
 
-    @Query("SELECT id FROM channels")
-    suspend fun getAllChannelIds(): List<String>
+    /**
+     * Carry favorites, health, metrics and resume points across a channel id change.
+     *
+     * A source can rename a channel between refreshes — a playlist reordered, an id
+     * scheme changed, a provider reissuing its catalogue. The old row is then deleted
+     * and the same channel reappears under a new id, which silently strips the install:
+     * favorites stop joining to a channel, and health, metrics and resume points are
+     * left keyed to ids nothing references. The user loses their list having done
+     * nothing.
+     *
+     * So a channel is matched on what it actually is rather than what it is called:
+     * first its stream URL, then its EPG id for a provider that rotated URLs. Both
+     * passes require the key to identify exactly one row on each side — a playlist that
+     * repeats a URL is ambiguous, and a wrong guess would move one channel's favorites
+     * onto another. Only retired ids and genuinely new ids take part, so an unchanged
+     * channel is never touched.
+     */
+    @Transaction
+    suspend fun remapRenamedChannels(
+        channels: List<ChannelEntity>,
+        existing: List<ChannelIdentity>
+    ) {
+        if (existing.isEmpty() || channels.isEmpty()) return
+        val incomingIds = channels.mapTo(HashSet()) { it.id }
+        val existingIds = existing.mapTo(HashSet()) { it.id }
+
+        val retired = existing.filter { it.id !in incomingIds }
+        val arrived = channels.filter { it.id !in existingIds }
+        if (retired.isEmpty() || arrived.isEmpty()) return
+
+        val usedSources = HashSet<String>()
+        val usedTargets = HashSet<String>()
+
+        suspend fun pass(
+            keyOfRetired: (ChannelIdentity) -> String?,
+            keyOfArrived: (ChannelEntity) -> String?
+        ) {
+            val sources = retired.filterNot { it.id in usedSources }
+                .groupBy(keyOfRetired)
+                .filter { (key, rows) -> !key.isNullOrBlank() && rows.size == 1 }
+            if (sources.isEmpty()) return
+            val targets = arrived.filterNot { it.id in usedTargets }
+                .groupBy(keyOfArrived)
+                .filter { (key, rows) -> !key.isNullOrBlank() && rows.size == 1 }
+
+            sources.forEach { (key, rows) ->
+                val target = targets[key]?.first() ?: return@forEach
+                val source = rows.first()
+                remapChannelReferences(source.id, target.id)
+                usedSources += source.id
+                usedTargets += target.id
+            }
+        }
+
+        pass({ it.streamUrl }, { it.streamUrl })
+        pass({ it.tvgId }, { it.tvgId })
+    }
+
+    /**
+     * Move every per-channel user record from [legacyId] to [newId].
+     *
+     * `UPDATE OR IGNORE` because each of these tables is unique on channelId: if the
+     * new id already carries a record, the existing one wins and the legacy row is left
+     * to be cleaned up as an ordinary orphan rather than failing the whole refresh.
+     */
+    @Transaction
+    suspend fun remapChannelReferences(legacyId: String, newId: String) {
+        remapFavoriteChannelId(legacyId, newId)
+        remapChannelHealthChannelId(legacyId, newId)
+        remapStreamMetricsChannelId(legacyId, newId)
+        remapPlaybackPositionChannelId(legacyId, newId)
+    }
+
+    @Query("UPDATE OR IGNORE favorites SET channelId = :newId WHERE channelId = :legacyId")
+    suspend fun remapFavoriteChannelId(legacyId: String, newId: String)
+
+    @Query("UPDATE OR IGNORE channel_health SET channelId = :newId WHERE channelId = :legacyId")
+    suspend fun remapChannelHealthChannelId(legacyId: String, newId: String)
+
+    @Query("UPDATE OR IGNORE stream_metrics SET channelId = :newId WHERE channelId = :legacyId")
+    suspend fun remapStreamMetricsChannelId(legacyId: String, newId: String)
+
+    @Query("UPDATE OR IGNORE playback_positions SET channelId = :newId WHERE channelId = :legacyId")
+    suspend fun remapPlaybackPositionChannelId(legacyId: String, newId: String)
+
+    @Query("SELECT id, streamUrl, tvgId FROM channels")
+    suspend fun getAllChannelIdentities(): List<ChannelIdentity>
 
     @Query("SELECT * FROM channels WHERE isActive = 1 ORDER BY name ASC")
     suspend fun getAllActiveChannels(): List<ChannelEntity>

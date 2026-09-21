@@ -10,25 +10,22 @@ import androidx.security.crypto.MasterKey
  */
 class SecurePreferences(context: Context) {
 
-    val isEncrypted: Boolean
+    val isEncrypted: Boolean = true
 
     private val sharedPreferences: SharedPreferences
 
     init {
-        var prefs: SharedPreferences? = null
-        var encrypted = false
-        try {
+        sharedPreferences = try {
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
-            prefs = EncryptedSharedPreferences.create(
+            EncryptedSharedPreferences.create(
                 context,
                 "secure_prefs",
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
-            encrypted = true
         } catch (_: Exception) {
             // Keystore corrupted — clear and retry once
             context.deleteSharedPreferences("secure_prefs")
@@ -36,21 +33,18 @@ class SecurePreferences(context: Context) {
                 val masterKey = MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                     .build()
-                prefs = EncryptedSharedPreferences.create(
+                EncryptedSharedPreferences.create(
                     context,
                     "secure_prefs",
                     masterKey,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                 )
-                encrypted = true
             } catch (e: Exception) {
                 android.util.Log.e("SecurePreferences", "CRITICAL: EncryptedSharedPreferences failed twice — refusing to store sensitive data unencrypted", e)
                 throw SecurityException("Cannot create encrypted storage. Device keystore may be corrupted.", e)
             }
         }
-        sharedPreferences = prefs!!
-        isEncrypted = encrypted
     }
 
     fun putString(key: String, value: String) {

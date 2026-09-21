@@ -48,9 +48,10 @@ data class PlayerUiState(
     val scheduleLoading: Boolean = false,
     // Recently watched channels, most recent first (max 3, never the current one)
     val recentChannels: List<ChannelUiModel> = emptyList(),
-    // Navigation preferences
-    val keyUpDownAction: String = PlayerKeyAction.ZAP,
-    val keyLeftRightAction: String = PlayerKeyAction.ZAP,
+    // Navigation preferences. Defaults must match UserPreferencesRepositoryImpl —
+    // D-pad reveals visible UI by default; zapping is CH± / overlay / recall only.
+    val keyUpDownAction: String = PlayerKeyAction.MENU,
+    val keyLeftRightAction: String = PlayerKeyAction.MENU,
     val longOkAction: String = PlayerKeyAction.FAVORITE,
     val alwaysShowProgramBar: Boolean = false,
     // Sleep timer / auto-off

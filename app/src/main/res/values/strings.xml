@@ -29,7 +29,6 @@
     <string name="category_icon">Category Icon</string>
     <string name="no_categories_found">No categories found</string>
     <string name="no_languages_found">No languages found</string>
-    <string name="channel_count">%d channels</string>
     <string name="browse_categories">Browse Categories</string>
     <string name="browse_languages">Browse Languages</string>
     

@@ -37,6 +37,7 @@ internal fun overlayEpgKey(tvgId: String?): String? =
 internal fun OverlayDetailStrip(
     channel: ChannelUiModel?,
     epg: Pair<EpgProgram?, EpgProgram?>?,
+    nowMillis: Long,
     modifier: Modifier = Modifier
 ) {
     val now = epg?.first
@@ -88,7 +89,11 @@ internal fun OverlayDetailStrip(
                     maxLines = 1
                 )
             }
-            EpgProgressBar(now)
+            EpgProgressBar(
+                startMs = now.startTime.toEpochMilli(),
+                endMs = now.endTime.toEpochMilli(),
+                nowMillis = nowMillis
+            )
             val description = now.description
             if (!description.isNullOrBlank()) {
                 Text(

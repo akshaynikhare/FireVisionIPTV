@@ -1,7 +1,6 @@
 package com.cadnative.firevisioniptv.data.repository
 
 import android.app.Application
-import android.provider.Settings
 import android.util.Log
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.mapper.ChannelMapper
@@ -26,6 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.Closeable
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -55,6 +56,7 @@ class FavoriteRepositoryImpl @Inject constructor(
 ) : FavoriteRepository, Closeable {
 
     private val syncScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val syncMutex = Mutex()
 
     companion object {
         private const val TAG = "FavoriteRepo"
@@ -205,7 +207,8 @@ class FavoriteRepositoryImpl @Inject constructor(
      * @return Result indicating success or failure of synchronization
      */
     override suspend fun syncFavorites(): Result<Unit> = withContext(dispatcher) {
-        try {
+        syncMutex.withLock {
+            try {
             // Get all local favorites
             val favorites = localDataSource.getAllFavorites().first()
             val channelIds = favorites.map { it.channelId }
@@ -225,9 +228,10 @@ class FavoriteRepositoryImpl @Inject constructor(
             } else {
                 Result.Error(Exception("Sync failed: ${response.code()} ${response.message()}"))
             }
-        } catch (e: Exception) {
-            // Sync failures are non-critical - local data is still valid
-            Result.Error(e)
+            } catch (e: Exception) {
+                // Sync failures are non-critical - local data is still valid
+                Result.Error(e)
+            }
         }
     }
     
@@ -291,9 +295,6 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     private fun getDeviceId(): String {
-        return Settings.Secure.getString(
-            application.contentResolver,
-            Settings.Secure.ANDROID_ID
-        ) ?: "unknown_device"
+        return AppPreferences.getInstallationId(application)
     }
 }

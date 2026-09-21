@@ -7,8 +7,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import java.util.concurrent.TimeUnit
 
 /**
- * Shared OkHttpClient for use outside of Hilt-injected classes
- * (PairingActivity, PairingViewModel, AppUpdater, SettingsViewModel raw calls).
+ * Shared OkHttpClient for the few callers that are not Hilt-injected API consumers:
+ * the APK updater and the Settings server-reachability probe. Everything that talks to
+ * the FireVision API goes through FireVisionApiService (Retrofit) instead.
  *
  * No certificate pinning — the Let's Encrypt leaf rotates ~every 90 days, which would
  * break a hardcoded pin (and did). Standard system-CA TLS validation still applies.

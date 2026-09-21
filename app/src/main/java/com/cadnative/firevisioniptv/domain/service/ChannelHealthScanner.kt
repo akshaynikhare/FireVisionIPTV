@@ -190,8 +190,6 @@ class ChannelHealthScanner @Inject constructor(
                 scannedCount += batch.size
                 continue
             }
-            val validIds = channelUrls.map { it.first }.toSet()
-
             // Mark batch as CHECKING (preserves existing thumbnailPath)
             for ((id, _) in channelUrls) {
                 channelHealthDao.upsertPreservingThumbnail(

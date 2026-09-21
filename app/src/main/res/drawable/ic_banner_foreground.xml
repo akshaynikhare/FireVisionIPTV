@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="320dp"
     android:height="180dp"
     android:viewportWidth="889"
-    android:viewportHeight="500">
+    android:viewportHeight="500"
+    tools:ignore="VectorRaster">
 
     <!-- Flame centered in 16:9 viewport (889x500) with proper padding -->
     <group android:translateX="195" android:translateY="63">

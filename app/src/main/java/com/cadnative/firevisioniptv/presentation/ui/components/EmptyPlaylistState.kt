@@ -39,9 +39,9 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.SteelBlue
 fun EmptyPlaylistState(
     qrCodeBitmap: Bitmap?,
     onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
     isMobile: Boolean = false,
-    channelManagerUrl: String = "",
-    modifier: Modifier = Modifier
+    channelManagerUrl: String = ""
 ) {
     val context = LocalContext.current
 
