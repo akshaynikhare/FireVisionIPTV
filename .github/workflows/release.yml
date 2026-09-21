@@ -24,7 +24,7 @@ jobs:
       # signing keystore and the Sentry token, and a retargeted tag would run new
       # code in the workspace before the signed build.
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
