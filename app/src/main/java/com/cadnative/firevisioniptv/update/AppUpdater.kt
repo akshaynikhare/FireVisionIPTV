@@ -219,7 +219,7 @@ class AppUpdater @Inject constructor(
             Log.e(TAG, "Could not retrieve signatures for verification")
             return false
         }
-        return currentSigs == apkSigs
+        return ApkSignatures.accepts(currentSigs, apkSigs)
     }
 
     /** Unregister the download receiver — call from the owner's onCleared. */

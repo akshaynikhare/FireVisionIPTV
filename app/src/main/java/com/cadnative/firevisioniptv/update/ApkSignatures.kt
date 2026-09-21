@@ -21,6 +21,28 @@ import java.security.MessageDigest
  */
 internal object ApkSignatures {
 
+    /**
+     * Whether an update signed with [archive] may replace an app signed with [installed].
+     *
+     * Not equality. Android supports signing-key rotation: an app still running the
+     * old key reports history `[A]`, while a legitimate update signed with the
+     * rotated key reports the proof-of-rotation lineage `[A, B]`. Requiring
+     * identical histories rejects exactly the transition the platform allows —
+     * and rejects it in the one component that cannot be fixed by an update,
+     * because it *is* the updater.
+     *
+     * Containment is no weaker than equality: the lineage in an APK's signing
+     * block has to be signed by each preceding key, so an attacker without the
+     * original private key cannot claim [installed] in it, and the platform
+     * installer enforces the same rule independently. An APK signed only with a
+     * key the installed app has already rotated away from is still refused,
+     * since the installed history would not be a subset.
+     */
+    fun accepts(installed: List<String>?, archive: List<String>?): Boolean {
+        if (installed.isNullOrEmpty() || archive.isNullOrEmpty()) return false
+        return archive.containsAll(installed)
+    }
+
     /** Digests of the certificates the installed app is signed with, or null if unreadable. */
     fun installed(pm: PackageManager, packageName: String): List<String>? =
         runCatching {

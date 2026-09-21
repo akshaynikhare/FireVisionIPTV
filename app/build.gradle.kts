@@ -27,11 +27,28 @@ android {
         // Derived from the tag rather than hand-maintained: it was pinned at 5 while
         // versionName moved with every release, so in-place updates had nothing
         // monotonic to compare. 1.5 -> 10500. Floored above the last published code.
-        versionCode = resolvedVersionName.split(".").let { parts ->
-            (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 10000 +
-                (parts.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
-                (parts.getOrNull(2)?.toIntOrNull() ?: 0)
-        }.coerceAtLeast(6)
+        //
+        // Validated first, because the arithmetic below silently maps anything
+        // non-numeric to zero: release.yml fires on every `v*` tag, so `v2.2.3-beta`
+        // would land on 20200 — the same code as v2.2.0 — and a tag that kept its
+        // `v` would land on 203, a downgrade. Both are unrecoverable once published,
+        // since the in-app updater is the thing that breaks. A tag typo must fail
+        // the build, not ship.
+        val versionParts = resolvedVersionName.split(".")
+        require(versionParts.size in 2..3 && versionParts.all { it.isNotEmpty() && it.all(Char::isDigit) }) {
+            "versionName must be MAJOR.MINOR or MAJOR.MINOR.PATCH with numeric parts only, " +
+                "got \"$resolvedVersionName\". release.yml derives this from the tag, so drop the " +
+                "leading 'v' and any pre-release suffix."
+        }
+        require(versionParts.drop(1).all { it.toInt() < 100 }) {
+            "versionName components after MAJOR must each be below 100 or the derived " +
+                "versionCode stops being monotonic, got \"$resolvedVersionName\"."
+        }
+        versionCode = (
+            versionParts[0].toInt() * 10000 +
+                versionParts[1].toInt() * 100 +
+                (versionParts.getOrNull(2)?.toInt() ?: 0)
+            ).coerceAtLeast(6)
         
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
@@ -244,7 +261,20 @@ ksp {
 // one. Only release.yml holds the secret, so without this gate assembleRelease
 // is red on every PR and every fork — after R8 has already succeeded, which is
 // the part CI is actually there to verify.
+//
+// Skipping silently is right for ordinary CI and wrong for a publish: a release
+// built without the token still produces an installable APK, but its production
+// crashes can never be de-obfuscated, and nothing would have said so. release.yml
+// passes -PrequireSentryUpload so the publishing path fails loudly instead.
 val sentryAuthToken: String? = System.getenv("SENTRY_AUTH_TOKEN")?.takeIf { it.isNotBlank() }
+
+if (project.hasProperty("requireSentryUpload")) {
+    require(sentryAuthToken != null) {
+        "SENTRY_AUTH_TOKEN is not set. This build would publish an APK whose crash " +
+            "reports cannot be de-obfuscated. Set the secret, or drop " +
+            "-PrequireSentryUpload if you deliberately want an unmapped build."
+    }
+}
 
 sentry {
     includeSourceContext = sentryAuthToken != null
