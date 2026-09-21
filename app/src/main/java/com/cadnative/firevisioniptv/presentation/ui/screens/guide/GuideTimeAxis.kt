@@ -22,10 +22,21 @@ import java.util.Locale
 /** Minutes between vertical tick labels on the time axis. */
 internal const val GUIDE_TICK_MINUTES = 30L
 
+// Built once rather than per label: this runs for every tick of every axis redraw,
+// and below API 26 it resolves through desugared java.time, which is not free.
+private val slotFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+
+// The AM/PM marker comes from the device's CLDR data, which on older API levels is
+// several revisions behind what the pattern expects. A wrong marker is cosmetic; an
+// exception thrown per tick inside the axis is a crash loop — so fall back to 24h.
+private val slotFormatterFallback = DateTimeFormatter.ofPattern("H:mm")
+
 /** Local-time "h:mm a" label for [instant]. */
-internal fun formatSlotLabel(instant: Instant): String =
-    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-        .format(instant.atZone(ZoneId.systemDefault()))
+internal fun formatSlotLabel(instant: Instant): String {
+    val local = instant.atZone(ZoneId.systemDefault())
+    return runCatching { slotFormatter.format(local) }
+        .getOrElse { slotFormatterFallback.format(local) }
+}
 
 /**
  * Horizontal dp offset of [instant] from [windowStart], at [minuteWidth] per minute.

@@ -23,6 +23,7 @@ coroutines = "1.8.0"
 workManager = "2.9.0"
 navigation = "2.7.7"
 lifecycle = "2.8.7"
+desugarJdkLibs = "2.1.5"
 junit = "4.13.2"
 mockk = "1.13.12"
 turbine = "1.1.0"
@@ -108,6 +109,9 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 
 # Sentry
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+
+# Java 8+ API support on older devices (java.time, used throughout the EPG)
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -89,6 +89,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time is the EPG's core domain type (EpgProgram.startTime et al) and
+        // only exists natively from API 26 — desugaring is what lets minSdk drop.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -105,6 +108,8 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     // AndroidX Leanback (updated)
     implementation(libs.androidx.leanback)
     implementation(libs.androidx.appcompat)
