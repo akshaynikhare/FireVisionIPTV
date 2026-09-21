@@ -54,6 +54,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import com.cadnative.firevisioniptv.presentation.model.ChannelUiModel
 import com.cadnative.firevisioniptv.presentation.ui.player.isMobileDevice
+import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimBadge
 import com.cadnative.firevisioniptv.presentation.ui.theme.Amber
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusBorder
@@ -394,7 +395,7 @@ private fun ChannelCardContent(
                     .align(Alignment.TopEnd)
                     .padding(Dimens.CardBadgePadding)
                     .clip(MaterialTheme.shapes.small)
-                    .background(Color.Black.copy(alpha = 0.55f))
+                    .background(ScrimBadge)
                     .padding(horizontal = Dimens.Space2, vertical = Dimens.BadgePaddingV)
             )
         }

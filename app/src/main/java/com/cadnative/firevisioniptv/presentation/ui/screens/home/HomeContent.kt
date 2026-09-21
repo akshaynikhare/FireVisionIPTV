@@ -85,12 +85,20 @@ fun HomeContent(
     // on a warm start, and re-keying the hero on every emission disposes whatever
     // currently holds focus — which drops focus to the root and, on the next key
     // press, back onto the rail. Only swap when the identities actually change.
+    // Only the *identity* list is sticky. The models themselves are always the
+    // newest emission, so a favourite toggle, a health result or an EPG refresh
+    // shows straight away — making the whole list sticky kept stale names, logos
+    // and favourite state on screen until membership happened to change.
     var bannerChannels by remember { mutableStateOf(emptyList<ChannelUiModel>()) }
+    var bannerIds by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(featuredChannels, channels) {
         val next = featuredChannels.ifEmpty { channels.take(5) }
-        if (next.isNotEmpty() && next.map { it.id } != bannerChannels.map { it.id }) {
-            bannerChannels = next
-        }
+        // An empty emission keeps the previous models rather than tearing the
+        // hero down for a frame.
+        if (next.isEmpty()) return@LaunchedEffect
+        bannerChannels = next
+        val nextIds = next.map { it.id }
+        if (nextIds != bannerIds) bannerIds = nextIds
     }
 
     // Hero follows D-pad focus in the featured row, debounced so fast
@@ -98,20 +106,24 @@ fun HomeContent(
     // featured channel so the hero renders immediately.
     // Keyed on the first channel's id, not the list instance: a reordered list with
     // the same head should not reset the hero out from under the user.
-    val bannerHeadId = bannerChannels.firstOrNull()?.id
-    var focusedFeatured by remember(bannerHeadId) { mutableStateOf(bannerChannels.firstOrNull()) }
-    var heroChannel by remember(bannerHeadId) { mutableStateOf(bannerChannels.firstOrNull()) }
-    LaunchedEffect(focusedFeatured) {
-        if (heroChannel != focusedFeatured) {
+    val bannerHeadId = bannerIds.firstOrNull()
+    // Ids, not models: holding a model here would pin whatever snapshot was
+    // current when the key last changed, which is how the hero went stale.
+    var focusedFeaturedId by remember(bannerHeadId) { mutableStateOf(bannerHeadId) }
+    var heroChannelId by remember(bannerHeadId) { mutableStateOf(bannerHeadId) }
+    LaunchedEffect(focusedFeaturedId) {
+        if (heroChannelId != focusedFeaturedId) {
             delay(HERO_SWAP_DEBOUNCE_MS)
-            heroChannel = focusedFeatured
+            heroChannelId = focusedFeaturedId
         }
     }
+    val heroChannel = bannerChannels.firstOrNull { it.id == heroChannelId }
+        ?: bannerChannels.firstOrNull()
 
     // Restore focus to the last played channel in exactly one section,
     // preferring the section closest to the top.
-    val featuredFocusId = remember(lastPlayedChannelId, bannerChannels) {
-        lastPlayedChannelId?.takeIf { id -> bannerChannels.any { it.id == id } }
+    val featuredFocusId = remember(lastPlayedChannelId, bannerIds) {
+        lastPlayedChannelId?.takeIf { it in bannerIds }
     }
     val recentFocusId = remember(lastPlayedChannelId, featuredFocusId, recentlyWatched) {
         if (featuredFocusId != null) null
@@ -192,7 +204,7 @@ fun HomeContent(
                 onChannelClick = onChannelClick,
                 onToggleFavorite = onToggleFavorite,
                 onMultiviewClick = onMultiviewClick,
-                onChannelFocused = { focusedFeatured = it },
+                onChannelFocused = { focusedFeaturedId = it.id },
                 focusChannelId = featuredFocusId,
                 horizontalPadding = horizontalPadding,
                 modifier = Modifier
