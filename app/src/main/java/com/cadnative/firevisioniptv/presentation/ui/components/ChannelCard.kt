@@ -70,6 +70,7 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.Void700
 import com.cadnative.firevisioniptv.presentation.ui.theme.Void800
 import com.cadnative.firevisioniptv.presentation.ui.theme.categoryColor
 
+
 private const val LONG_PRESS_THRESHOLD_MS = 600L
 
 // Subtle drop shadow so card text stays legible where the scrim is thinnest.
@@ -99,17 +100,17 @@ fun ChannelCard(
     onMultiviewClick: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    var showContextMenu by remember { mutableStateOf(false) }
     var longPressHandled by remember { mutableStateOf(false) }
     var selectKeyDownTime by remember { mutableLongStateOf(0L) }
-    var showContextMenu by remember { mutableStateOf(false) }
     val isMobile = isMobileDevice(LocalContext.current)
     val haptic = LocalHapticFeedback.current
 
-    // With a multiview callback the long-press opens the context menu;
-    // without one (player overlay) it keeps the legacy instant-favorite.
-    val onLongPressAction = {
-        if (onMultiviewClick != null) showContextMenu = true else onFavoriteClick()
-    }
+    // Always the menu, on every surface. Cards in the player overlay used to fall
+    // through to an instant favourite toggle because they pass no multiview
+    // callback; the menu simply omits that row instead. Holding OK never changes
+    // anything on its own any more — it only opens the menu.
+    val openContextMenu = { showContextMenu = true }
 
     val catColor = categoryColor(channel.category)
 
@@ -140,9 +141,11 @@ fun ChannelCard(
             modifier = baseModifier
                 .combinedClickable(
                     onClick = onClick,
+                    // Long-press for a context menu is the normal touch idiom, so
+                    // mobile keeps it — it is TV where a hidden hold was the problem.
                     onLongClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onLongPressAction()
+                        openContextMenu()
                     }
                 ),
             shape = cardShape,
@@ -166,15 +169,19 @@ fun ChannelCard(
                     val code = keyEvent.nativeKeyEvent.keyCode
                     val action = keyEvent.nativeKeyEvent.action
 
-                    // Menu / Bookmark → context menu (or legacy favorite toggle)
+                    // Menu / Bookmark, where the remote has them at all.
                     if (action == KeyEvent.ACTION_DOWN &&
                         (code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_BOOKMARK)
                     ) {
-                        onLongPressAction()
+                        openContextMenu()
                         return@onPreviewKeyEvent true
                     }
 
-                    // D-pad center / Enter → track hold duration for long-press
+                    // Hold OK. Every D-pad direction is spoken for by row and grid
+                    // navigation, so there is nowhere to put a second focusable in
+                    // the card without breaking focus movement — hold is the
+                    // platform idiom here, and the focused card shows a hint so it
+                    // is discoverable rather than hidden.
                     if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER) {
                         when (action) {
                             KeyEvent.ACTION_DOWN -> {
@@ -186,9 +193,9 @@ fun ChannelCard(
                                     System.currentTimeMillis() - selectKeyDownTime >= LONG_PRESS_THRESHOLD_MS &&
                                     !longPressHandled
                                 ) {
-                                    // Mark only — the action fires on release. Opening
-                                    // the context menu mid-hold lets the still-held key
-                                    // leak into the menu and click its first row.
+                                    // Mark only — the menu opens on release. Opening it
+                                    // mid-hold lets the still-held key leak through and
+                                    // activate the menu's first row.
                                     longPressHandled = true
                                     return@onPreviewKeyEvent true
                                 }
@@ -198,14 +205,13 @@ fun ChannelCard(
                                 val wasLongPress = longPressHandled
                                 selectKeyDownTime = 0L
                                 if (wasLongPress) {
-                                    onLongPressAction()
+                                    openContextMenu()
                                     return@onPreviewKeyEvent true
                                 }
                                 return@onPreviewKeyEvent false
                             }
                         }
                     }
-
                     false
                 },
             shape = cardShape,
@@ -215,7 +221,8 @@ fun ChannelCard(
             ChannelCardContent(
                 channel = channel,
                 catColor = catColor,
-                focused = isFocused
+                focused = isFocused,
+                showHoldHint = true
             )
         }
     }
@@ -224,9 +231,13 @@ fun ChannelCard(
         ChannelContextMenu(
             channel = channel,
             onToggleFavorite = { onFavoriteClick() },
-            onOpenMultiview = {
-                showContextMenu = false
-                onMultiviewClick?.invoke()
+            // Null where the surface has no multiview — the row is omitted rather
+            // than the whole menu being unavailable.
+            onOpenMultiview = onMultiviewClick?.let { open ->
+                {
+                    showContextMenu = false
+                    open()
+                }
             },
             onDismiss = { showContextMenu = false }
         )
@@ -237,7 +248,8 @@ fun ChannelCard(
 private fun ChannelCardContent(
     channel: ChannelUiModel,
     catColor: Color,
-    focused: Boolean
+    focused: Boolean,
+    showHoldHint: Boolean = false
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val context = LocalContext.current
@@ -368,6 +380,24 @@ private fun ChannelCardContent(
                     )
                 )
         )
+
+        // Hold-OK is the only way to reach the card's menu on a remote without a
+        // MENU button, so say so rather than leaving it to be discovered. Only on
+        // the focused card, so it reads as a prompt for the current selection
+        // instead of chrome on every tile.
+        if (showHoldHint && focused) {
+            Text(
+                text = "Hold OK",
+                style = LabelBadge,
+                color = OnVideo.copy(alpha = EmphasisMedium),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(Dimens.CardBadgePadding)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = Dimens.Space2, vertical = Dimens.BadgePaddingV)
+            )
+        }
 
         // ── Layer 3: Text, badges ───────────────────────────────────
         // Bottom-right stack: favorite heart above the stream-health dot,

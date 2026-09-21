@@ -65,7 +65,6 @@ class PlayerViewModelTest {
         every { getBackExitProtection() } returns flowOf(true)
         every { getPlayerKeyUpDownAction() } returns flowOf(PlayerKeyAction.ZAP)
         every { getPlayerKeyLeftRightAction() } returns flowOf(PlayerKeyAction.ZAP)
-        every { getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
         every { getSleepTimerDefaultMinutes() } returns flowOf(0)
         every { getAlwaysShowProgramBar() } returns flowOf(false)
         every { getInfoBarTimeoutSeconds() } returns flowOf(4)

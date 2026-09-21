@@ -52,7 +52,6 @@ data class PlayerUiState(
     // D-pad reveals visible UI by default; zapping is CH± / overlay / recall only.
     val keyUpDownAction: String = PlayerKeyAction.MENU,
     val keyLeftRightAction: String = PlayerKeyAction.MENU,
-    val longOkAction: String = PlayerKeyAction.FAVORITE,
     val alwaysShowProgramBar: Boolean = false,
     // Sleep timer / auto-off
     val sleepTimerMinutes: Int? = null,

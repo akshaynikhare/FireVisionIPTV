@@ -1,11 +1,15 @@
 package com.cadnative.firevisioniptv.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cadnative.firevisioniptv.data.AppPreferences
+import com.cadnative.firevisioniptv.di.IoDispatcher
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
 import com.cadnative.firevisioniptv.update.AppUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +21,8 @@ import javax.inject.Inject
 /**
  * UI state for the app-root update overlay.
  *
- * [dismissed] is session-only (not persisted) — ignoring the update hides the
- * screen until the next app launch, when the check runs again.
+ * [dismissed] hides the overlay for this session; dismissing also records a
+ * snooze so the same version stops reappearing on every cold launch.
  */
 data class AppUpdateUiState(
     val updateInfo: UpdateInfo? = null,
@@ -35,7 +39,9 @@ data class AppUpdateUiState(
  */
 @HiltViewModel
 class AppUpdateViewModel @Inject constructor(
-    private val appUpdater: AppUpdater
+    private val appUpdater: AppUpdater,
+    @ApplicationContext private val context: Context,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppUpdateUiState())
@@ -43,17 +49,29 @@ class AppUpdateViewModel @Inject constructor(
 
     private var checked = false
 
-    /** Checks once per process. Safe to call repeatedly. */
+    /**
+     * Checks once per process. Safe to call repeatedly.
+     *
+     * The snooze is applied here rather than inside [AppUpdater.check], because
+     * Settings' explicit "Check for Updates" shares that call and has to surface a
+     * snoozed version — the user asking directly is not the user being nagged.
+     */
     fun checkForUpdate() {
         if (checked) return
         checked = true
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { appUpdater.check() }
-            if (result != null) _uiState.update { it.copy(updateInfo = result) }
+            val result = withContext(ioDispatcher) { appUpdater.check() } ?: return@launch
+            val snoozed = AppPreferences.getSnoozedUpdateVersion(context)
+            // A mandatory update is never snoozed.
+            if (!result.isMandatory && result.versionName == snoozed) return@launch
+            _uiState.update { it.copy(updateInfo = result) }
         }
     }
 
     fun dismiss() {
+        _uiState.value.updateInfo?.let { update ->
+            AppPreferences.setSnoozedUpdateVersion(context, update.versionName)
+        }
         _uiState.update { it.copy(dismissed = true) }
     }
 

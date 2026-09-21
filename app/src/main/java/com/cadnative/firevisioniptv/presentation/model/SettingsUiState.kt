@@ -20,7 +20,6 @@ data class SettingsUiState(
     val backExitProtection: Boolean = true,
     val keyUpDownAction: String = PlayerKeyAction.MENU,
     val keyLeftRightAction: String = PlayerKeyAction.MENU,
-    val longOkAction: String = PlayerKeyAction.FAVORITE,
     val sleepTimerDefaultMinutes: Int = 0,
     val alwaysShowProgramBar: Boolean = false,
     val infoBarTimeoutSeconds: Int = 4,

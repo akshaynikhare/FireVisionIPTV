@@ -90,14 +90,12 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 userPreferencesRepository.getPlayerKeyUpDownAction(),
-                userPreferencesRepository.getPlayerKeyLeftRightAction(),
-                userPreferencesRepository.getPlayerLongOkAction()
-            ) { upDown, leftRight, longOk ->
+                userPreferencesRepository.getPlayerKeyLeftRightAction()
+            ) { upDown, leftRight ->
                 _uiState.update {
                     it.copy(
                         keyUpDownAction = upDown,
-                        keyLeftRightAction = leftRight,
-                        longOkAction = longOk
+                        keyLeftRightAction = leftRight
                     )
                 }
             }.collect { }

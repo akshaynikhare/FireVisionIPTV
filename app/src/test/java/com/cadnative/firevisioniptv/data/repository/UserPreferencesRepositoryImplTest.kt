@@ -36,7 +36,6 @@ class UserPreferencesRepositoryImplTest {
         every { prefs.getBoolean("back_exit_protection", true) } returns true
         every { prefs.getString("player_key_up_down", any()) } returns "zap"
         every { prefs.getString("player_key_left_right", any()) } returns "zap"
-        every { prefs.getString("player_long_ok", any()) } returns "favorite"
         every { prefs.getInt("sleep_timer_default_minutes", 0) } returns 0
         every { prefs.getBoolean("always_show_program_bar", false) } returns false
         every { prefs.getInt("info_bar_timeout_seconds", 4) } returns 4

@@ -36,7 +36,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     // ◀▶ defaults to the player menu: it otherwise duplicates ▲▼ zap, and remotes
     // without a MENU button (Google TV) would have no way to reach audio/subtitles.
     private val _keyLeftRightAction = MutableStateFlow(prefs.getString(KEY_PLAYER_KEY_LEFT_RIGHT, PlayerKeyAction.MENU) ?: PlayerKeyAction.MENU)
-    private val _longOkAction = MutableStateFlow(prefs.getString(KEY_PLAYER_LONG_OK, PlayerKeyAction.FAVORITE) ?: PlayerKeyAction.FAVORITE)
     private val _sleepTimerDefaultMinutes = MutableStateFlow(prefs.getInt(KEY_SLEEP_TIMER_DEFAULT, 0))
     private val _alwaysShowProgramBar = MutableStateFlow(prefs.getBoolean(KEY_ALWAYS_SHOW_PROGRAM_BAR, false))
     private val _infoBarTimeoutSeconds = MutableStateFlow(prefs.getInt(KEY_INFO_BAR_TIMEOUT_SECONDS, DEFAULT_INFO_BAR_TIMEOUT_SECONDS))
@@ -167,20 +166,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getPlayerLongOkAction(): Flow<String> = _longOkAction.asStateFlow()
-
-    override suspend fun setPlayerLongOkAction(action: String): Result<Unit> {
-        return try {
-            withContext(ioDispatcher) {
-                prefs.edit().putString(KEY_PLAYER_LONG_OK, action).apply()
-            }
-            _longOkAction.value = action
-            Result.Success(Unit)
-        } catch (e: Exception) {
-            Result.Error(e)
-        }
-    }
-
     override fun getSleepTimerDefaultMinutes(): Flow<Int> = _sleepTimerDefaultMinutes.asStateFlow()
 
     override suspend fun setSleepTimerDefaultMinutes(minutes: Int): Result<Unit> {
@@ -232,7 +217,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         private const val KEY_BACK_EXIT_PROTECTION = "back_exit_protection"
         private const val KEY_PLAYER_KEY_UP_DOWN = "player_key_up_down"
         private const val KEY_PLAYER_KEY_LEFT_RIGHT = "player_key_left_right"
-        private const val KEY_PLAYER_LONG_OK = "player_long_ok"
         private const val KEY_THEME = "theme"
         private const val KEY_GRID_SIZE = "grid_size"
         private const val KEY_FONT_SIZE = "font_size"

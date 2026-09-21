@@ -16,6 +16,7 @@ import com.cadnative.firevisioniptv.data.source.local.dao.ChannelHealthDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteCategoryDao
 import com.cadnative.firevisioniptv.data.source.local.dao.FavoriteDao
 import com.cadnative.firevisioniptv.data.source.local.dao.PlaybackPositionDao
+import com.cadnative.firevisioniptv.data.source.local.dao.StreamMetricsDao
 import com.cadnative.firevisioniptv.data.source.local.entity.FavoriteCategoryEntity
 import com.cadnative.firevisioniptv.domain.model.ChannelHealthStatus
 import com.cadnative.firevisioniptv.domain.repository.EpgRepository
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -68,7 +70,8 @@ class ChannelsViewModel @Inject constructor(
     private val channelDao: ChannelDao,
     private val favoriteDao: FavoriteDao,
     private val playbackPositionDao: PlaybackPositionDao,
-    private val favoriteCategoryDao: FavoriteCategoryDao
+    private val favoriteCategoryDao: FavoriteCategoryDao,
+    private val streamMetricsDao: StreamMetricsDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChannelsUiState())
@@ -210,9 +213,13 @@ class ChannelsViewModel @Inject constructor(
         // Recently watched — auto-updates when user watches a new channel
         recentlyWatchedJob = viewModelScope.launch {
             try {
-                playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT)
-                    .flatMapLatest { recentIds ->
-                        if (recentIds.isEmpty()) {
+                combine(
+                    playbackPositionDao.observeRecentlyWatchedIds(RECENTLY_WATCHED_LIMIT),
+                    streamMetricsDao.observeMostPlayedIds(FEATURED_CHANNELS_LIMIT)
+                ) { recentIds, mostPlayedIds -> recentIds to mostPlayedIds }
+                    .distinctUntilChanged()
+                    .flatMapLatest { (recentIds, mostPlayedIds) ->
+                        if (recentIds.isEmpty() && mostPlayedIds.isEmpty()) {
                             val empty = emptyList<ChannelUiModel>()
                             flowOf(empty to empty)
                         } else {
@@ -220,17 +227,28 @@ class ChannelsViewModel @Inject constructor(
                                 .debounce(HEALTH_SCAN_DEBOUNCE_MS)
                                 .onStart { emit(emptyList()) }
                                 .map { health ->
-                                    val recentEntities = channelDao.getChannelsByIds(recentIds)
+                                    // One query for the union — these lists overlap heavily
+                                    val wantedIds = (recentIds + mostPlayedIds).distinct()
+                                    val entities = channelDao.getChannelsByIds(wantedIds)
                                     val favIds = favoriteDao.getFavoriteChannelIds().toSet()
-                                    val recentUi = channelUiMapper.toUiModelsWithHealth(
-                                        recentEntities.map { channelMapper.toDomain(it, it.id in favIds) },
+                                    val ui = channelUiMapper.toUiModelsWithHealth(
+                                        entities.map { channelMapper.toDomain(it, it.id in favIds) },
                                         health
-                                    ).map { enrichWithEpgIfReady(it) }
+                                    ).map { enrichWithEpgIfReady(it) }.associateBy { it.id }
 
-                                    // Preserve the order from recentIds
-                                    val idOrder = recentIds.withIndex().associate { (i, id) -> id to i }
-                                    val sortedRecent = recentUi.sortedBy { idOrder[it.id] ?: Int.MAX_VALUE }
-                                    sortedRecent to sortedRecent.take(FEATURED_CHANNELS_LIMIT)
+                                    // Featured is genuinely "most watched". It used to be
+                                    // the first five of recents, so the hero, Featured and
+                                    // Recently Watched all showed the same channels.
+                                    val featured = mostPlayedIds.mapNotNull { ui[it] }
+                                        .ifEmpty {
+                                            // Fresh install, or metrics predating the counter
+                                            recentIds.mapNotNull { ui[it] }.take(FEATURED_CHANNELS_LIMIT)
+                                        }
+                                    val featuredIds = featured.map { it.id }.toSet()
+                                    val recent = recentIds.mapNotNull { ui[it] }
+                                        .filterNot { it.id in featuredIds }
+
+                                    recent to featured
                                 }
                         }
                     }
@@ -239,7 +257,8 @@ class ChannelsViewModel @Inject constructor(
                             it.copy(
                                 recentlyWatched = recent,
                                 featuredChannels = featured,
-                                forYou = deriveForYou(it.channels, recent)
+                                // Both rows, so For You is a third distinct set
+                                forYou = deriveForYou(it.channels, featured + recent)
                             )
                         }
                     }

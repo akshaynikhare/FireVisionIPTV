@@ -97,7 +97,6 @@ class SettingsViewModelTest {
         every { userPreferencesRepository.getBackExitProtection() } returns flowOf(true)
         every { userPreferencesRepository.getPlayerKeyUpDownAction() } returns flowOf(PlayerKeyAction.ZAP)
         every { userPreferencesRepository.getPlayerKeyLeftRightAction() } returns flowOf(PlayerKeyAction.ZAP)
-        every { userPreferencesRepository.getPlayerLongOkAction() } returns flowOf(PlayerKeyAction.FAVORITE)
         every { userPreferencesRepository.getSleepTimerDefaultMinutes() } returns flowOf(0)
         every { userPreferencesRepository.getAlwaysShowProgramBar() } returns flowOf(false)
         every { userPreferencesRepository.getInfoBarTimeoutSeconds() } returns flowOf(4)

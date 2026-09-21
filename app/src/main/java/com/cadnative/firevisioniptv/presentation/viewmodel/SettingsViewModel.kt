@@ -108,7 +108,6 @@ class SettingsViewModel @Inject constructor(
                         backExitProtection = current.backExitProtection,
                         keyUpDownAction = current.keyUpDownAction,
                         keyLeftRightAction = current.keyLeftRightAction,
-                        longOkAction = current.longOkAction,
                         sleepTimerDefaultMinutes = current.sleepTimerDefaultMinutes,
                         alwaysShowProgramBar = current.alwaysShowProgramBar,
                         infoBarTimeoutSeconds = current.infoBarTimeoutSeconds
@@ -121,15 +120,13 @@ class SettingsViewModel @Inject constructor(
                 userPreferencesRepository.getBackExitProtection(),
                 userPreferencesRepository.getPlayerKeyUpDownAction(),
                 userPreferencesRepository.getPlayerKeyLeftRightAction(),
-                userPreferencesRepository.getPlayerLongOkAction(),
                 userPreferencesRepository.getSleepTimerDefaultMinutes()
-            ) { backProtection, upDown, leftRight, longOk, sleepTimer ->
+            ) { backProtection, upDown, leftRight, sleepTimer ->
                 _uiState.update {
                     it.copy(
                         backExitProtection = backProtection,
                         keyUpDownAction = upDown,
                         keyLeftRightAction = leftRight,
-                        longOkAction = longOk,
                         sleepTimerDefaultMinutes = sleepTimer
                     )
                 }
@@ -371,12 +368,6 @@ class SettingsViewModel @Inject constructor(
     fun setKeyLeftRightAction(action: String) {
         viewModelScope.launch {
             handleResult(userPreferencesRepository.setPlayerKeyLeftRightAction(action), "Failed to update key action")
-        }
-    }
-
-    fun setLongOkAction(action: String) {
-        viewModelScope.launch {
-            handleResult(userPreferencesRepository.setPlayerLongOkAction(action), "Failed to update key action")
         }
     }
 

@@ -59,7 +59,6 @@ internal class SettingsActions(
     val onBackExitProtectionChange: (Boolean) -> Unit,
     val onKeyUpDownChange: (String) -> Unit,
     val onKeyLeftRightChange: (String) -> Unit,
-    val onLongOkChange: (String) -> Unit,
     val onSleepTimerDefaultChange: (Int) -> Unit,
     val onAlwaysShowProgramBarChange: (Boolean) -> Unit,
     val onInfoBarTimeoutChange: (Int) -> Unit,

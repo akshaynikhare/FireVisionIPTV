@@ -21,7 +21,7 @@ private val keyActionOptions = listOf(
     "Last Ch" to PlayerKeyAction.LAST_CHANNEL,
     "Favorite" to PlayerKeyAction.FAVORITE,
     "Play/Pause" to PlayerKeyAction.PLAY_PAUSE,
-    "Menu" to PlayerKeyAction.MENU
+    "Controls" to PlayerKeyAction.MENU
 )
 
 private val sleepTimerOptions = listOf(

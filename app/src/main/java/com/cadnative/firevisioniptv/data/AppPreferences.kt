@@ -21,7 +21,17 @@ object AppPreferences {
     private const val XTREAM_USER_KEY = "xtream_user"
     private const val XTREAM_PASS_KEY = "xtream_pass"
     private const val INSTALLATION_ID_KEY = "installation_id"
+    private const val UPDATE_SNOOZE_VERSION_KEY = "update_snooze_version"
+    private const val UPDATE_SNOOZE_AT_KEY = "update_snooze_at"
     const val DEFAULT_SERVER_URL = "https://tv.cadnative.com"
+
+    /**
+     * How long "Not Now" suppresses a given version. The snooze is keyed by version
+     * name because that is all the update payload carries, and a publisher can re-cut
+     * an APK under the same name — without an expiry that user would never be offered
+     * the fix.
+     */
+    private const val UPDATE_SNOOZE_DAYS = 7L
 
     /** Playlist source types. PAIRED = managed server (default); M3U/XTREAM = bring-your-own. */
     const val SOURCE_PAIRED = "paired"
@@ -56,6 +66,23 @@ object AppPreferences {
      * call would otherwise each mint a UUID and return different ones, so a request from
      * the losing thread would identify this install differently from every later request.
      */
+    /** Version the user dismissed, or null once the snooze has lapsed. */
+    fun getSnoozedUpdateVersion(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val version = prefs.getString(UPDATE_SNOOZE_VERSION_KEY, null) ?: return null
+        val snoozedAt = prefs.getLong(UPDATE_SNOOZE_AT_KEY, 0L)
+        val expiresAt = snoozedAt + UPDATE_SNOOZE_DAYS * 24 * 60 * 60 * 1000
+        return if (System.currentTimeMillis() < expiresAt) version else null
+    }
+
+    fun setSnoozedUpdateVersion(context: Context, versionName: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString(UPDATE_SNOOZE_VERSION_KEY, versionName)
+            .putLong(UPDATE_SNOOZE_AT_KEY, System.currentTimeMillis())
+            .apply()
+    }
+
     fun getInstallationId(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.getString(INSTALLATION_ID_KEY, null)?.let { return it }
