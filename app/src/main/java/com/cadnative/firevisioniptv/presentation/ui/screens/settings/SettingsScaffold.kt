@@ -1,5 +1,6 @@
 package com.cadnative.firevisioniptv.presentation.ui.screens.settings
 
+import androidx.annotation.StringRes
 import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.cadnative.firevisioniptv.domain.service.ScanProgress
 import com.cadnative.firevisioniptv.presentation.model.SettingsUiState
 import com.cadnative.firevisioniptv.presentation.ui.animation.DURATION_FAST
@@ -46,6 +48,7 @@ import com.cadnative.firevisioniptv.presentation.ui.components.ScreenScaffold
 import com.cadnative.firevisioniptv.presentation.ui.theme.Dimens
 import com.cadnative.firevisioniptv.presentation.ui.theme.FocusGlow
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
+import com.cadnative.firevisioniptv.R
 
 /** Callbacks for the settings screen, grouped to keep composable signatures small. */
 internal class SettingsActions(
@@ -67,12 +70,12 @@ internal class SettingsActions(
     val onUpdateNow: () -> Unit
 )
 
-internal enum class SettingsSection(val label: String) {
-    Connection("Connection"),
-    Channels("Channels"),
-    Controls("Controls"),
-    Appearance("Appearance"),
-    About("About")
+internal enum class SettingsSection(@StringRes val label: Int) {
+    Connection(R.string.settings_section_connection),
+    Channels(R.string.settings_section_channels),
+    Controls(R.string.settings_section_controls),
+    Appearance(R.string.settings_section_appearance),
+    About(R.string.settings_section_about)
 }
 
 private val SectionListWidth = 280.dp
@@ -87,7 +90,7 @@ internal fun SettingsScaffold(
 ) {
     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    ScreenScaffold(title = "Settings", modifier = modifier, onBack = onBack) {
+    ScreenScaffold(title = stringResource(R.string.settings_title), modifier = modifier, onBack = onBack) {
         if (isPortrait) {
             StackedSettings(
                 uiState = uiState,
@@ -218,7 +221,7 @@ private fun SectionListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = section.label,
+            text = stringResource(section.label),
             color = contentColor,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal

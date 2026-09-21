@@ -8,9 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingOption
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
+import com.cadnative.firevisioniptv.R
 
 @Composable
 internal fun AppearanceSection(
@@ -18,11 +20,11 @@ internal fun AppearanceSection(
     onThemeChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    SettingsCard(title = "Appearance", modifier = modifier) {
+    SettingsCard(title = stringResource(R.string.settings_section_appearance), modifier = modifier) {
         SettingRowLayout(
             text = {
                 Text(
-                    text = "Theme",
+                    text = stringResource(R.string.settings_appearance_theme),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold

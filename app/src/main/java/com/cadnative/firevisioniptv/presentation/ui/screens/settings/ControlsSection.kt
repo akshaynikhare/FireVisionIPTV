@@ -11,32 +11,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.cadnative.firevisioniptv.domain.repository.PlayerKeyAction
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingOption
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingRowLayout
 import com.cadnative.firevisioniptv.presentation.ui.screens.SettingsCard
+import com.cadnative.firevisioniptv.R
 
+// Labels are resource ids rather than strings so these can stay top-level vals.
+// The player's key-hint strip resolves the same family, so the two cannot drift.
 private val keyActionOptions = listOf(
-    "Zap" to PlayerKeyAction.ZAP,
-    "Last Ch" to PlayerKeyAction.LAST_CHANNEL,
-    "Favorite" to PlayerKeyAction.FAVORITE,
-    "Play/Pause" to PlayerKeyAction.PLAY_PAUSE,
-    "Controls" to PlayerKeyAction.MENU
+    R.string.player_key_action_zap to PlayerKeyAction.ZAP,
+    R.string.player_key_action_last_channel to PlayerKeyAction.LAST_CHANNEL,
+    R.string.player_key_action_favorite to PlayerKeyAction.FAVORITE,
+    R.string.player_key_action_play_pause to PlayerKeyAction.PLAY_PAUSE,
+    R.string.player_key_action_controls to PlayerKeyAction.MENU
 )
 
 private val sleepTimerOptions = listOf(
-    "Off" to "0",
-    "30 min" to "30",
-    "1 h" to "60",
-    "2 h" to "120",
-    "3 h" to "180"
+    R.string.settings_sleep_off to "0",
+    R.string.settings_sleep_30m to "30",
+    R.string.settings_sleep_1h to "60",
+    R.string.settings_sleep_2h to "120",
+    R.string.settings_sleep_3h to "180"
 )
 
 private val infoBarTimeoutOptions = listOf(
-    "4 s" to "4",
-    "6 s" to "6",
-    "8 s" to "8",
-    "10 s" to "10"
+    R.string.settings_timeout_4s to "4",
+    R.string.settings_timeout_6s to "6",
+    R.string.settings_timeout_8s to "8",
+    R.string.settings_timeout_10s to "10"
+)
+
+private val toggleOptions = listOf(
+    R.string.settings_toggle_on to "on",
+    R.string.settings_toggle_off to "off"
 )
 
 @Composable
@@ -56,22 +65,22 @@ internal fun ControlsSection(
     modifier: Modifier = Modifier
 ) {
     val isCompact = LocalConfiguration.current.screenWidthDp < 600
-    SettingsCard(title = "Player Controls", modifier = modifier) {
+    SettingsCard(title = stringResource(R.string.settings_controls_title), modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(if (isCompact) 14.dp else 10.dp)) {
             PlayerKeyRow(
-                label = "Confirm app exit (press back twice on Home)",
-                options = listOf("On" to "on", "Off" to "off"),
+                label = stringResource(R.string.settings_controls_back_protection),
+                options = toggleOptions,
                 current = if (backExitProtection) "on" else "off",
                 onSelect = { onBackExitProtectionChange(it == "on") }
             )
             PlayerKeyRow(
-                label = "Always show program bar",
-                options = listOf("On" to "on", "Off" to "off"),
+                label = stringResource(R.string.settings_controls_always_show_bar),
+                options = toggleOptions,
                 current = if (alwaysShowProgramBar) "on" else "off",
                 onSelect = { onAlwaysShowProgramBarChange(it == "on") }
             )
             PlayerKeyRow(
-                label = "Info banner timeout",
+                label = stringResource(R.string.settings_controls_info_timeout),
                 options = infoBarTimeoutOptions,
                 current = infoBarTimeoutSeconds.toString(),
                 onSelect = { onInfoBarTimeoutChange(it.toIntOrNull() ?: 4) }
@@ -81,14 +90,14 @@ internal fun ControlsSection(
                 // Five key-action pills fill the row, so keep the label on its own
                 // line above them — side-by-side starves the label to a 1-char column.
                 PlayerKeyRow(
-                    label = "D-pad up/down",
+                    label = stringResource(R.string.settings_controls_dpad_up_down),
                     options = keyActionOptions,
                     current = keyUpDownAction,
                     onSelect = onKeyUpDownChange,
                     stacked = true
                 )
                 PlayerKeyRow(
-                    label = "D-pad left/right",
+                    label = stringResource(R.string.settings_controls_dpad_left_right),
                     options = keyActionOptions,
                     current = keyLeftRightAction,
                     onSelect = onKeyLeftRightChange,
@@ -96,7 +105,7 @@ internal fun ControlsSection(
                 )
             }
             PlayerKeyRow(
-                label = "Sleep timer",
+                label = stringResource(R.string.settings_controls_sleep_timer),
                 options = sleepTimerOptions,
                 current = sleepTimerDefaultMinutes.toString(),
                 onSelect = { onSleepTimerDefaultChange(it.toIntOrNull() ?: 0) }
@@ -109,7 +118,7 @@ internal fun ControlsSection(
 @Composable
 private fun PlayerKeyRow(
     label: String,
-    options: List<Pair<String, String>>,
+    options: List<Pair<Int, String>>,
     current: String,
     onSelect: (String) -> Unit,
     stacked: Boolean = false
@@ -129,7 +138,7 @@ private fun PlayerKeyRow(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             options.forEach { (optLabel, optValue) ->
-                SettingOption(label = optLabel, value = optValue, current = current, onSelect = onSelect)
+                SettingOption(label = stringResource(optLabel), value = optValue, current = current, onSelect = onSelect)
             }
         }
     }

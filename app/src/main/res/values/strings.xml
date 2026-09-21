@@ -1,38 +1,10 @@
 <resources>
     <string name="app_name">FireVision IPTV</string>
-    <string name="browse_title">FireVision IPTV</string>
-    <string name="related_movies">Related Videos</string>
-    <string name="grid_view">Grid View</string>
-    <string name="error_fragment">Error Fragment</string>
-    <string name="personal_settings">Personal Settings</string>
-    <string name="watch_trailer_1">Watch trailer</string>
-    <string name="watch_trailer_2">FREE</string>
-    <string name="rent_1">Rent By Day</string>
-    <string name="rent_2">From $1.99</string>
-    <string name="buy_1">Buy and Own</string>
-    <string name="buy_2">AT $9.99</string>
-    <string name="movie">Movie</string>
-
-    <!-- Error messages -->
-    <string name="error_fragment_message">An error occurred</string>
-    <string name="dismiss_error">Dismiss</string>
-
-    <!-- Sidebar Navigation -->
     <string name="home">Home</string>
     <string name="search">Search</string>
     <string name="categories">Categories</string>
-    <string name="languages">Languages</string>
     <string name="favorites">Favorites</string>
     <string name="settings">Settings</string>
-
-    <!-- Categories -->
-    <string name="category_icon">Category Icon</string>
-    <string name="no_categories_found">No categories found</string>
-    <string name="no_languages_found">No languages found</string>
-    <string name="browse_categories">Browse Categories</string>
-    <string name="browse_languages">Browse Languages</string>
-    
-    <!-- Category Names -->
     <string name="category_sports">Sports</string>
     <string name="category_news">News</string>
     <string name="category_movies">Movies</string>
@@ -42,6 +14,101 @@
     <string name="category_documentary">Documentary</string>
     <string name="category_general">General</string>
 
-    <!-- Settings -->
-    <string name="registration_qr_code">Registration QR Code</string>
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_guide">Guide</string>
+    <string name="a11y_brand">FireVision</string>
+
+    <!-- Settings: sections -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_connection">Connection</string>
+    <string name="settings_section_channels">Channels</string>
+    <string name="settings_section_controls">Controls</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_about">About</string>
+
+    <!-- Settings: appearance -->
+    <string name="settings_appearance_theme">Theme</string>
+
+    <!-- Settings: controls -->
+    <string name="settings_controls_title">Player Controls</string>
+    <string name="player_key_action_zap">Zap</string>
+    <string name="player_key_action_last_channel">Last Ch</string>
+    <string name="player_key_action_favorite">Favorite</string>
+    <string name="player_key_action_play_pause">Play/Pause</string>
+    <string name="player_key_action_controls">Controls</string>
+    <string name="settings_sleep_off">Off</string>
+    <string name="settings_sleep_30m">30 min</string>
+    <string name="settings_sleep_1h">1 h</string>
+    <string name="settings_sleep_2h">2 h</string>
+    <string name="settings_sleep_3h">3 h</string>
+    <string name="settings_timeout_4s">4 s</string>
+    <string name="settings_timeout_6s">6 s</string>
+    <string name="settings_timeout_8s">8 s</string>
+    <string name="settings_timeout_10s">10 s</string>
+    <string name="player_hint_ok_channels">OK  Channels</string>
+    <string name="player_hint_dpad">D-pad  %1$s</string>
+    <string name="player_hint_up_down">\u25b2\u25bc  %1$s</string>
+    <string name="player_hint_left_right">\u25c0\u25b6  %1$s</string>
+    <string name="settings_toggle_on">On</string>
+    <string name="settings_toggle_off">Off</string>
+    <string name="settings_controls_back_protection">Confirm app exit (press back twice on Home)</string>
+    <string name="settings_controls_always_show_bar">Always show program bar</string>
+    <string name="settings_controls_info_timeout">Info banner timeout</string>
+    <string name="settings_controls_dpad_up_down">D-pad up/down</string>
+    <string name="settings_controls_dpad_left_right">D-pad left/right</string>
+    <string name="settings_controls_sleep_timer">Sleep timer</string>
+
+    <!-- Settings: channels -->
+    <string name="settings_channels_scanning">Scanning channels\u2026</string>
+    <string name="settings_channels_health_title">Stream Health</string>
+    <string name="settings_channels_last_scan">Last scan: %1$d/%2$d checked</string>
+    <string name="settings_channels_scan_hint">Scan channels to check if streams are online</string>
+    <string name="settings_channels_scan_busy">Scanning\u2026</string>
+    <string name="settings_channels_scan_action">Check Liveness</string>
+    <string name="settings_channels_cache_title">Local Cache</string>
+    <string name="settings_channels_cache_cleared">Cache cleared \u2014 refreshing channels</string>
+    <string name="settings_channels_cache_hint">Clear cached channels, guide data, and thumbnails</string>
+    <string name="settings_channels_cache_busy">Clearing\u2026</string>
+    <string name="settings_channels_cache_action">Clear Cache</string>
+    <string name="settings_channels_guide_title">Guide Data</string>
+    <string name="settings_channels_guide_reset">Guide data reset \u2014 schedule re-downloaded</string>
+    <string name="settings_channels_guide_hint">Purge the program guide and re-download the schedule</string>
+    <string name="settings_channels_guide_busy">Resetting\u2026</string>
+    <string name="settings_channels_guide_action">Reset Guide</string>
+    <string name="settings_channels_reset_title">Reset App Data</string>
+    <string name="settings_channels_reset_hint">Erase pairing, favorites, and all settings \u2014 like a fresh install</string>
+    <string name="settings_channels_reset_action">Reset App</string>
+    <string name="settings_channels_reset_confirm_title">Reset app data?</string>
+    <string name="settings_channels_reset_confirm_body">This erases pairing, favorites, playback history, and all settings. The app will close and start fresh, like a new install.</string>
+    <string name="settings_channels_reset_cancel">Cancel</string>
+    <string name="settings_channels_reset_confirm">Erase Everything</string>
+
+    <!-- Settings: about -->
+    <string name="settings_about_version">Version</string>
+    <string name="settings_about_current">Current: %1$s</string>
+    <string name="settings_about_update_available">Update available: v%1$s</string>
+    <string name="settings_about_checking">Checking\u2026</string>
+    <string name="settings_about_downloading">Downloading\u2026</string>
+    <string name="settings_about_install">Update Now</string>
+    <string name="settings_about_check">Check for Updates</string>
+
+    <!-- Settings: connection -->
+    <string name="settings_connection_source_m3u">M3U playlist</string>
+    <string name="settings_connection_source_xtream">Xtream Codes</string>
+    <string name="settings_connection_paired">Paired</string>
+    <string name="settings_connection_reset">Reset</string>
+    <string name="settings_connection_demo_title">Demo Mode</string>
+    <string name="settings_connection_demo_body">Browsing shared demo channels. Pair your device to access your personal channel list.</string>
+    <string name="settings_connection_pair_now">Pair Now</string>
+    <string name="settings_connection_none_title">No channel source</string>
+    <string name="settings_connection_none_body">Pair your TV or add a playlist to start watching.</string>
+    <string name="settings_connection_set_up">Set up</string>
+    <string name="settings_connection_change_title">Change source</string>
+    <string name="settings_connection_change_body">Switch to pairing, a self-hosted server, or your own playlist.</string>
+    <string name="settings_connection_change_action">Change  \u25b8</string>
 </resources>
