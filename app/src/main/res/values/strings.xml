@@ -111,4 +111,48 @@
     <string name="settings_connection_change_title">Change source</string>
     <string name="settings_connection_change_body">Switch to pairing, a self-hosted server, or your own playlist.</string>
     <string name="settings_connection_change_action">Change  \u25b8</string>
+
+    <!-- Shell -->
+    <string name="exit_confirm">Press back again to exit</string>
+
+    <!-- Channel cards -->
+    <string name="card_hold_ok_hint">Hold OK</string>
+    <string name="a11y_favorite">Favorite</string>
+    <string name="a11y_stream_online">Stream online</string>
+    <string name="a11y_stream_checking">Checking stream</string>
+    <string name="a11y_stream_offline">Stream offline</string>
+    <string name="a11y_stream_unresponsive">Stream unresponsive</string>
+    <string name="a11y_stream_unknown">Stream status unknown</string>
+    <string name="context_menu_add_favorite">Add to Favorites</string>
+    <string name="context_menu_remove_favorite">Remove from Favorites</string>
+    <string name="context_menu_multiview">Open in Multiview</string>
+
+    <!-- Stream status -->
+    <string name="stream_checking_source">Checking stream source\u2026</string>
+    <string name="stream_last_attempt">Last attempt\u2026</string>
+    <string name="stream_trying_alternate">Trying alternate connection\u2026</string>
+    <string name="stream_reconnecting">Reconnecting\u2026 (%1$d/%2$d)</string>
+    <string name="stream_unavailable">Stream unavailable</string>
+    <string name="stream_going_back">Going back in %1$d\u2026</string>
+    <string name="stream_press_to_stay">Press any button to stay</string>
+
+    <!-- Player -->
+    <string name="player_aspect_fit">Fit</string>
+    <string name="player_aspect_zoom">Zoom</string>
+    <string name="player_aspect_fill">Fill</string>
+    <string name="player_load_failed">Failed to load channel</string>
+    <string name="player_action_play">Play</string>
+    <string name="player_action_pause">Pause</string>
+    <string name="player_action_favorite">Favorite</string>
+    <string name="player_action_favorited">Favorited</string>
+    <string name="player_sleep_minutes">Sleep %1$dm</string>
+    <string name="player_sleep_off">Sleep off</string>
+    <string name="player_favorite_added">Added to Favorites</string>
+    <string name="player_favorite_removed">Removed from Favorites</string>
+    <string name="player_sleep_countdown">Sleep in %1$ds</string>
+    <string name="player_still_watching">Still watching? Press any button to continue</string>
+    <string name="player_tracks_audio">Audio</string>
+    <string name="player_tracks_subtitles">Subtitles</string>
+    <string name="player_tracks_no_audio">No alternate audio tracks</string>
+    <string name="player_track_subtitle">Subtitle</string>
 </resources>

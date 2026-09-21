@@ -43,6 +43,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.OnVideo
 import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimHeavy
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeSmall
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Audio-track and subtitle selection panel — the TiviMate-parity controls the player
@@ -107,15 +109,15 @@ internal fun PlayerTracksPanel(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.Space2)
         ) {
-            SectionHeader("Audio")
+            SectionHeader(stringResource(R.string.player_tracks_audio))
             if (!hasAudio) {
-                EmptyRow("No alternate audio tracks")
+                EmptyRow(stringResource(R.string.player_tracks_no_audio))
             } else {
                 var firstAudio = true
                 audioGroups.forEach { group ->
                     (0 until group.length).forEach { i ->
                         TrackRow(
-                            label = trackLabel(group, i, "Audio"),
+                            label = trackLabel(group, i, stringResource(R.string.player_tracks_audio)),
                             selected = group.isTrackSelected(i),
                             focusRequester = if (firstAudio) firstRowFocus else null,
                             onClick = { selectTrack(group, i) }
@@ -125,7 +127,7 @@ internal fun PlayerTracksPanel(
                 }
             }
 
-            SectionHeader("Subtitles")
+            SectionHeader(stringResource(R.string.player_tracks_subtitles))
             TrackRow(
                 label = "Off",
                 selected = subtitlesOff,
@@ -135,7 +137,7 @@ internal fun PlayerTracksPanel(
             textGroups.forEach { group ->
                 (0 until group.length).forEach { i ->
                     TrackRow(
-                        label = trackLabel(group, i, "Subtitle"),
+                        label = trackLabel(group, i, stringResource(R.string.player_track_subtitle)),
                         selected = group.isTrackSelected(i),
                         onClick = { selectTrack(group, i) }
                     )

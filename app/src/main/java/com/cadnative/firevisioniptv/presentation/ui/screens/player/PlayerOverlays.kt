@@ -48,6 +48,8 @@ import com.cadnative.firevisioniptv.presentation.ui.theme.ScrimLight
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeLarge
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapeMedium
 import com.cadnative.firevisioniptv.presentation.ui.theme.ShapePill
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * All transient overlays layered above the video: info bar, toasts,
@@ -173,7 +175,7 @@ internal fun BoxScope.PlayerOverlays(
                 modifier = Modifier.size(28.dp)
             )
             Text(
-                text = if (isFav) "Added to Favorites" else "Removed from Favorites",
+                text = stringResource(if (isFav) R.string.player_favorite_added else R.string.player_favorite_removed),
                 style = BodyOverlay,
                 color = OnVideo
             )
@@ -190,7 +192,7 @@ internal fun BoxScope.PlayerOverlays(
             .align(Alignment.TopStart)
             .padding(32.dp)
     ) {
-        OverlayToast("Sleep in ${sleepRemaining ?: 0}s")
+        OverlayToast(stringResource(R.string.player_sleep_countdown, sleepRemaining ?: 0))
     }
 
     // Sleep timer expired — "Still watching?" prompt with a cancel window
@@ -200,7 +202,7 @@ internal fun BoxScope.PlayerOverlays(
         exit = overlayExit(reduceMotion),
         modifier = Modifier.align(Alignment.Center)
     ) {
-        OverlayToast("Still watching? Press any button to continue")
+        OverlayToast(stringResource(R.string.player_still_watching))
     }
 
     // Channel number entry — top-right while typing

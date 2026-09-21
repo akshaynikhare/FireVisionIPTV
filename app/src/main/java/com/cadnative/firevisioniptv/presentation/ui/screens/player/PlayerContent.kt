@@ -27,6 +27,8 @@ import com.cadnative.firevisioniptv.presentation.ui.components.DeadStreamOverlay
 import com.cadnative.firevisioniptv.presentation.ui.components.ErrorState
 import com.cadnative.firevisioniptv.presentation.ui.components.LoadingIndicator
 import com.cadnative.firevisioniptv.presentation.ui.components.RecoveringOverlay
+import com.cadnative.firevisioniptv.R
+import androidx.compose.ui.res.stringResource
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -86,7 +88,7 @@ internal fun PlayerStateOverlays(
         when (state) {
             "loading" -> LoadingIndicator(message = "Loading channel...")
             "error" -> ErrorState(
-                message = uiState.error ?: "Failed to load channel",
+                message = uiState.error ?: stringResource(R.string.player_load_failed),
                 onRetry = onRetry
             )
             else -> { }
