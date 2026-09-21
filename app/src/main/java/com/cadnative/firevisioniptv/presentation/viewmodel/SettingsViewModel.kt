@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.core.content.pm.PackageInfoCompat
 import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.lifecycle.ViewModel
@@ -265,7 +266,7 @@ class SettingsViewModel @Inject constructor(
         return try {
             val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
             val versionName = packageInfo.versionName
-            val versionCode = packageInfo.longVersionCode.toInt()
+            val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo).toInt()
             "$versionName (Build $versionCode)"
         } catch (e: PackageManager.NameNotFoundException) {
             "Unknown"

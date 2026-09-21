@@ -18,13 +18,15 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /** Minutes between vertical tick labels on the time axis. */
 internal const val GUIDE_TICK_MINUTES = 30L
 
-// Built once rather than per label: this runs for every tick of every axis redraw,
-// and below API 26 it resolves through desugared java.time, which is not free.
-private val slotFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+// Cached rather than rebuilt per label — this runs for every tick of every axis
+// redraw, and below API 26 it resolves through desugared java.time, which is not
+// free. Keyed by locale so switching device language still takes effect.
+private val slotFormatters = ConcurrentHashMap<Locale, DateTimeFormatter>()
 
 // The AM/PM marker comes from the device's CLDR data, which on older API levels is
 // several revisions behind what the pattern expects. A wrong marker is cosmetic; an
@@ -34,7 +36,11 @@ private val slotFormatterFallback = DateTimeFormatter.ofPattern("H:mm")
 /** Local-time "h:mm a" label for [instant]. */
 internal fun formatSlotLabel(instant: Instant): String {
     val local = instant.atZone(ZoneId.systemDefault())
-    return runCatching { slotFormatter.format(local) }
+    val locale = Locale.getDefault()
+    val formatter = slotFormatters.getOrPut(locale) {
+        DateTimeFormatter.ofPattern("h:mm a", locale)
+    }
+    return runCatching { formatter.format(local) }
         .getOrElse { slotFormatterFallback.format(local) }
 }
 

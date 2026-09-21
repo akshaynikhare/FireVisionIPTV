@@ -17,7 +17,10 @@ android {
 
     defaultConfig {
         applicationId = "com.cadnative.firevisioniptv"
-        minSdk = 28
+        minSdk = 23
+        // English-only UI; without this the APK carries every locale shipped by
+        // AndroidX, Material3 and Play Services.
+        resourceConfigurations += listOf("en")
         targetSdk = 36
         versionCode = 5
         versionName = if (project.hasProperty("versionName")) {
