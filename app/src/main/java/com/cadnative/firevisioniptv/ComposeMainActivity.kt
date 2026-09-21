@@ -263,8 +263,9 @@ class ComposeMainActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         // API 31+ auto-enters via setAutoEnterEnabled (PipController) — entering
-        // here as well would double-trigger on some paths.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+        // here as well would double-trigger on some paths. Below 26 the params
+        // class does not exist at all, hence the lower bound.
+        if (Build.VERSION.SDK_INT in Build.VERSION_CODES.O until Build.VERSION_CODES.S &&
             isPlayerActive && isPlayerPlaying && isMobileDevice(this)
         ) {
             val params = PictureInPictureParams.Builder()

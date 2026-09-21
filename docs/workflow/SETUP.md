@@ -58,7 +58,7 @@ Access in code via `BuildConfig.API_BASE_URL`.
 1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
 2. Add an Android app with package name `com.cadnative.firevisioniptv`
 3. Download `google-services.json` and place it in the `app/` directory
-4. Firebase services used: Analytics, Realtime Database, Firestore
+4. Firebase services used: Analytics only (crash reporting is Sentry)
 
 ### Release Signing
 

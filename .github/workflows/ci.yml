@@ -3,8 +3,9 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+  # Every pull request, not only those targeting main: a stacked PR is based on
+  # its parent branch, so a base filter silently gives it no CI at all.
   pull_request:
-    branches: [ main, develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,13 +27,22 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # lintDebug rather than lint: it matches the variant abortOnError gates,
+      # and skips re-analysing release for no extra signal.
       - name: Lint check
-        run: ./gradlew lint
+        run: ./gradlew lintDebug
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
 
       - name: Run unit tests + generate coverage
         run: ./gradlew testDebugUnitTest jacocoTestReport
@@ -67,7 +77,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -80,3 +90,36 @@ jobs:
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+  # R8 only runs on release, so a minified build is the only thing that catches a
+  # missing keep rule after a dependency is dropped — the failure mode is a crash
+  # on launch in a build nobody assembled until tagging.
+  assemble-release:
+    name: Assemble Release (R8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build minified release APK
+        run: ./gradlew assembleRelease -PallowUnsignedRelease
+
+      - name: Upload R8 mapping
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mapping
+          path: app/build/outputs/mapping/release/mapping.txt

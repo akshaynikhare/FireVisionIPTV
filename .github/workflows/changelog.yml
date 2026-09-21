@@ -1,13 +1,17 @@
 name: Update Changelog on Release
 
+# Chained off the release run rather than the tag. Both used to fire on the same
+# push and race each other to main, and a failed release still got a changelog
+# entry for a release that was never published.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["Build and Release APK"]
+    types: [completed]
 
 jobs:
   changelog:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
 
@@ -16,12 +20,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get tag info
         id: tag_info
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${{ github.event.workflow_run.head_branch }}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
 

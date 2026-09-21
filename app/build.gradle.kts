@@ -5,11 +5,11 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.google.firebase.firebase-perf")
     id("io.sentry.android.gradle")
     id("jacoco")
 }
+
+val hasReleaseSigning = System.getenv("SIGNING_KEY_STORE") != null
 
 android {
     namespace = "com.cadnative.firevisioniptv"
@@ -17,14 +17,38 @@ android {
 
     defaultConfig {
         applicationId = "com.cadnative.firevisioniptv"
-        minSdk = 28
+        minSdk = 23
+        // English-only UI; without this the APK carries every locale shipped by
+        // AndroidX, Material3 and Play Services.
+        resourceConfigurations += listOf("en")
         targetSdk = 36
-        versionCode = 5
-        versionName = if (project.hasProperty("versionName")) {
-            project.property("versionName") as String
-        } else {
-            "1.5"
+        val resolvedVersionName = (project.findProperty("versionName") as String?) ?: "1.5"
+        versionName = resolvedVersionName
+        // Derived from the tag rather than hand-maintained: it was pinned at 5 while
+        // versionName moved with every release, so in-place updates had nothing
+        // monotonic to compare. 1.5 -> 10500. Floored above the last published code.
+        //
+        // Validated first, because the arithmetic below silently maps anything
+        // non-numeric to zero: release.yml fires on every `v*` tag, so `v2.2.3-beta`
+        // would land on 20200 — the same code as v2.2.0 — and a tag that kept its
+        // `v` would land on 203, a downgrade. Both are unrecoverable once published,
+        // since the in-app updater is the thing that breaks. A tag typo must fail
+        // the build, not ship.
+        val versionParts = resolvedVersionName.split(".")
+        require(versionParts.size in 2..3 && versionParts.all { it.isNotEmpty() && it.all(Char::isDigit) }) {
+            "versionName must be MAJOR.MINOR or MAJOR.MINOR.PATCH with numeric parts only, " +
+                "got \"$resolvedVersionName\". release.yml derives this from the tag, so drop the " +
+                "leading 'v' and any pre-release suffix."
         }
+        require(versionParts.drop(1).all { it.toInt() < 100 }) {
+            "versionName components after MAJOR must each be below 100 or the derived " +
+                "versionCode stops being monotonic, got \"$resolvedVersionName\"."
+        }
+        versionCode = (
+            versionParts[0].toInt() * 10000 +
+                versionParts[1].toInt() * 100 +
+                (versionParts.getOrNull(2)?.toInt() ?: 0)
+            ).coerceAtLeast(6)
         
         // API Base URL configuration
         buildConfigField("String", "API_BASE_URL", "\"https://tv.cadnative.com/\"")
@@ -49,11 +73,20 @@ android {
     }
 
     testOptions {
-        unitTests.isReturnDefaultValues = true
+        unitTests {
+            isReturnDefaultValues = true
+            // Lets JVM tests read the merged manifest and resources.
+            isIncludeAndroidResources = true
+        }
     }
 
     lint {
-        abortOnError = false
+        // Lint gates CI. The baseline absorbs findings that predate that decision;
+        // it deliberately contains no NewApi/InlinedApi entries, since those are the
+        // class of defect the minSdk floor introduces and must stay loud.
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
+        error += setOf("NewApi", "InlinedApi", "StringFormatInvalid", "StringFormatMatches")
         checkReleaseBuilds = false
         // Release resource shrinking handles legacy XML assets; dependency upgrades and
         // icon/vector redesigns are tracked separately from correctness lint.
@@ -77,7 +110,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else null
         }
         create("dev") {
             initWith(getByName("debug"))
@@ -89,6 +122,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // java.time is the EPG's core domain type (EpgProgram.startTime et al) and
+        // only exists natively from API 26 — desugaring is what lets minSdk drop.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -105,6 +141,8 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     // AndroidX Leanback (updated)
     implementation(libs.androidx.leanback)
     implementation(libs.androidx.appcompat)
@@ -116,10 +154,6 @@ dependencies {
     // Firebase - using BoM for version management
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.perf)
-    implementation(libs.firebase.database)
-    implementation(libs.firebase.firestore)
 
     // TV Provider support
     implementation(libs.androidx.tvprovider)
@@ -198,15 +232,48 @@ dependencies {
     testImplementation(libs.turbine)
 }
 
+// Without a keystore the release signingConfig is left empty and assembleRelease
+// still succeeds — producing an unsigned APK that the release workflow would
+// happily publish. Fail instead, with an opt-out for local smoke builds.
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        require(hasReleaseSigning || project.hasProperty("allowUnsignedRelease")) {
+            "SIGNING_KEY_STORE is not set — refusing to build an unsigned release. " +
+                "Use -PallowUnsignedRelease for a local unsigned build."
+        }
+    }
+}
+
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Uploading the R8 mapping and the source bundle needs a Sentry auth token, and
+// the plugin's upload tasks fail the build rather than skipping when there isn't
+// one. Only release.yml holds the secret, so without this gate assembleRelease
+// is red on every PR and every fork — after R8 has already succeeded, which is
+// the part CI is actually there to verify.
+//
+// Skipping silently is right for ordinary CI and wrong for a publish: a release
+// built without the token still produces an installable APK, but its production
+// crashes can never be de-obfuscated, and nothing would have said so. release.yml
+// passes -PrequireSentryUpload so the publishing path fails loudly instead.
+val sentryAuthToken: String? = System.getenv("SENTRY_AUTH_TOKEN")?.takeIf { it.isNotBlank() }
+
+if (project.hasProperty("requireSentryUpload")) {
+    require(sentryAuthToken != null) {
+        "SENTRY_AUTH_TOKEN is not set. This build would publish an APK whose crash " +
+            "reports cannot be de-obfuscated. Set the secret, or drop " +
+            "-PrequireSentryUpload if you deliberately want an unmapped build."
+    }
+}
+
 sentry {
-    includeSourceContext = true
+    includeSourceContext = sentryAuthToken != null
+    autoUploadProguardMapping = sentryAuthToken != null
     org = "cadnative-design-solution"
     projectName = "firevisioniptv"
-    authToken = System.getenv("SENTRY_AUTH_TOKEN")
+    authToken = sentryAuthToken
 }
 
 tasks.withType<Test> {
@@ -263,4 +330,18 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     executionData.setFrom(fileTree(layout.buildDirectory.get()) {
         include("jacoco/testDebugUnitTest.exec")
     })
+
+    // classDirectories points at an AGP-internal intermediates path that only
+    // exists because a plugin runs ASM instrumentation. If AGP renames it, or the
+    // last instrumenting plugin is removed, jacoco reports 0% rather than failing
+    // — so assert we actually resolved some bytecode.
+    doFirst {
+        val hasClasses = classDirectories.files.any { dir ->
+            dir.exists() && dir.walkTopDown().any { it.extension == "class" }
+        }
+        require(hasClasses) {
+            "jacoco resolved no .class files — the AGP ASM intermediates path has moved. " +
+                "Check app/build/intermediates/classes/debug/."
+        }
+    }
 }

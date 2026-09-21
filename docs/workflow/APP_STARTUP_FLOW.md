@@ -12,7 +12,7 @@ On app start, the priority is **show channels fast**. The app shell and ViewMode
 flowchart TD
     A[App Launch] --> B[FireVisionApplication.onCreate]
     B --> B1[Hilt DI init]
-    B --> B2[Firebase Crashlytics init]
+    B --> B2[Sentry init]
     B --> B3[WorkManager: schedule 6hr channel sync]
 
     B --> C[ComposeMainActivity.onCreate]

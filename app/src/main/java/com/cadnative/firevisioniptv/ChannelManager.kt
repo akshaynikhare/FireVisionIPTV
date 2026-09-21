@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.media.tv.TvContract
+import android.os.Build
 import android.net.Uri
 import android.util.Log
 import androidx.tvprovider.media.tv.TvContractCompat
@@ -233,6 +234,13 @@ class ChannelManager private constructor(
     }
 
     fun triggerChannelUpdate() {
+        // ACTION_INITIALIZE_PROGRAMS is API 26. The constant inlines, so sending it
+        // on an older device is harmless — but nothing handles it, so skip the work
+        // and let the boot receiver plus the WorkManager sync populate channels.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.d(TAG, "Channel update broadcast unsupported below API 26 — relying on sync")
+            return
+        }
         val intent = Intent(TvContract.ACTION_INITIALIZE_PROGRAMS).apply {
             component = ComponentName(context, ChannelUpdateReceiver::class.java)
         }

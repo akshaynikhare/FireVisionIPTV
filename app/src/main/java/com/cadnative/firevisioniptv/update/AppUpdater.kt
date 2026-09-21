@@ -5,12 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import com.cadnative.firevisioniptv.data.AppPreferences
 import com.cadnative.firevisioniptv.data.PinnedHttpClient
 import com.cadnative.firevisioniptv.presentation.model.UpdateInfo
@@ -212,22 +212,14 @@ class AppUpdater @Inject constructor(
     }
 
     private fun verifyApkSignature(apkFile: File): Boolean {
-        return try {
-            val currentSigs = context.packageManager.getPackageInfo(
-                context.packageName, PackageManager.GET_SIGNING_CERTIFICATES
-            ).signingInfo?.apkContentsSigners
-            val apkSigs = context.packageManager.getPackageArchiveInfo(
-                apkFile.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES
-            )?.signingInfo?.apkContentsSigners
-            if (currentSigs.isNullOrEmpty() || apkSigs.isNullOrEmpty()) {
-                Log.e(TAG, "Could not retrieve signatures for verification")
-                return false
-            }
-            currentSigs[0].toByteArray().contentEquals(apkSigs[0].toByteArray())
-        } catch (e: Exception) {
-            Log.e(TAG, "Signature verification error", e)
-            false
+        val pm = context.packageManager
+        val currentSigs = ApkSignatures.installed(pm, context.packageName)
+        val apkSigs = ApkSignatures.archive(pm, apkFile.absolutePath)
+        if (currentSigs == null || apkSigs == null) {
+            Log.e(TAG, "Could not retrieve signatures for verification")
+            return false
         }
+        return ApkSignatures.accepts(currentSigs, apkSigs)
     }
 
     /** Unregister the download receiver — call from the owner's onCleared. */
@@ -251,7 +243,7 @@ class AppUpdater @Inject constructor(
 
     private fun getVersionCode(): Int = try {
         val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
-        pkg.longVersionCode.toInt()
+        PackageInfoCompat.getLongVersionCode(pkg).toInt()
     } catch (_: Exception) {
         1
     }

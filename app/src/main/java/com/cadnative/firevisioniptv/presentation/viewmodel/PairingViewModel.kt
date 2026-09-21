@@ -285,8 +285,11 @@ class PairingViewModel @Inject constructor(
     private fun parseISO8601(dateStr: String?): Long {
         if (dateStr.isNullOrBlank()) return fallbackExpiry()
         return try {
-            val cleaned = dateStr.replace("Z", "+00:00")
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
+            // 'X' needs API 24; 'Z' works everywhere but wants +0000, not +00:00.
+            val cleaned = dateStr
+                .replace("Z", "+0000")
+                .replace(Regex("([+-]\\d{2}):(\\d{2})$"), "$1$2")
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
             sdf.parse(cleaned)?.time ?: fallbackExpiry()
         } catch (_: Exception) {
             fallbackExpiry()

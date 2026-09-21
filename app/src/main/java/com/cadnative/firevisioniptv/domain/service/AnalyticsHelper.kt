@@ -2,14 +2,22 @@ package com.cadnative.firevisioniptv.domain.service
 
 import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
+import io.sentry.protocol.User
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Product analytics go to Firebase; diagnostics go to Sentry.
+ *
+ * Sentry reports uncaught crashes on its own, but until something calls
+ * [logError] nothing reports a *handled* exception — the places that catch and
+ * continue are exactly the ones worth seeing.
+ */
 @Singleton
 class AnalyticsHelper @Inject constructor(
-    private val analytics: FirebaseAnalytics,
-    private val crashlytics: FirebaseCrashlytics
+    private val analytics: FirebaseAnalytics
 ) {
 
     // --- Analytics ---
@@ -37,23 +45,24 @@ class AnalyticsHelper @Inject constructor(
         analytics.setUserProperty(key, value)
     }
 
-    // --- Crashlytics ---
+    // --- Diagnostics ---
 
+    /** Report a handled exception, with [message] recorded as leading context. */
     fun logError(throwable: Throwable, message: String? = null) {
-        message?.let { crashlytics.log(it) }
-        crashlytics.recordException(throwable)
+        message?.let { log(it) }
+        Sentry.captureException(throwable)
     }
 
     fun log(message: String) {
-        crashlytics.log(message)
+        Sentry.addBreadcrumb(Breadcrumb.info(message))
     }
 
     fun setUserId(userId: String) {
         analytics.setUserId(userId)
-        crashlytics.setUserId(userId)
+        Sentry.setUser(User().apply { id = userId })
     }
 
     fun setCustomKey(key: String, value: String) {
-        crashlytics.setCustomKey(key, value)
+        Sentry.setTag(key, value)
     }
 }

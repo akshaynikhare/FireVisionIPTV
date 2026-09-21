@@ -2,8 +2,33 @@ package com.cadnative.firevisioniptv.security
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.io.File
+
+/**
+ * Deletes a SharedPreferences file outright.
+ *
+ * `Context.deleteSharedPreferences` is API 24, so below that the in-memory map is
+ * cleared synchronously and the backing XML removed by hand. Both halves matter:
+ * a stale file still bound to a dead master key fails `EncryptedSharedPreferences
+ * .create` a second time, which would throw and cost the user their stored
+ * credentials rather than recovering.
+ */
+internal fun clearPrefsFile(context: Context, name: String) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        context.deleteSharedPreferences(name)
+        return
+    }
+    // commit(), not apply() — the retry below is synchronous and must see the
+    // cleared state, so deferring the write to a background thread would race it.
+    @Suppress("ApplySharedPref")
+    context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
+    runCatching {
+        File(File(context.applicationInfo.dataDir, "shared_prefs"), "$name.xml").delete()
+    }
+}
 
 /**
  * Secure preferences using EncryptedSharedPreferences for sensitive data.
@@ -28,7 +53,7 @@ class SecurePreferences(context: Context) {
             )
         } catch (_: Exception) {
             // Keystore corrupted — clear and retry once
-            context.deleteSharedPreferences("secure_prefs")
+            clearPrefsFile(context, "secure_prefs")
             try {
                 val masterKey = MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)

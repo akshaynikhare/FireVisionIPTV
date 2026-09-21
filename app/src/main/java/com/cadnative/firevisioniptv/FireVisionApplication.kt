@@ -5,7 +5,6 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.cadnative.firevisioniptv.worker.WorkManagerInitializer
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.SentryEvent
 import io.sentry.SentryOptions
@@ -28,10 +27,7 @@ class FireVisionApplication : Application(), Configuration.Provider {
         super.onCreate()
         instance = this
 
-        FirebaseCrashlytics.getInstance().apply {
-            setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
-        }
-        // Same gate for Analytics — debug sessions must not pollute production data
+        // Debug sessions must not pollute production data
         FirebaseAnalytics.getInstance(this).setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
 
         // Filter out noisy Sentry HTTP client errors from health scan / thumbnail extraction.

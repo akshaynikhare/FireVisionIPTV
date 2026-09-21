@@ -8,7 +8,7 @@ Build, test, and distribute the FireVision IPTV Android app for Fire TV.
 |-------------|---------|
 | Android Studio | Arctic Fox+ |
 | JDK | 8+ |
-| Min SDK | 28 (Android 9) |
+| Min SDK | 23 (Android 6) |
 | Target SDK | 34 |
 | Fire TV | Stick 4K, Cube, or newer |
 
